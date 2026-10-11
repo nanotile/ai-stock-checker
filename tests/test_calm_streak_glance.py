@@ -150,6 +150,9 @@ def test_calm_streak_glance_promote_off_paused() -> None:
     assert g["window_a_closes_loss_streak_bit"] == ""
     assert g["window_a_closes_loss_streak"] is None
     assert g["window_a_closes_loss_streak_hot"] is False
+    assert g["window_a_closes_loss_streak_max_bit"] == ""
+    assert g["window_a_closes_loss_streak_max"] is None
+    assert g["window_a_closes_loss_streak_max_hot"] is False
     assert "0/30" in g["line"]
     assert "promote off · streak paused" in g["line"]
     assert f"A {a_days}/{WINDOW_A_TARGET_TRADING_DAYS}d" in g["line"]
@@ -1931,10 +1934,126 @@ def test_calm_streak_glance_promote_off_paused_closes_loss_streak_hot() -> None:
     assert g["window_a_closes_loss_streak"] == 3
     assert g["window_a_closes_loss_streak_hot"] is True
     assert g["window_a_closes_loss_streak_bit"] == "loss hot · 3"
+    assert g["window_a_closes_loss_streak_max_bit"] == ""
     assert g["tone"] == "warn"
     assert g["window_a_closes_kelly_sample_bit"] == "K-sample ok · 12 closes"
     assert "K-sample" not in g["line"]  # K-sample stays in fields
     assert "loss hot · 3" in g["line"]
+    assert len(g["line"]) <= 96
+
+
+def test_calm_streak_glance_promote_off_paused_closes_loss_streak_max_quiet() -> None:
+    """Ending loss alone must not hide a quieter peak > ending."""
+    as_of = date(2026, 8, 18)
+    stats = {
+        "trades": 24,
+        "buys": 12,
+        "sells": 12,
+        "fees": 4.0,
+        "realized_pnl": 40.0,
+        "net_after_all_fees": 36.0,
+        "wins": 8,
+        "losses": 4,
+        "avg_win": 8.0,
+        "avg_loss": 4.0,
+        "loss_streak": 0,
+        "loss_streak_max": 1,
+    }
+    g = build_calm_streak_glance(
+        {
+            "calm_streak_days": 0,
+            "calm_required_days": 30,
+            "calm_ready": False,
+            "calm_detail": "promote filter off — streak paused",
+        },
+        as_of=as_of,
+        window_stats=stats,
+    )
+    assert g["window_a_closes_loss_streak"] == 0
+    assert g["window_a_closes_loss_streak_bit"] == "loss quiet · 0"
+    assert g["window_a_closes_loss_streak_max"] == 1
+    assert g["window_a_closes_loss_streak_max_hot"] is False
+    assert g["window_a_closes_loss_streak_max_bit"] == "loss max · 1"
+    assert "loss quiet" not in g["line"]  # ending stays in fields
+    assert "loss max · 1" in g["line"]
+    assert len(g["line"]) <= 96
+
+
+def test_calm_streak_glance_promote_off_paused_closes_loss_streak_max_hot() -> None:
+    """Ending quiet alone must not hide a hot earlier peak (warn)."""
+    as_of = date(2026, 8, 18)
+    stats = {
+        "trades": 24,
+        "buys": 12,
+        "sells": 12,
+        "fees": 4.0,
+        "realized_pnl": 40.0,
+        "net_after_all_fees": 36.0,
+        "wins": 8,
+        "losses": 4,
+        "avg_win": 8.0,
+        "avg_loss": 4.0,
+        "loss_streak": 0,
+        "loss_streak_max": 3,
+    }
+    g = build_calm_streak_glance(
+        {
+            "calm_streak_days": 0,
+            "calm_required_days": 30,
+            "calm_ready": False,
+            "calm_detail": "promote filter off — streak paused",
+        },
+        as_of=as_of,
+        window_stats=stats,
+    )
+    assert g["window_a_closes_loss_streak"] == 0
+    assert g["window_a_closes_loss_streak_hot"] is False
+    assert g["window_a_closes_loss_streak_bit"] == "loss quiet · 0"
+    assert g["window_a_closes_loss_streak_max"] == 3
+    assert g["window_a_closes_loss_streak_max_hot"] is True
+    assert g["window_a_closes_loss_streak_max_bit"] == "loss max · 3"
+    assert g["tone"] == "warn"
+    assert "loss quiet" not in g["line"]  # ending stays in fields
+    assert "loss max · 3" in g["line"]
+    assert len(g["line"]) <= 96
+
+
+def test_calm_streak_glance_promote_off_paused_closes_loss_streak_max_equal_silent() -> None:
+    """Equal peak and ending stay silent on max (ending still speaks)."""
+    as_of = date(2026, 8, 18)
+    stats = {
+        "trades": 24,
+        "buys": 12,
+        "sells": 12,
+        "fees": 4.0,
+        "realized_pnl": 40.0,
+        "net_after_all_fees": 36.0,
+        "wins": 8,
+        "losses": 4,
+        "avg_win": 8.0,
+        "avg_loss": 4.0,
+        "loss_streak": 2,
+        "loss_streak_max": 2,
+    }
+    g = build_calm_streak_glance(
+        {
+            "calm_streak_days": 0,
+            "calm_required_days": 30,
+            "calm_ready": False,
+            "calm_detail": "promote filter off — streak paused",
+        },
+        as_of=as_of,
+        window_stats=stats,
+    )
+    assert g["window_a_closes_loss_streak"] == 2
+    assert g["window_a_closes_loss_streak_hot"] is True
+    assert g["window_a_closes_loss_streak_bit"] == "loss hot · 2"
+    assert g["window_a_closes_loss_streak_max"] is None
+    assert g["window_a_closes_loss_streak_max_bit"] == ""
+    assert g["window_a_closes_loss_streak_max_hot"] is False
+    assert "loss max" not in g["line"]
+    assert "loss hot · 2" in g["line"]
+    assert g["tone"] == "warn"
     assert len(g["line"]) <= 96
 
 
