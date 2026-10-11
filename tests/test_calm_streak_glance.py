@@ -194,6 +194,12 @@ def test_calm_streak_glance_promote_off_paused() -> None:
     assert g["window_a_closes_win_streak_cv_bit"] == ""
     assert g["window_a_closes_win_streak_cv"] is None
     assert g["window_a_closes_win_streak_cv_hot"] is False
+    assert g["window_a_closes_exit_mix_bit"] == ""
+    assert g["window_a_closes_exit_mix_hot"] is False
+    assert g["window_a_closes_exit_tp"] is None
+    assert g["window_a_closes_exit_sl"] is None
+    assert g["window_a_closes_exit_rot"] is None
+    assert g["window_a_closes_exit_trim"] is None
     assert "0/30" in g["line"]
     assert "promote off · streak paused" in g["line"]
     assert f"A {a_days}/{WINDOW_A_TARGET_TRADING_DAYS}d" in g["line"]
@@ -4810,6 +4816,185 @@ def test_calm_streak_glance_promote_off_paused_closes_win_streak_cv_missing_fail
     assert g["window_a_closes_win_streak_cv_hot"] is False
     assert "win CV" not in g["line"]
     assert "loss CV · 0.5 · 3 runs" in g["line"]
+    assert len(g["line"]) <= 96
+
+
+def test_calm_streak_glance_promote_off_paused_closes_exit_mix_hot() -> None:
+    """Win CV alone must not hide stops+rot+trim leading TP (warns only)."""
+    as_of = date(2026, 8, 18)
+    runtime = {
+        "calm_streak_days": 0,
+        "calm_required_days": 30,
+        "calm_ready": False,
+        "calm_detail": "promote filter off — streak paused",
+    }
+    base = {
+        "trades": 24,
+        "buys": 12,
+        "sells": 12,
+        "fees": 4.0,
+        "realized_pnl": 40.0,
+        "net_after_all_fees": 36.0,
+        "wins": 8,
+        "losses": 4,
+        "avg_win": 8.0,
+        "avg_loss": 4.0,
+        "loss_streak": 0,
+        "loss_streak_max": 4,
+        "win_streak": 0,
+        "win_streak_max": 4,
+        "flat_closes": 0,
+        "loss_streak_mean": 2.0,
+        "loss_streak_runs": 3,
+        "loss_streak_median": 1.0,
+        "win_streak_mean": 2.0,
+        "win_streak_runs": 3,
+        "win_streak_median": 1.0,
+        "loss_streak_min": 1,
+        "win_streak_min": 1,
+        "loss_streak_stdev": 1.0,
+        "win_streak_stdev": 1.0,
+        "loss_streak_cv": 0.5,
+        "win_streak_cv": 0.5,
+    }
+    without = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats=base,
+    )
+    g = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats={
+            **base,
+            "exit_tp": 1,
+            "exit_sl": 2,
+            "exit_rot": 1,
+            "exit_trim": 0,
+        },
+    )
+    assert g["window_a_closes_exit_tp"] == 1
+    assert g["window_a_closes_exit_sl"] == 2
+    assert g["window_a_closes_exit_rot"] == 1
+    assert g["window_a_closes_exit_trim"] == 0
+    assert g["window_a_closes_exit_mix_hot"] is True
+    assert g["window_a_closes_exit_mix_bit"] == "exits tp 1 · sl 2 · rot 1"
+    assert g["tone"] == "warn"
+    assert "exits" not in without["line"]
+    assert "win CV" not in g["line"]  # win CV stays in fields
+    assert "exits tp 1 · sl 2 · rot 1" in g["line"]
+    assert len(g["line"]) <= 96
+
+
+def test_calm_streak_glance_promote_off_paused_closes_exit_mix_tp_led() -> None:
+    """TP-led exit mix speaks without escalating tone."""
+    as_of = date(2026, 8, 18)
+    runtime = {
+        "calm_streak_days": 0,
+        "calm_required_days": 30,
+        "calm_ready": False,
+        "calm_detail": "promote filter off — streak paused",
+    }
+    base = {
+        "trades": 24,
+        "buys": 12,
+        "sells": 12,
+        "fees": 4.0,
+        "realized_pnl": 40.0,
+        "net_after_all_fees": 36.0,
+        "wins": 8,
+        "losses": 4,
+        "avg_win": 8.0,
+        "avg_loss": 4.0,
+        "loss_streak": 0,
+        "loss_streak_max": 3,
+        "win_streak": 0,
+        "win_streak_max": 3,
+        "flat_closes": 0,
+        "loss_streak_mean": 2.0,
+        "loss_streak_runs": 3,
+        "loss_streak_median": 1.0,
+        "win_streak_mean": 2.0,
+        "win_streak_runs": 3,
+        "win_streak_median": 1.0,
+        "loss_streak_min": 1,
+        "win_streak_min": 1,
+        "loss_streak_stdev": 1.0,
+        "win_streak_stdev": 1.0,
+        "loss_streak_cv": 0.5,
+        "win_streak_cv": 0.5,
+    }
+    without = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats=base,
+    )
+    g = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats={
+            **base,
+            "exit_tp": 3,
+            "exit_sl": 1,
+            "exit_rot": 0,
+            "exit_trim": 0,
+        },
+    )
+    assert g["window_a_closes_exit_mix_hot"] is False
+    assert g["window_a_closes_exit_mix_bit"] == "exits tp 3 · sl 1"
+    assert g["tone"] == without["tone"]
+    assert "exits tp 3 · sl 1" in g["line"]
+    assert "win CV" not in g["line"]
+    assert len(g["line"]) <= 96
+
+
+def test_calm_streak_glance_promote_off_paused_closes_exit_mix_missing_fail_open() -> None:
+    """Missing exit_* keys fail-open — do not invent a mix bit."""
+    as_of = date(2026, 8, 18)
+    stats = {
+        "trades": 24,
+        "buys": 12,
+        "sells": 12,
+        "fees": 4.0,
+        "realized_pnl": 40.0,
+        "net_after_all_fees": 36.0,
+        "wins": 6,
+        "losses": 4,
+        "avg_win": 8.0,
+        "avg_loss": 4.0,
+        "loss_streak": 0,
+        "loss_streak_max": 3,
+        "win_streak": 0,
+        "win_streak_max": 3,
+        "flat_closes": 0,
+        "loss_streak_mean": 2.0,
+        "loss_streak_runs": 3,
+        "loss_streak_median": 1.0,
+        "win_streak_mean": 2.0,
+        "win_streak_runs": 3,
+        "win_streak_median": 1.0,
+        "loss_streak_min": 1,
+        "win_streak_min": 1,
+        "loss_streak_stdev": 1.0,
+        "win_streak_stdev": 1.0,
+        "loss_streak_cv": 0.5,
+        "win_streak_cv": 0.5,
+    }
+    g = build_calm_streak_glance(
+        {
+            "calm_streak_days": 0,
+            "calm_required_days": 30,
+            "calm_ready": False,
+            "calm_detail": "promote filter off — streak paused",
+        },
+        as_of=as_of,
+        window_stats=stats,
+    )
+    assert g["window_a_closes_exit_mix_bit"] == ""
+    assert g["window_a_closes_exit_mix_hot"] is False
+    assert g["window_a_closes_exit_tp"] is None
+    assert "exits" not in g["line"]
+    assert "win CV · 0.5 · 3 runs" in g["line"]
     assert len(g["line"]) <= 96
 
 
