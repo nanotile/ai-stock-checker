@@ -2417,6 +2417,9 @@ def build_calm_streak_glance(
         "window_a_closes_win_streak_bit": "",
         "window_a_closes_win_streak": None,
         "window_a_closes_win_streak_hot": False,
+        "window_a_closes_win_streak_max_bit": "",
+        "window_a_closes_win_streak_max": None,
+        "window_a_closes_win_streak_max_hot": False,
     }
     if not isinstance(runtime, dict) or not runtime:
         return empty
@@ -2540,6 +2543,9 @@ def build_calm_streak_glance(
     window_a_closes_win_streak_bit = ""
     window_a_closes_win_streak: int | None = None
     window_a_closes_win_streak_hot = False
+    window_a_closes_win_streak_max_bit = ""
+    window_a_closes_win_streak_max: int | None = None
+    window_a_closes_win_streak_max_hot = False
     if calm_ready:
         tone = "ready"
         status = "compose promote default ready"
@@ -2550,25 +2556,27 @@ def build_calm_streak_glance(
         # WR vs BE + net expectancy + fee take + net PF + net/fee +
         # Kelly + half-Kelly vs sizer + half-Kelly vs slot + half-Kelly
         # vs conc cap + quarter-Kelly triad + pract-K + K-sample +
-        # loss streak + loss streak max + win streak + fill/sell meters
-        # beside the pause — calm glance alone hid day floor / thin ledger /
-        # building vs ready / fee-burned edge / mild vs severe drag /
-        # all-win vs all-loss / count lean ≠ € payoff / payoff ≠ €/close /
-        # €/close ≠ total-€ PF / PF ≠ hit rate / hit rate ≠ cushion vs
-        # breakeven / gross €/close ≠ fee-adjusted net €/close / net ≠
-        # fee take €/close / fee take ≠ fee-adjusted PF / net PF ≠
-        # net÷fee-take multiples / WR−BE ≠ size fraction / full Kelly ≠
-        # cash sizer slice / cash sizer ≠ equal book weight / equal slot ≠
-        # single-name ceiling / half-Kelly ≠ quarter-Kelly vs cash slice /
-        # triad comparisons ≠ one practical Kelly pick ≠ Kelly sample size ≠
-        # newest losing-close run ≠ peak > ending loss run ≠ newest
-        # winning-close run
+        # loss streak + loss streak max + win streak + win streak max +
+        # fill/sell meters beside the pause — calm glance alone hid day
+        # floor / thin ledger / building vs ready / fee-burned edge /
+        # mild vs severe drag / all-win vs all-loss / count lean ≠ €
+        # payoff / payoff ≠ €/close / €/close ≠ total-€ PF / PF ≠ hit
+        # rate / hit rate ≠ cushion vs breakeven / gross €/close ≠
+        # fee-adjusted net €/close / net ≠ fee take €/close / fee take ≠
+        # fee-adjusted PF / net PF ≠ net÷fee-take multiples / WR−BE ≠
+        # size fraction / full Kelly ≠ cash sizer slice / cash sizer ≠
+        # equal book weight / equal slot ≠ single-name ceiling /
+        # half-Kelly ≠ quarter-Kelly vs cash slice / triad comparisons ≠
+        # one practical Kelly pick ≠ Kelly sample size ≠ newest
+        # losing-close run ≠ peak > ending loss run ≠ newest
+        # winning-close run ≠ peak > ending win run
         # (days ≠ fills ≠ fair sample ≠ net edge ≠ severity band ≠
         # win/lose mix ≠ avg-win÷avg-loss ≠ expectancy ≠ PF ≠ WR% ≠
         # WR−BE ≠ net expect ≠ fee take ≠ net PF ≠ net/fee ≠ Kelly ≠
         # half-Kelly vs sizer ≠ half-Kelly vs slot ≠ half-Kelly vs
         # conc cap ≠ quarter-Kelly vs sizer ≠ practical Kelly ≠
-        # Kelly sample thin/ok ≠ loss quiet/hot ≠ loss max ≠ win quiet/hot).
+        # Kelly sample thin/ok ≠ loss quiet/hot ≠ loss max ≠ win quiet/hot
+        # ≠ win max).
         tone = "paused"
         status = "promote off · streak paused"
         from stock_checker.promote_ab import (
@@ -4303,6 +4311,56 @@ def build_calm_streak_glance(
                     status = (
                         f"{status} · {window_a_closes_win_streak_bit}"
                     )
+                # Win streak max after ending win — ending alone hid an
+                # earlier peak (xang1234 max-vs-ending + portfolio AI
+                # speak-both-sides). Compact "A win streak max …" →
+                # "win max …"; drop ending win from the line when max
+                # spoke so the 96-char clip keeps the peak (ending stays
+                # in fields). Hot ≥2 speaks, does not warn. Silent when
+                # peak ≤ ending / missing key (fail-open).
+                raw_ws_max = str(
+                    sample.get("closes_win_streak_max_bit") or ""
+                ).strip()
+                if raw_ws_max:
+                    window_a_closes_win_streak_max_bit = (
+                        raw_ws_max.replace(
+                            "A win streak max", "win max", 1
+                        ).strip()
+                    )
+                    window_a_closes_win_streak_max_hot = bool(
+                        sample.get("closes_win_streak_max_hot")
+                    )
+                    try:
+                        wsm = sample.get("closes_win_streak_max")
+                        window_a_closes_win_streak_max = (
+                            int(wsm) if wsm is not None else None
+                        )
+                    except (TypeError, ValueError):
+                        window_a_closes_win_streak_max = None
+                    if window_a_closes_win_streak_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_win_streak_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_loss_streak_max_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_loss_streak_max_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_loss_streak_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_loss_streak_bit}",
+                            "",
+                            1,
+                        )
+                    status = status.replace(
+                        "streak paused", "paused", 1
+                    )
+                    status = (
+                        f"{status} · {window_a_closes_win_streak_max_bit}"
+                    )
             # Fill meters stay in fields; omit from the line when mood spoke
             # so the 96-char clip keeps severity over N/M counts.
             if not window_a_fee_mood_bit:
@@ -4360,8 +4418,9 @@ def build_calm_streak_glance(
                 # closes (win/lose counts ≠ a current run).
                 # Loss streak max hot: ending alone hid an earlier peak
                 # that exceeds the newest run (max > ending).
-                # Win streak hot speaks only (does not warn) — speak-both-
-                # sides after loss; win/lose counts ≠ a current win run.
+                # Win streak / win streak max hot speak only (do not warn)
+                # — speak-both-sides after loss; win/lose counts ≠ a
+                # current win run; ending alone ≠ earlier peak.
                 if (
                     (
                         window_a_days >= window_a_target_days
@@ -4632,6 +4691,15 @@ def build_calm_streak_glance(
         ),
         "window_a_closes_win_streak_hot": (
             window_a_closes_win_streak_hot
+        ),
+        "window_a_closes_win_streak_max_bit": (
+            window_a_closes_win_streak_max_bit
+        ),
+        "window_a_closes_win_streak_max": (
+            window_a_closes_win_streak_max
+        ),
+        "window_a_closes_win_streak_max_hot": (
+            window_a_closes_win_streak_max_hot
         ),
     }
 

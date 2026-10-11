@@ -156,6 +156,9 @@ def test_calm_streak_glance_promote_off_paused() -> None:
     assert g["window_a_closes_win_streak_bit"] == ""
     assert g["window_a_closes_win_streak"] is None
     assert g["window_a_closes_win_streak_hot"] is False
+    assert g["window_a_closes_win_streak_max_bit"] == ""
+    assert g["window_a_closes_win_streak_max"] is None
+    assert g["window_a_closes_win_streak_max_hot"] is False
     assert "0/30" in g["line"]
     assert "promote off · streak paused" in g["line"]
     assert f"A {a_days}/{WINDOW_A_TARGET_TRADING_DAYS}d" in g["line"]
@@ -2170,6 +2173,124 @@ def test_calm_streak_glance_promote_off_paused_closes_win_streak_drops_loss_max(
     assert g["window_a_closes_win_streak_hot"] is True
     assert g["window_a_closes_win_streak_bit"] == "win hot · 2"
     assert "loss max" not in g["line"]  # max stays in fields
+    assert "win hot · 2" in g["line"]
+    assert len(g["line"]) <= 96
+
+
+def test_calm_streak_glance_promote_off_paused_closes_win_streak_max_quiet() -> None:
+    """Ending win alone must not hide a quieter peak > ending."""
+    as_of = date(2026, 8, 18)
+    stats = {
+        "trades": 24,
+        "buys": 12,
+        "sells": 12,
+        "fees": 4.0,
+        "realized_pnl": 40.0,
+        "net_after_all_fees": 36.0,
+        "wins": 8,
+        "losses": 4,
+        "avg_win": 8.0,
+        "avg_loss": 4.0,
+        "loss_streak": 0,
+        "win_streak": 0,
+        "win_streak_max": 1,
+    }
+    g = build_calm_streak_glance(
+        {
+            "calm_streak_days": 0,
+            "calm_required_days": 30,
+            "calm_ready": False,
+            "calm_detail": "promote filter off — streak paused",
+        },
+        as_of=as_of,
+        window_stats=stats,
+    )
+    assert g["window_a_closes_win_streak"] == 0
+    assert g["window_a_closes_win_streak_bit"] == "win quiet · 0"
+    assert g["window_a_closes_win_streak_max"] == 1
+    assert g["window_a_closes_win_streak_max_hot"] is False
+    assert g["window_a_closes_win_streak_max_bit"] == "win max · 1"
+    assert "win quiet" not in g["line"]  # ending stays in fields
+    assert "win max · 1" in g["line"]
+    assert len(g["line"]) <= 96
+
+
+def test_calm_streak_glance_promote_off_paused_closes_win_streak_max_hot() -> None:
+    """Ending win alone must not hide a hotter peak (speaks, no warn)."""
+    as_of = date(2026, 8, 18)
+    runtime = {
+        "calm_streak_days": 0,
+        "calm_required_days": 30,
+        "calm_ready": False,
+        "calm_detail": "promote filter off — streak paused",
+    }
+    base = {
+        "trades": 24,
+        "buys": 12,
+        "sells": 12,
+        "fees": 4.0,
+        "realized_pnl": 40.0,
+        "net_after_all_fees": 36.0,
+        "wins": 8,
+        "losses": 4,
+        "avg_win": 8.0,
+        "avg_loss": 4.0,
+        "loss_streak": 0,
+        "win_streak": 0,
+    }
+    without = build_calm_streak_glance(
+        runtime, as_of=as_of, window_stats=base
+    )
+    g = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats={**base, "win_streak_max": 3},
+    )
+    assert g["window_a_closes_win_streak"] == 0
+    assert g["window_a_closes_win_streak_max"] == 3
+    assert g["window_a_closes_win_streak_max_hot"] is True
+    assert g["window_a_closes_win_streak_max_bit"] == "win max · 3"
+    # Hot win max speaks but must not escalate tone vs the same book without it.
+    assert g["tone"] == without["tone"]
+    assert "win quiet" not in g["line"]  # ending stays in fields
+    assert "win max · 3" in g["line"]
+    assert len(g["line"]) <= 96
+
+
+def test_calm_streak_glance_promote_off_paused_closes_win_streak_max_equal_silent() -> None:
+    """Equal peak stays silent — ending already owns the clip."""
+    as_of = date(2026, 8, 18)
+    stats = {
+        "trades": 24,
+        "buys": 12,
+        "sells": 12,
+        "fees": 4.0,
+        "realized_pnl": 40.0,
+        "net_after_all_fees": 36.0,
+        "wins": 8,
+        "losses": 4,
+        "avg_win": 8.0,
+        "avg_loss": 4.0,
+        "loss_streak": 0,
+        "win_streak": 2,
+        "win_streak_max": 2,
+    }
+    g = build_calm_streak_glance(
+        {
+            "calm_streak_days": 0,
+            "calm_required_days": 30,
+            "calm_ready": False,
+            "calm_detail": "promote filter off — streak paused",
+        },
+        as_of=as_of,
+        window_stats=stats,
+    )
+    assert g["window_a_closes_win_streak"] == 2
+    assert g["window_a_closes_win_streak_bit"] == "win hot · 2"
+    assert g["window_a_closes_win_streak_max"] is None
+    assert g["window_a_closes_win_streak_max_bit"] == ""
+    assert g["window_a_closes_win_streak_max_hot"] is False
+    assert "win max" not in g["line"]
     assert "win hot · 2" in g["line"]
     assert len(g["line"]) <= 96
 
