@@ -2460,6 +2460,10 @@ def build_calm_streak_glance(
         "window_a_closes_exit_unknown_bit": "",
         "window_a_closes_exit_unknown": None,
         "window_a_closes_exit_unknown_warn": False,
+        "window_a_closes_exit_tp_share_bit": "",
+        "window_a_closes_exit_tp_share_pct": None,
+        "window_a_closes_exit_tp_share_severity": "",
+        "window_a_closes_exit_tp_share_thin": False,
         "window_a_closes_exit_tp": None,
         "window_a_closes_exit_sl": None,
         "window_a_closes_exit_rot": None,
@@ -2630,6 +2634,10 @@ def build_calm_streak_glance(
     window_a_closes_exit_unknown_bit = ""
     window_a_closes_exit_unknown: int | None = None
     window_a_closes_exit_unknown_warn = False
+    window_a_closes_exit_tp_share_bit = ""
+    window_a_closes_exit_tp_share_pct: float | None = None
+    window_a_closes_exit_tp_share_severity = ""
+    window_a_closes_exit_tp_share_thin = False
     window_a_closes_exit_tp: int | None = None
     window_a_closes_exit_sl: int | None = None
     window_a_closes_exit_rot: int | None = None
@@ -2649,7 +2657,7 @@ def build_calm_streak_glance(
         # loss streak median + win streak median + loss streak min +
         # win streak min + loss streak σ + win streak σ + loss streak CV +
         # win streak CV + exit mix (tp/sl/rot/trim) + unknown exits +
-        # fill/sell meters beside the pause —
+        # exit TP share + fill/sell meters beside the pause —
         # calm glance alone hid day floor /
         # thin ledger / building vs ready / fee-burned edge / mild vs
         # severe drag / all-win vs all-loss / count lean ≠ € payoff /
@@ -2676,7 +2684,9 @@ def build_calm_streak_glance(
         # ≠ loss σ when ≥3 runs and lengths uneven
         # ≠ loss CV when σ÷mean scales absolute spread by typical run
         # ≠ win CV when σ÷mean scales absolute win-run spread
-        # ≠ exit mix why closes happened (tp/sl/rot/trim)).
+        # ≠ exit mix why closes happened (tp/sl/rot/trim)
+        # ≠ unknown sells outside the four reasons
+        # ≠ exit TP share (mix counts ≠ take-profit slice)).
         tone = "paused"
         status = "promote off · streak paused"
         from stock_checker.promote_ab import (
@@ -5730,6 +5740,147 @@ def build_calm_streak_glance(
                         f"{status} · "
                         f"{window_a_closes_exit_unknown_bit}"
                     )
+                # Exit TP share after unknown — mix counts alone hid the
+                # take-profit slice (portfolio AI + xang1234 severity).
+                # Compact "A exits tp share …" → "tp share …"; drop unknown
+                # (or exit mix / win CV / loss CV / win σ / loss σ / win
+                # min / loss min / win med / loss med / win mean / loss
+                # mean / flats / win max / win / loss max / ending loss)
+                # from the line when share spoke so the 96-char clip keeps
+                # % honesty (prior bits stay in fields). Thin <40% warns
+                # only. Silent when known live exits are zero / missing
+                # keys (fail-open). Unknown stays out of the denominator.
+                raw_tp_share = str(
+                    sample.get("closes_exit_tp_share_bit") or ""
+                ).strip()
+                if raw_tp_share:
+                    window_a_closes_exit_tp_share_bit = (
+                        raw_tp_share.replace(
+                            "A exits tp share", "tp share", 1
+                        ).strip()
+                    )
+                    window_a_closes_exit_tp_share_severity = str(
+                        sample.get("closes_exit_tp_share_severity") or ""
+                    )
+                    window_a_closes_exit_tp_share_thin = bool(
+                        sample.get("closes_exit_tp_share_thin")
+                    )
+                    try:
+                        tp_pct = sample.get("closes_exit_tp_share_pct")
+                        window_a_closes_exit_tp_share_pct = (
+                            float(tp_pct) if tp_pct is not None else None
+                        )
+                    except (TypeError, ValueError):
+                        window_a_closes_exit_tp_share_pct = None
+                    if window_a_closes_exit_unknown_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_unknown_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_exit_mix_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_mix_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_win_streak_cv_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_win_streak_cv_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_loss_streak_cv_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_loss_streak_cv_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_win_streak_stdev_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_win_streak_stdev_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_loss_streak_stdev_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_loss_streak_stdev_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_win_streak_min_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_win_streak_min_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_loss_streak_min_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_loss_streak_min_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_win_streak_median_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_win_streak_median_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_loss_streak_median_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_loss_streak_median_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_win_streak_mean_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_win_streak_mean_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_loss_streak_mean_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_loss_streak_mean_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_flat_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_flat_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_win_streak_max_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_win_streak_max_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_win_streak_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_win_streak_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_loss_streak_max_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_loss_streak_max_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_loss_streak_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_loss_streak_bit}",
+                            "",
+                            1,
+                        )
+                    status = status.replace(
+                        "streak paused", "paused", 1
+                    )
+                    status = (
+                        f"{status} · "
+                        f"{window_a_closes_exit_tp_share_bit}"
+                    )
             # Fill meters stay in fields; omit from the line when mood spoke
             # so the 96-char clip keeps severity over N/M counts.
             if not window_a_fee_mood_bit:
@@ -5807,6 +5958,8 @@ def build_calm_streak_glance(
                 # (still ready for B).
                 # Unknown exits warn: mix alone hid sells outside the four
                 # live reasons (still ready for B).
+                # Thin exit TP share: mix counts alone hid a weak
+                # take-profit slice (still ready for B).
                 if (
                     (
                         window_a_days >= window_a_target_days
@@ -5850,6 +6003,7 @@ def build_calm_streak_glance(
                     or window_a_closes_loss_streak_cv_hot
                     or window_a_closes_exit_mix_hot
                     or window_a_closes_exit_unknown_warn
+                    or window_a_closes_exit_tp_share_thin
                 ):
                     tone = "warn"
     elif streak <= 0:
@@ -6208,6 +6362,18 @@ def build_calm_streak_glance(
         ),
         "window_a_closes_exit_unknown_warn": (
             window_a_closes_exit_unknown_warn
+        ),
+        "window_a_closes_exit_tp_share_bit": (
+            window_a_closes_exit_tp_share_bit
+        ),
+        "window_a_closes_exit_tp_share_pct": (
+            window_a_closes_exit_tp_share_pct
+        ),
+        "window_a_closes_exit_tp_share_severity": (
+            window_a_closes_exit_tp_share_severity
+        ),
+        "window_a_closes_exit_tp_share_thin": (
+            window_a_closes_exit_tp_share_thin
         ),
         "window_a_closes_exit_tp": window_a_closes_exit_tp,
         "window_a_closes_exit_sl": window_a_closes_exit_sl,
