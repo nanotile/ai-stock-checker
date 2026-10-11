@@ -2400,6 +2400,10 @@ def build_calm_streak_glance(
         "window_a_closes_quarter_kelly_cap_pct": None,
         "window_a_closes_quarter_kelly_vs_cap": "",
         "window_a_closes_quarter_kelly_cap_under": False,
+        "window_a_closes_practical_kelly_bit": "",
+        "window_a_closes_practical_kelly": "",
+        "window_a_closes_practical_kelly_pct": None,
+        "window_a_closes_practical_kelly_cut": False,
     }
     if not isinstance(runtime, dict) or not runtime:
         return empty
@@ -2506,6 +2510,10 @@ def build_calm_streak_glance(
     window_a_closes_quarter_kelly_cap_pct: float | None = None
     window_a_closes_quarter_kelly_vs_cap = ""
     window_a_closes_quarter_kelly_cap_under = False
+    window_a_closes_practical_kelly_bit = ""
+    window_a_closes_practical_kelly = ""
+    window_a_closes_practical_kelly_pct: float | None = None
+    window_a_closes_practical_kelly_cut = False
     if calm_ready:
         tone = "ready"
         status = "compose promote default ready"
@@ -2524,12 +2532,13 @@ def build_calm_streak_glance(
         # fee take €/close / fee take ≠ fee-adjusted PF / net PF ≠
         # net÷fee-take multiples / WR−BE ≠ size fraction / full Kelly ≠
         # cash sizer slice / cash sizer ≠ equal book weight / equal slot ≠
-        # single-name ceiling / half-Kelly ≠ quarter-Kelly vs cash slice
+        # single-name ceiling / half-Kelly ≠ quarter-Kelly vs cash slice /
+        # triad comparisons ≠ one practical Kelly pick
         # (days ≠ fills ≠ fair sample ≠ net edge ≠ severity band ≠
         # win/lose mix ≠ avg-win÷avg-loss ≠ expectancy ≠ PF ≠ WR% ≠
         # WR−BE ≠ net expect ≠ fee take ≠ net PF ≠ net/fee ≠ Kelly ≠
         # half-Kelly vs sizer ≠ half-Kelly vs slot ≠ half-Kelly vs
-        # conc cap ≠ quarter-Kelly vs sizer).
+        # conc cap ≠ quarter-Kelly vs sizer ≠ practical Kelly).
         tone = "paused"
         status = "promote off · streak paused"
         from stock_checker.promote_ab import (
@@ -3970,6 +3979,137 @@ def build_calm_streak_glance(
                     status = (
                         f"{status} · {window_a_closes_quarter_kelly_cap_bit}"
                     )
+                # Practical Kelly pick after qtr-K/cap — triad comparisons
+                # alone hid which fraction actually fits the ~10% cash
+                # slice (portfolio AI + tradermonty sizer + xang1234).
+                # Compact "A practical Kelly …" → "pract-K …"; drop
+                # qtr-K/cap from the line when pract spoke so the 96-char
+                # clip keeps the pick (cap stays in fields). Cut / none
+                # warn only. Silent without Kelly.
+                raw_pract = str(
+                    sample.get("closes_practical_kelly_bit") or ""
+                ).strip()
+                if raw_pract:
+                    window_a_closes_practical_kelly_bit = (
+                        raw_pract.replace(
+                            "A practical Kelly", "pract-K", 1
+                        ).strip()
+                    )
+                    window_a_closes_practical_kelly = str(
+                        sample.get("closes_practical_kelly") or ""
+                    )
+                    window_a_closes_practical_kelly_cut = bool(
+                        sample.get("closes_practical_kelly_cut")
+                    )
+                    try:
+                        pkp = sample.get("closes_practical_kelly_pct")
+                        window_a_closes_practical_kelly_pct = (
+                            float(pkp) if pkp is not None else None
+                        )
+                    except (TypeError, ValueError):
+                        window_a_closes_practical_kelly_pct = None
+                    if window_a_closes_quarter_kelly_cap_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_quarter_kelly_cap_bit}",
+                            "",
+                            1,
+                        )
+                    if window_a_closes_quarter_kelly_slot_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_quarter_kelly_slot_bit}",
+                            "",
+                            1,
+                        )
+                    if window_a_closes_quarter_kelly_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_quarter_kelly_bit}",
+                            "",
+                            1,
+                        )
+                    if window_a_closes_half_kelly_cap_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_half_kelly_cap_bit}",
+                            "",
+                            1,
+                        )
+                    if window_a_closes_half_kelly_slot_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_half_kelly_slot_bit}",
+                            "",
+                            1,
+                        )
+                    if window_a_closes_half_kelly_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_half_kelly_bit}", "", 1
+                        )
+                    if window_a_closes_kelly_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_kelly_bit}", "", 1
+                        )
+                    if window_a_closes_net_vs_fee_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_net_vs_fee_bit}",
+                            "",
+                            1,
+                        )
+                    if window_a_closes_net_profit_factor_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_net_profit_factor_bit}",
+                            "",
+                            1,
+                        )
+                    if window_a_closes_fee_take_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_fee_take_bit}", "", 1
+                        )
+                    if window_a_closes_net_expectancy_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_net_expectancy_bit}",
+                            "",
+                            1,
+                        )
+                    if window_a_closes_wr_vs_be_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_wr_vs_be_bit}", "", 1
+                        )
+                    if window_a_closes_win_rate_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_win_rate_bit}", "", 1
+                        )
+                    if window_a_closes_profit_factor_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_profit_factor_bit}", "", 1
+                        )
+                    if window_a_closes_expectancy_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_expectancy_bit}", "", 1
+                        )
+                    if window_a_closes_payoff_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_payoff_bit}", "", 1
+                        )
+                    if window_a_closes_polarity_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_polarity_bit}", "", 1
+                        )
+                    if window_a_sample_status == "sample ready":
+                        status = status.replace(
+                            " · sample ready", "", 1
+                        )
+                    if window_a_fee_net_bit:
+                        compact_fee = (
+                            window_a_fee_net_bit.replace(" fees", "")
+                            .replace(" net", "")
+                        )
+                        status = status.replace(
+                            f" · {compact_fee}", "", 1
+                        )
+                    status = status.replace(
+                        "streak paused", "paused", 1
+                    )
+                    status = (
+                        f"{status} · {window_a_closes_practical_kelly_bit}"
+                    )
             # Fill meters stay in fields; omit from the line when mood spoke
             # so the 96-char clip keeps severity over N/M counts.
             if not window_a_fee_mood_bit:
@@ -4019,6 +4159,8 @@ def build_calm_streak_glance(
                 # below equal book weight (100/max_positions).
                 # Quarter-Kelly under cap: slot alone hid that ¼·f* sits
                 # below the soft single-name ceiling (DEFAULT_MAX_NAME_PCT).
+                # Practical Kelly cut/none: triad alone hid that no
+                # conventional fraction fits the ~10% cash slice (or f*≤0).
                 if (
                     (
                         window_a_days >= window_a_target_days
@@ -4050,6 +4192,7 @@ def build_calm_streak_glance(
                     or window_a_closes_quarter_kelly_under
                     or window_a_closes_quarter_kelly_slot_under
                     or window_a_closes_quarter_kelly_cap_under
+                    or window_a_closes_practical_kelly_cut
                 ):
                     tone = "warn"
     elif streak <= 0:
@@ -4234,6 +4377,18 @@ def build_calm_streak_glance(
         ),
         "window_a_closes_quarter_kelly_cap_under": (
             window_a_closes_quarter_kelly_cap_under
+        ),
+        "window_a_closes_practical_kelly_bit": (
+            window_a_closes_practical_kelly_bit
+        ),
+        "window_a_closes_practical_kelly": (
+            window_a_closes_practical_kelly
+        ),
+        "window_a_closes_practical_kelly_pct": (
+            window_a_closes_practical_kelly_pct
+        ),
+        "window_a_closes_practical_kelly_cut": (
+            window_a_closes_practical_kelly_cut
         ),
     }
 
