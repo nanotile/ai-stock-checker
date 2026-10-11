@@ -2437,6 +2437,9 @@ def build_calm_streak_glance(
         "window_a_closes_win_streak_median_bit": "",
         "window_a_closes_win_streak_median": None,
         "window_a_closes_win_streak_median_hot": False,
+        "window_a_closes_loss_streak_min_bit": "",
+        "window_a_closes_loss_streak_min": None,
+        "window_a_closes_loss_streak_min_hot": False,
     }
     if not isinstance(runtime, dict) or not runtime:
         return empty
@@ -2580,6 +2583,9 @@ def build_calm_streak_glance(
     window_a_closes_win_streak_median_bit = ""
     window_a_closes_win_streak_median: float | None = None
     window_a_closes_win_streak_median_hot = False
+    window_a_closes_loss_streak_min_bit = ""
+    window_a_closes_loss_streak_min: int | None = None
+    window_a_closes_loss_streak_min_hot = False
     if calm_ready:
         tone = "ready"
         status = "compose promote default ready"
@@ -2592,7 +2598,8 @@ def build_calm_streak_glance(
         # vs conc cap + quarter-Kelly triad + pract-K + K-sample +
         # loss streak + loss streak max + win streak + win streak max +
         # flat closes + loss streak mean + win streak mean +
-        # loss streak median + win streak median + fill/sell meters
+        # loss streak median + win streak median + loss streak min +
+        # fill/sell meters
         # beside the pause —
         # calm glance alone hid day floor /
         # thin ledger / building vs ready / fee-burned edge / mild vs
@@ -2615,7 +2622,8 @@ def build_calm_streak_glance(
         # half-Kelly vs sizer ≠ half-Kelly vs slot ≠ half-Kelly vs
         # conc cap ≠ quarter-Kelly vs sizer ≠ practical Kelly ≠
         # Kelly sample thin/ok ≠ loss quiet/hot ≠ loss max ≠ win quiet/hot
-        # ≠ win max ≠ flats ≠ loss mean ≠ win mean ≠ loss med ≠ win med).
+        # ≠ win max ≠ flats ≠ loss mean ≠ win mean ≠ loss med ≠ win med
+        # ≠ loss min when floor < peak).
         tone = "paused"
         status = "promote off · streak paused"
         from stock_checker.promote_ab import (
@@ -4764,6 +4772,95 @@ def build_calm_streak_glance(
                         f"{status} · "
                         f"{window_a_closes_win_streak_median_bit}"
                     )
+                # Loss streak min after win med — peak max ≠ the floor
+                # (xang1234 min vs max + portfolio AI). Speak when ≥2
+                # runs and min < max. Compact "A loss streak min …" →
+                # "loss min …"; drop win med (or loss med / win mean /
+                # loss mean / flats / win max / win / loss max /
+                # ending loss) from the line when min spoke so the
+                # 96-char clip keeps floor honesty (prior bits stay in
+                # fields). Hot min ≥2 warns only. Silent when one run /
+                # equal lengths / missing keys (fail-open).
+                raw_ls_min = str(
+                    sample.get("closes_loss_streak_min_bit") or ""
+                ).strip()
+                if raw_ls_min:
+                    window_a_closes_loss_streak_min_bit = (
+                        raw_ls_min.replace(
+                            "A loss streak min", "loss min", 1
+                        ).strip()
+                    )
+                    window_a_closes_loss_streak_min_hot = bool(
+                        sample.get("closes_loss_streak_min_hot")
+                    )
+                    try:
+                        lsmin = sample.get("closes_loss_streak_min")
+                        window_a_closes_loss_streak_min = (
+                            int(lsmin) if lsmin is not None else None
+                        )
+                    except (TypeError, ValueError):
+                        window_a_closes_loss_streak_min = None
+                    if window_a_closes_win_streak_median_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_win_streak_median_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_loss_streak_median_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_loss_streak_median_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_win_streak_mean_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_win_streak_mean_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_loss_streak_mean_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_loss_streak_mean_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_flat_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_flat_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_win_streak_max_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_win_streak_max_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_win_streak_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_win_streak_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_loss_streak_max_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_loss_streak_max_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_loss_streak_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_loss_streak_bit}",
+                            "",
+                            1,
+                        )
+                    status = status.replace(
+                        "streak paused", "paused", 1
+                    )
+                    status = (
+                        f"{status} · "
+                        f"{window_a_closes_loss_streak_min_bit}"
+                    )
             # Fill meters stay in fields; omit from the line when mood spoke
             # so the 96-char clip keeps severity over N/M counts.
             if not window_a_fee_mood_bit:
@@ -4833,6 +4930,8 @@ def build_calm_streak_glance(
                 # Loss streak median hot: mean alone hid that the median
                 # run ≥2 when a long storm pulls the mean (still ready
                 # for B).
+                # Loss streak min hot: peak alone hid that the shortest
+                # run ≥2 when floor < peak (still ready for B).
                 if (
                     (
                         window_a_days >= window_a_target_days
@@ -4871,6 +4970,7 @@ def build_calm_streak_glance(
                     or window_a_closes_flat_warn
                     or window_a_closes_loss_streak_mean_hot
                     or window_a_closes_loss_streak_median_hot
+                    or window_a_closes_loss_streak_min_hot
                 ):
                     tone = "warn"
     elif streak <= 0:
@@ -5160,6 +5260,15 @@ def build_calm_streak_glance(
         ),
         "window_a_closes_win_streak_median_hot": (
             window_a_closes_win_streak_median_hot
+        ),
+        "window_a_closes_loss_streak_min_bit": (
+            window_a_closes_loss_streak_min_bit
+        ),
+        "window_a_closes_loss_streak_min": (
+            window_a_closes_loss_streak_min
+        ),
+        "window_a_closes_loss_streak_min_hot": (
+            window_a_closes_loss_streak_min_hot
         ),
     }
 
