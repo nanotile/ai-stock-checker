@@ -170,6 +170,9 @@ def test_calm_streak_glance_promote_off_paused() -> None:
     assert g["window_a_closes_win_streak_mean"] is None
     assert g["window_a_closes_win_streak_runs"] is None
     assert g["window_a_closes_win_streak_mean_hot"] is False
+    assert g["window_a_closes_loss_streak_median_bit"] == ""
+    assert g["window_a_closes_loss_streak_median"] is None
+    assert g["window_a_closes_loss_streak_median_hot"] is False
     assert "0/30" in g["line"]
     assert "promote off · streak paused" in g["line"]
     assert f"A {a_days}/{WINDOW_A_TARGET_TRADING_DAYS}d" in g["line"]
@@ -2796,6 +2799,237 @@ def test_calm_streak_glance_promote_off_paused_closes_win_streak_mean_missing_fa
     assert g["window_a_closes_win_streak_mean_hot"] is False
     assert "win mean" not in g["line"]
     assert "loss mean · 1.5 · 2 runs" in g["line"]
+    assert len(g["line"]) <= 96
+
+
+def test_calm_streak_glance_promote_off_paused_closes_loss_streak_median_hot() -> None:
+    """Mean alone must not hide a hot median when a storm pulls the mean."""
+    as_of = date(2026, 8, 18)
+    runtime = {
+        "calm_streak_days": 0,
+        "calm_required_days": 30,
+        "calm_ready": False,
+        "calm_detail": "promote filter off — streak paused",
+    }
+    base = {
+        "trades": 24,
+        "buys": 12,
+        "sells": 12,
+        "fees": 4.0,
+        "realized_pnl": 40.0,
+        "net_after_all_fees": 36.0,
+        "wins": 8,
+        "losses": 4,
+        "avg_win": 8.0,
+        "avg_loss": 4.0,
+        "loss_streak": 0,
+        "win_streak": 0,
+        "win_streak_max": 3,
+        "flat_closes": 0,
+        "loss_streak_mean": 3.5,
+        "loss_streak_runs": 3,
+        "loss_streak_median": 1.0,
+        "win_streak_mean": 1.5,
+        "win_streak_runs": 2,
+    }
+    without = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats={
+            k: v for k, v in base.items() if k != "loss_streak_median"
+        },
+    )
+    g = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats={**base, "loss_streak_median": 2.5},
+    )
+    assert g["window_a_closes_win_streak_mean"] == 1.5
+    assert g["window_a_closes_win_streak_mean_bit"] == (
+        "win mean · 1.5 · 2 runs"
+    )
+    assert g["window_a_closes_loss_streak_median"] == 2.5
+    assert g["window_a_closes_loss_streak_median_hot"] is True
+    assert g["window_a_closes_loss_streak_median_bit"] == (
+        "loss med · 2.5 · 3 runs"
+    )
+    assert g["tone"] == "warn"
+    assert "loss med" not in without["line"]
+    assert "win mean" not in g["line"]  # win mean stays in fields
+    assert "loss med · 2.5 · 3 runs" in g["line"]
+    assert len(g["line"]) <= 96
+
+
+def test_calm_streak_glance_promote_off_paused_closes_loss_streak_median_quiet() -> None:
+    """Quiet median (med ≠ mean, med < hot) speaks without escalating tone."""
+    as_of = date(2026, 8, 18)
+    runtime = {
+        "calm_streak_days": 0,
+        "calm_required_days": 30,
+        "calm_ready": False,
+        "calm_detail": "promote filter off — streak paused",
+    }
+    base = {
+        "trades": 24,
+        "buys": 12,
+        "sells": 12,
+        "fees": 4.0,
+        "realized_pnl": 40.0,
+        "net_after_all_fees": 36.0,
+        "wins": 8,
+        "losses": 4,
+        "avg_win": 8.0,
+        "avg_loss": 4.0,
+        "loss_streak": 0,
+        "win_streak": 0,
+        "win_streak_max": 3,
+        "flat_closes": 0,
+        "loss_streak_mean": 2.0,
+        "loss_streak_runs": 3,
+        "win_streak_mean": 1.5,
+        "win_streak_runs": 2,
+    }
+    without = build_calm_streak_glance(
+        runtime, as_of=as_of, window_stats=base
+    )
+    g = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats={**base, "loss_streak_median": 1.0},
+    )
+    assert g["window_a_closes_loss_streak_median"] == 1.0
+    assert g["window_a_closes_loss_streak_median_hot"] is False
+    assert g["window_a_closes_loss_streak_median_bit"] == (
+        "loss med · 1.0 · 3 runs"
+    )
+    assert g["tone"] == without["tone"]
+    assert "win mean" not in g["line"]
+    assert "loss med · 1.0 · 3 runs" in g["line"]
+    assert len(g["line"]) <= 96
+
+
+def test_calm_streak_glance_promote_off_paused_closes_loss_streak_median_same_as_mean_silent() -> None:
+    """Equal med and mean stay silent — no new information."""
+    as_of = date(2026, 8, 18)
+    stats = {
+        "trades": 24,
+        "buys": 12,
+        "sells": 12,
+        "fees": 4.0,
+        "realized_pnl": 40.0,
+        "net_after_all_fees": 36.0,
+        "wins": 6,
+        "losses": 4,
+        "avg_win": 8.0,
+        "avg_loss": 4.0,
+        "loss_streak": 0,
+        "win_streak": 0,
+        "win_streak_max": 3,
+        "flat_closes": 0,
+        "loss_streak_mean": 2.0,
+        "loss_streak_runs": 3,
+        "loss_streak_median": 2.0,
+        "win_streak_mean": 1.5,
+        "win_streak_runs": 2,
+    }
+    g = build_calm_streak_glance(
+        {
+            "calm_streak_days": 0,
+            "calm_required_days": 30,
+            "calm_ready": False,
+            "calm_detail": "promote filter off — streak paused",
+        },
+        as_of=as_of,
+        window_stats=stats,
+    )
+    assert g["window_a_closes_loss_streak_median"] is None
+    assert g["window_a_closes_loss_streak_median_bit"] == ""
+    assert g["window_a_closes_loss_streak_median_hot"] is False
+    assert "loss med" not in g["line"]
+    assert "win mean · 1.5 · 2 runs" in g["line"]
+    assert len(g["line"]) <= 96
+
+
+def test_calm_streak_glance_promote_off_paused_closes_loss_streak_median_two_runs_silent() -> None:
+    """Two runs stay silent — med and mean share the same value space."""
+    as_of = date(2026, 8, 18)
+    stats = {
+        "trades": 24,
+        "buys": 12,
+        "sells": 12,
+        "fees": 4.0,
+        "realized_pnl": 40.0,
+        "net_after_all_fees": 36.0,
+        "wins": 6,
+        "losses": 4,
+        "avg_win": 8.0,
+        "avg_loss": 4.0,
+        "loss_streak": 0,
+        "win_streak": 0,
+        "win_streak_max": 3,
+        "flat_closes": 0,
+        "loss_streak_mean": 2.5,
+        "loss_streak_runs": 2,
+        "loss_streak_median": 1.0,
+        "win_streak_mean": 1.5,
+        "win_streak_runs": 2,
+    }
+    g = build_calm_streak_glance(
+        {
+            "calm_streak_days": 0,
+            "calm_required_days": 30,
+            "calm_ready": False,
+            "calm_detail": "promote filter off — streak paused",
+        },
+        as_of=as_of,
+        window_stats=stats,
+    )
+    assert g["window_a_closes_loss_streak_median"] is None
+    assert g["window_a_closes_loss_streak_median_bit"] == ""
+    assert g["window_a_closes_loss_streak_median_hot"] is False
+    assert "loss med" not in g["line"]
+    assert "win mean · 1.5 · 2 runs" in g["line"]
+    assert len(g["line"]) <= 96
+
+
+def test_calm_streak_glance_promote_off_paused_closes_loss_streak_median_missing_fail_open() -> None:
+    """Missing loss_streak_median key fail-open — do not invent a warn."""
+    as_of = date(2026, 8, 18)
+    stats = {
+        "trades": 24,
+        "buys": 12,
+        "sells": 12,
+        "fees": 4.0,
+        "realized_pnl": 40.0,
+        "net_after_all_fees": 36.0,
+        "wins": 6,
+        "losses": 4,
+        "avg_win": 8.0,
+        "avg_loss": 4.0,
+        "loss_streak": 0,
+        "win_streak": 0,
+        "win_streak_max": 3,
+        "flat_closes": 0,
+        "loss_streak_mean": 2.5,
+        "loss_streak_runs": 3,
+        "win_streak_mean": 1.5,
+        "win_streak_runs": 2,
+    }
+    g = build_calm_streak_glance(
+        {
+            "calm_streak_days": 0,
+            "calm_required_days": 30,
+            "calm_ready": False,
+            "calm_detail": "promote filter off — streak paused",
+        },
+        as_of=as_of,
+        window_stats=stats,
+    )
+    assert g["window_a_closes_loss_streak_median"] is None
+    assert g["window_a_closes_loss_streak_median_bit"] == ""
+    assert g["window_a_closes_loss_streak_median_hot"] is False
+    assert "loss med" not in g["line"]
+    assert "win mean · 1.5 · 2 runs" in g["line"]
     assert len(g["line"]) <= 96
 
 
