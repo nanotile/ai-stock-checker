@@ -2404,6 +2404,10 @@ def build_calm_streak_glance(
         "window_a_closes_practical_kelly": "",
         "window_a_closes_practical_kelly_pct": None,
         "window_a_closes_practical_kelly_cut": False,
+        "window_a_closes_kelly_sample_bit": "",
+        "window_a_closes_kelly_sample": "",
+        "window_a_closes_kelly_sample_n": None,
+        "window_a_closes_kelly_sample_thin": False,
     }
     if not isinstance(runtime, dict) or not runtime:
         return empty
@@ -2514,6 +2518,10 @@ def build_calm_streak_glance(
     window_a_closes_practical_kelly = ""
     window_a_closes_practical_kelly_pct: float | None = None
     window_a_closes_practical_kelly_cut = False
+    window_a_closes_kelly_sample_bit = ""
+    window_a_closes_kelly_sample = ""
+    window_a_closes_kelly_sample_n: int | None = None
+    window_a_closes_kelly_sample_thin = False
     if calm_ready:
         tone = "ready"
         status = "compose promote default ready"
@@ -2533,12 +2541,13 @@ def build_calm_streak_glance(
         # net÷fee-take multiples / WR−BE ≠ size fraction / full Kelly ≠
         # cash sizer slice / cash sizer ≠ equal book weight / equal slot ≠
         # single-name ceiling / half-Kelly ≠ quarter-Kelly vs cash slice /
-        # triad comparisons ≠ one practical Kelly pick
-        # (days ≠ fills ≠ fair sample ≠ net edge ≠ severity band ≠
+        # triad comparisons ≠ one practical Kelly pick ≠ Kelly sample
+        # size (days ≠ fills ≠ fair sample ≠ net edge ≠ severity band ≠
         # win/lose mix ≠ avg-win÷avg-loss ≠ expectancy ≠ PF ≠ WR% ≠
         # WR−BE ≠ net expect ≠ fee take ≠ net PF ≠ net/fee ≠ Kelly ≠
         # half-Kelly vs sizer ≠ half-Kelly vs slot ≠ half-Kelly vs
-        # conc cap ≠ quarter-Kelly vs sizer ≠ practical Kelly).
+        # conc cap ≠ quarter-Kelly vs sizer ≠ practical Kelly ≠
+        # Kelly sample thin/ok).
         tone = "paused"
         status = "promote off · streak paused"
         from stock_checker.promote_ab import (
@@ -4110,6 +4119,46 @@ def build_calm_streak_glance(
                     status = (
                         f"{status} · {window_a_closes_practical_kelly_bit}"
                     )
+                # Kelly sample after pract-K — pick alone hid that size
+                # fraction from few closes is noise (portfolio AI +
+                # xang1234 sample honesty). Compact "A Kelly sample …"
+                # → "K-sample …"; drop pract-K from the line when sample
+                # spoke so the 96-char clip keeps thin/ok (pract stays in
+                # fields). Thin warn only. Silent without polarity.
+                raw_ks = str(
+                    sample.get("closes_kelly_sample_bit") or ""
+                ).strip()
+                if raw_ks:
+                    window_a_closes_kelly_sample_bit = (
+                        raw_ks.replace(
+                            "A Kelly sample", "K-sample", 1
+                        ).strip()
+                    )
+                    window_a_closes_kelly_sample = str(
+                        sample.get("closes_kelly_sample") or ""
+                    )
+                    window_a_closes_kelly_sample_thin = bool(
+                        sample.get("closes_kelly_sample_thin")
+                    )
+                    try:
+                        ksn = sample.get("closes_kelly_sample_n")
+                        window_a_closes_kelly_sample_n = (
+                            int(ksn) if ksn is not None else None
+                        )
+                    except (TypeError, ValueError):
+                        window_a_closes_kelly_sample_n = None
+                    if window_a_closes_practical_kelly_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_practical_kelly_bit}",
+                            "",
+                            1,
+                        )
+                    status = status.replace(
+                        "streak paused", "paused", 1
+                    )
+                    status = (
+                        f"{status} · {window_a_closes_kelly_sample_bit}"
+                    )
             # Fill meters stay in fields; omit from the line when mood spoke
             # so the 96-char clip keeps severity over N/M counts.
             if not window_a_fee_mood_bit:
@@ -4161,6 +4210,8 @@ def build_calm_streak_glance(
                 # below the soft single-name ceiling (DEFAULT_MAX_NAME_PCT).
                 # Practical Kelly cut/none: triad alone hid that no
                 # conventional fraction fits the ~10% cash slice (or f*≤0).
+                # Kelly sample thin: pract alone hid that Kelly from few
+                # closes is noise (close floor of 3 ≠ a size sample).
                 if (
                     (
                         window_a_days >= window_a_target_days
@@ -4193,6 +4244,7 @@ def build_calm_streak_glance(
                     or window_a_closes_quarter_kelly_slot_under
                     or window_a_closes_quarter_kelly_cap_under
                     or window_a_closes_practical_kelly_cut
+                    or window_a_closes_kelly_sample_thin
                 ):
                     tone = "warn"
     elif streak <= 0:
@@ -4389,6 +4441,18 @@ def build_calm_streak_glance(
         ),
         "window_a_closes_practical_kelly_cut": (
             window_a_closes_practical_kelly_cut
+        ),
+        "window_a_closes_kelly_sample_bit": (
+            window_a_closes_kelly_sample_bit
+        ),
+        "window_a_closes_kelly_sample": (
+            window_a_closes_kelly_sample
+        ),
+        "window_a_closes_kelly_sample_n": (
+            window_a_closes_kelly_sample_n
+        ),
+        "window_a_closes_kelly_sample_thin": (
+            window_a_closes_kelly_sample_thin
         ),
     }
 
