@@ -2414,6 +2414,9 @@ def build_calm_streak_glance(
         "window_a_closes_loss_streak_max_bit": "",
         "window_a_closes_loss_streak_max": None,
         "window_a_closes_loss_streak_max_hot": False,
+        "window_a_closes_win_streak_bit": "",
+        "window_a_closes_win_streak": None,
+        "window_a_closes_win_streak_hot": False,
     }
     if not isinstance(runtime, dict) or not runtime:
         return empty
@@ -2534,6 +2537,9 @@ def build_calm_streak_glance(
     window_a_closes_loss_streak_max_bit = ""
     window_a_closes_loss_streak_max: int | None = None
     window_a_closes_loss_streak_max_hot = False
+    window_a_closes_win_streak_bit = ""
+    window_a_closes_win_streak: int | None = None
+    window_a_closes_win_streak_hot = False
     if calm_ready:
         tone = "ready"
         status = "compose promote default ready"
@@ -2544,8 +2550,8 @@ def build_calm_streak_glance(
         # WR vs BE + net expectancy + fee take + net PF + net/fee +
         # Kelly + half-Kelly vs sizer + half-Kelly vs slot + half-Kelly
         # vs conc cap + quarter-Kelly triad + pract-K + K-sample +
-        # loss streak + loss streak max + fill/sell meters beside the
-        # pause — calm glance alone hid day floor / thin ledger /
+        # loss streak + loss streak max + win streak + fill/sell meters
+        # beside the pause — calm glance alone hid day floor / thin ledger /
         # building vs ready / fee-burned edge / mild vs severe drag /
         # all-win vs all-loss / count lean ≠ € payoff / payoff ≠ €/close /
         # €/close ≠ total-€ PF / PF ≠ hit rate / hit rate ≠ cushion vs
@@ -2555,13 +2561,14 @@ def build_calm_streak_glance(
         # cash sizer slice / cash sizer ≠ equal book weight / equal slot ≠
         # single-name ceiling / half-Kelly ≠ quarter-Kelly vs cash slice /
         # triad comparisons ≠ one practical Kelly pick ≠ Kelly sample size ≠
-        # newest losing-close run ≠ peak > ending loss run
+        # newest losing-close run ≠ peak > ending loss run ≠ newest
+        # winning-close run
         # (days ≠ fills ≠ fair sample ≠ net edge ≠ severity band ≠
         # win/lose mix ≠ avg-win÷avg-loss ≠ expectancy ≠ PF ≠ WR% ≠
         # WR−BE ≠ net expect ≠ fee take ≠ net PF ≠ net/fee ≠ Kelly ≠
         # half-Kelly vs sizer ≠ half-Kelly vs slot ≠ half-Kelly vs
         # conc cap ≠ quarter-Kelly vs sizer ≠ practical Kelly ≠
-        # Kelly sample thin/ok ≠ loss quiet/hot ≠ loss max).
+        # Kelly sample thin/ok ≠ loss quiet/hot ≠ loss max ≠ win quiet/hot).
         tone = "paused"
         status = "promote off · streak paused"
         from stock_checker.promote_ab import (
@@ -4247,6 +4254,55 @@ def build_calm_streak_glance(
                     status = (
                         f"{status} · {window_a_closes_loss_streak_max_bit}"
                     )
+                # Win streak after loss max/ending — loss alone hid a
+                # winning-close run (portfolio AI speak-both-sides).
+                # Compact "A win streak …" → "win …"; drop loss max (or
+                # ending loss) from the line when win spoke so the 96-char
+                # clip keeps quiet/hot (loss bits stay in fields). Hot ≥2
+                # speaks, does not warn. Silent without win_streak key.
+                raw_ws = str(
+                    sample.get("closes_win_streak_bit") or ""
+                ).strip()
+                if raw_ws:
+                    window_a_closes_win_streak_bit = (
+                        raw_ws.replace(
+                            "A win streak", "win", 1
+                        ).strip()
+                    )
+                    window_a_closes_win_streak_hot = bool(
+                        sample.get("closes_win_streak_hot")
+                    )
+                    try:
+                        wsn = sample.get("closes_win_streak")
+                        window_a_closes_win_streak = (
+                            int(wsn) if wsn is not None else None
+                        )
+                    except (TypeError, ValueError):
+                        window_a_closes_win_streak = None
+                    if window_a_closes_loss_streak_max_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_loss_streak_max_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_loss_streak_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_loss_streak_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_kelly_sample_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_kelly_sample_bit}",
+                            "",
+                            1,
+                        )
+                    status = status.replace(
+                        "streak paused", "paused", 1
+                    )
+                    status = (
+                        f"{status} · {window_a_closes_win_streak_bit}"
+                    )
             # Fill meters stay in fields; omit from the line when mood spoke
             # so the 96-char clip keeps severity over N/M counts.
             if not window_a_fee_mood_bit:
@@ -4304,6 +4360,8 @@ def build_calm_streak_glance(
                 # closes (win/lose counts ≠ a current run).
                 # Loss streak max hot: ending alone hid an earlier peak
                 # that exceeds the newest run (max > ending).
+                # Win streak hot speaks only (does not warn) — speak-both-
+                # sides after loss; win/lose counts ≠ a current win run.
                 if (
                     (
                         window_a_days >= window_a_target_days
@@ -4565,6 +4623,15 @@ def build_calm_streak_glance(
         ),
         "window_a_closes_loss_streak_max_hot": (
             window_a_closes_loss_streak_max_hot
+        ),
+        "window_a_closes_win_streak_bit": (
+            window_a_closes_win_streak_bit
+        ),
+        "window_a_closes_win_streak": (
+            window_a_closes_win_streak
+        ),
+        "window_a_closes_win_streak_hot": (
+            window_a_closes_win_streak_hot
         ),
     }
 
