@@ -2457,6 +2457,9 @@ def build_calm_streak_glance(
         "window_a_closes_win_streak_cv_hot": False,
         "window_a_closes_exit_mix_bit": "",
         "window_a_closes_exit_mix_hot": False,
+        "window_a_closes_exit_unknown_bit": "",
+        "window_a_closes_exit_unknown": None,
+        "window_a_closes_exit_unknown_warn": False,
         "window_a_closes_exit_tp": None,
         "window_a_closes_exit_sl": None,
         "window_a_closes_exit_rot": None,
@@ -2624,6 +2627,9 @@ def build_calm_streak_glance(
     window_a_closes_win_streak_cv_hot = False
     window_a_closes_exit_mix_bit = ""
     window_a_closes_exit_mix_hot = False
+    window_a_closes_exit_unknown_bit = ""
+    window_a_closes_exit_unknown: int | None = None
+    window_a_closes_exit_unknown_warn = False
     window_a_closes_exit_tp: int | None = None
     window_a_closes_exit_sl: int | None = None
     window_a_closes_exit_rot: int | None = None
@@ -2642,8 +2648,8 @@ def build_calm_streak_glance(
         # flat closes + loss streak mean + win streak mean +
         # loss streak median + win streak median + loss streak min +
         # win streak min + loss streak σ + win streak σ + loss streak CV +
-        # win streak CV + exit mix (tp/sl/rot/trim) + fill/sell meters
-        # beside the pause —
+        # win streak CV + exit mix (tp/sl/rot/trim) + unknown exits +
+        # fill/sell meters beside the pause —
         # calm glance alone hid day floor /
         # thin ledger / building vs ready / fee-burned edge / mild vs
         # severe drag / all-win vs all-loss / count lean ≠ € payoff /
@@ -5590,6 +5596,140 @@ def build_calm_streak_glance(
                         f"{status} · "
                         f"{window_a_closes_exit_mix_bit}"
                     )
+                # Unknown exits after exit mix — mix counts alone hid sells
+                # outside tp/sl/rot/trim (portfolio AI sample honesty +
+                # tradermonty postmortem). Compact "A exits unknown" →
+                # "exits unknown"; drop exit mix (or win CV / loss CV /
+                # win σ / loss σ / win min / loss min / win med / loss
+                # med / win mean / loss mean / flats / win max / win /
+                # loss max / ending loss) from the line when unknown
+                # spoke so the 96-char clip keeps unknown honesty (prior
+                # bits stay in fields). Warn only. Silent when zero /
+                # missing keys (fail-open).
+                raw_exit_unknown = str(
+                    sample.get("closes_exit_unknown_bit") or ""
+                ).strip()
+                if raw_exit_unknown:
+                    window_a_closes_exit_unknown_bit = (
+                        raw_exit_unknown.replace(
+                            "A exits unknown", "exits unknown", 1
+                        ).strip()
+                    )
+                    window_a_closes_exit_unknown_warn = bool(
+                        sample.get("closes_exit_unknown_warn")
+                    )
+                    try:
+                        window_a_closes_exit_unknown = (
+                            int(sample["closes_exit_unknown"])
+                            if sample.get("closes_exit_unknown")
+                            is not None
+                            else None
+                        )
+                    except (TypeError, ValueError, KeyError):
+                        window_a_closes_exit_unknown = None
+                    if window_a_closes_exit_mix_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_mix_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_win_streak_cv_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_win_streak_cv_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_loss_streak_cv_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_loss_streak_cv_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_win_streak_stdev_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_win_streak_stdev_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_loss_streak_stdev_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_loss_streak_stdev_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_win_streak_min_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_win_streak_min_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_loss_streak_min_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_loss_streak_min_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_win_streak_median_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_win_streak_median_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_loss_streak_median_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_loss_streak_median_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_win_streak_mean_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_win_streak_mean_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_loss_streak_mean_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_loss_streak_mean_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_flat_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_flat_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_win_streak_max_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_win_streak_max_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_win_streak_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_win_streak_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_loss_streak_max_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_loss_streak_max_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_loss_streak_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_loss_streak_bit}",
+                            "",
+                            1,
+                        )
+                    status = status.replace(
+                        "streak paused", "paused", 1
+                    )
+                    status = (
+                        f"{status} · "
+                        f"{window_a_closes_exit_unknown_bit}"
+                    )
             # Fill meters stay in fields; omit from the line when mood spoke
             # so the 96-char clip keeps severity over N/M counts.
             if not window_a_fee_mood_bit:
@@ -5665,6 +5805,8 @@ def build_calm_streak_glance(
                 # speak-both-sides after loss min; peak ≠ win floor.
                 # Exit mix hot: streak/CV alone hid stops+rot+trim > tp
                 # (still ready for B).
+                # Unknown exits warn: mix alone hid sells outside the four
+                # live reasons (still ready for B).
                 if (
                     (
                         window_a_days >= window_a_target_days
@@ -5707,6 +5849,7 @@ def build_calm_streak_glance(
                     or window_a_closes_loss_streak_stdev_hot
                     or window_a_closes_loss_streak_cv_hot
                     or window_a_closes_exit_mix_hot
+                    or window_a_closes_exit_unknown_warn
                 ):
                     tone = "warn"
     elif streak <= 0:
@@ -6056,6 +6199,15 @@ def build_calm_streak_glance(
         ),
         "window_a_closes_exit_mix_hot": (
             window_a_closes_exit_mix_hot
+        ),
+        "window_a_closes_exit_unknown_bit": (
+            window_a_closes_exit_unknown_bit
+        ),
+        "window_a_closes_exit_unknown": (
+            window_a_closes_exit_unknown
+        ),
+        "window_a_closes_exit_unknown_warn": (
+            window_a_closes_exit_unknown_warn
         ),
         "window_a_closes_exit_tp": window_a_closes_exit_tp,
         "window_a_closes_exit_sl": window_a_closes_exit_sl,

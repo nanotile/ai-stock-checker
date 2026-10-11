@@ -196,6 +196,9 @@ def test_calm_streak_glance_promote_off_paused() -> None:
     assert g["window_a_closes_win_streak_cv_hot"] is False
     assert g["window_a_closes_exit_mix_bit"] == ""
     assert g["window_a_closes_exit_mix_hot"] is False
+    assert g["window_a_closes_exit_unknown_bit"] == ""
+    assert g["window_a_closes_exit_unknown"] is None
+    assert g["window_a_closes_exit_unknown_warn"] is False
     assert g["window_a_closes_exit_tp"] is None
     assert g["window_a_closes_exit_sl"] is None
     assert g["window_a_closes_exit_rot"] is None
@@ -4867,22 +4870,26 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_mix_hot() -> None:
         as_of=as_of,
         window_stats={
             **base,
-            "exit_tp": 1,
-            "exit_sl": 2,
-            "exit_rot": 1,
-            "exit_trim": 0,
+            "exit_tp": 2,
+            "exit_sl": 5,
+            "exit_rot": 3,
+            "exit_trim": 2,
         },
     )
-    assert g["window_a_closes_exit_tp"] == 1
-    assert g["window_a_closes_exit_sl"] == 2
-    assert g["window_a_closes_exit_rot"] == 1
-    assert g["window_a_closes_exit_trim"] == 0
+    assert g["window_a_closes_exit_tp"] == 2
+    assert g["window_a_closes_exit_sl"] == 5
+    assert g["window_a_closes_exit_rot"] == 3
+    assert g["window_a_closes_exit_trim"] == 2
     assert g["window_a_closes_exit_mix_hot"] is True
-    assert g["window_a_closes_exit_mix_bit"] == "exits tp 1 · sl 2 · rot 1"
+    assert g["window_a_closes_exit_mix_bit"] == (
+        "exits tp 2 · sl 5 · rot 3 · trim 2"
+    )
+    assert g["window_a_closes_exit_unknown_warn"] is False
     assert g["tone"] == "warn"
     assert "exits" not in without["line"]
     assert "win CV" not in g["line"]  # win CV stays in fields
-    assert "exits tp 1 · sl 2 · rot 1" in g["line"]
+    assert "unknown" not in g["line"]
+    assert "exits tp 2 · sl 5 · rot 3 · trim 2" in g["line"]
     assert len(g["line"]) <= 96
 
 
@@ -4934,16 +4941,20 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_mix_tp_led() -> None:
         as_of=as_of,
         window_stats={
             **base,
-            "exit_tp": 3,
-            "exit_sl": 1,
-            "exit_rot": 0,
-            "exit_trim": 0,
+            "exit_tp": 8,
+            "exit_sl": 2,
+            "exit_rot": 1,
+            "exit_trim": 1,
         },
     )
     assert g["window_a_closes_exit_mix_hot"] is False
-    assert g["window_a_closes_exit_mix_bit"] == "exits tp 3 · sl 1"
+    assert g["window_a_closes_exit_mix_bit"] == (
+        "exits tp 8 · sl 2 · rot 1 · trim 1"
+    )
+    assert g["window_a_closes_exit_unknown_warn"] is False
     assert g["tone"] == without["tone"]
-    assert "exits tp 3 · sl 1" in g["line"]
+    assert "unknown" not in g["line"]
+    assert "exits tp 8 · sl 2 · rot 1 · trim 1" in g["line"]
     assert "win CV" not in g["line"]
     assert len(g["line"]) <= 96
 
@@ -4995,6 +5006,129 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_mix_missing_fail_open
     assert g["window_a_closes_exit_tp"] is None
     assert "exits" not in g["line"]
     assert "win CV · 0.5 · 3 runs" in g["line"]
+    assert len(g["line"]) <= 96
+
+
+def test_calm_streak_glance_promote_off_paused_closes_exit_unknown_warn() -> None:
+    """Exit mix alone must not hide sells outside tp/sl/rot/trim (warns only)."""
+    as_of = date(2026, 8, 18)
+    runtime = {
+        "calm_streak_days": 0,
+        "calm_required_days": 30,
+        "calm_ready": False,
+        "calm_detail": "promote filter off — streak paused",
+    }
+    base = {
+        "trades": 24,
+        "buys": 12,
+        "sells": 12,
+        "fees": 4.0,
+        "realized_pnl": 40.0,
+        "net_after_all_fees": 36.0,
+        "wins": 8,
+        "losses": 4,
+        "avg_win": 8.0,
+        "avg_loss": 4.0,
+        "loss_streak": 0,
+        "loss_streak_max": 4,
+        "win_streak": 0,
+        "win_streak_max": 4,
+        "flat_closes": 0,
+        "loss_streak_mean": 2.0,
+        "loss_streak_runs": 3,
+        "loss_streak_median": 1.0,
+        "win_streak_mean": 2.0,
+        "win_streak_runs": 3,
+        "win_streak_median": 1.0,
+        "loss_streak_min": 1,
+        "win_streak_min": 1,
+        "loss_streak_stdev": 1.0,
+        "win_streak_stdev": 1.0,
+        "loss_streak_cv": 0.5,
+        "win_streak_cv": 0.5,
+        "exit_tp": 3,
+        "exit_sl": 1,
+        "exit_rot": 0,
+        "exit_trim": 0,
+    }
+    covered = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats={
+            **base,
+            "exit_tp": 8,
+            "exit_sl": 2,
+            "exit_rot": 1,
+            "exit_trim": 1,
+        },
+    )
+    g = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats=base,
+    )
+    assert g["window_a_closes_exit_unknown"] == 8
+    assert g["window_a_closes_exit_unknown_warn"] is True
+    assert g["window_a_closes_exit_unknown_bit"] == "exits unknown · 8"
+    assert g["window_a_closes_exit_mix_bit"] == "exits tp 3 · sl 1"
+    assert g["tone"] == "warn"
+    assert "exits unknown" not in covered["line"]
+    assert covered["window_a_closes_exit_unknown_warn"] is False
+    assert "exits tp 3 · sl 1" not in g["line"]  # mix stays in fields
+    assert "exits unknown · 8" in g["line"]
+    assert len(g["line"]) <= 96
+
+
+def test_calm_streak_glance_promote_off_paused_closes_exit_unknown_zero_silent() -> None:
+    """Zero unknown stays silent — exit mix keeps the clip."""
+    as_of = date(2026, 8, 18)
+    g = build_calm_streak_glance(
+        {
+            "calm_streak_days": 0,
+            "calm_required_days": 30,
+            "calm_ready": False,
+            "calm_detail": "promote filter off — streak paused",
+        },
+        as_of=as_of,
+        window_stats={
+            "trades": 24,
+            "buys": 12,
+            "sells": 12,
+            "fees": 4.0,
+            "realized_pnl": 40.0,
+            "net_after_all_fees": 36.0,
+            "wins": 8,
+            "losses": 4,
+            "avg_win": 8.0,
+            "avg_loss": 4.0,
+            "loss_streak": 0,
+            "loss_streak_max": 3,
+            "win_streak": 0,
+            "win_streak_max": 3,
+            "flat_closes": 0,
+            "loss_streak_mean": 2.0,
+            "loss_streak_runs": 3,
+            "loss_streak_median": 1.0,
+            "win_streak_mean": 2.0,
+            "win_streak_runs": 3,
+            "win_streak_median": 1.0,
+            "loss_streak_min": 1,
+            "win_streak_min": 1,
+            "loss_streak_stdev": 1.0,
+            "win_streak_stdev": 1.0,
+            "loss_streak_cv": 0.5,
+            "win_streak_cv": 0.5,
+            "exit_tp": 8,
+            "exit_sl": 2,
+            "exit_rot": 1,
+            "exit_trim": 1,
+        },
+    )
+    assert g["window_a_closes_exit_unknown"] is None
+    assert g["window_a_closes_exit_unknown_bit"] == ""
+    assert g["window_a_closes_exit_unknown_warn"] is False
+    assert "unknown" not in g["line"]
+    assert "exits tp 8 · sl 2 · rot 1 · trim 1" in g["line"]
     assert len(g["line"]) <= 96
 
 
