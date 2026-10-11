@@ -159,6 +159,9 @@ def test_calm_streak_glance_promote_off_paused() -> None:
     assert g["window_a_closes_win_streak_max_bit"] == ""
     assert g["window_a_closes_win_streak_max"] is None
     assert g["window_a_closes_win_streak_max_hot"] is False
+    assert g["window_a_closes_flat_bit"] == ""
+    assert g["window_a_closes_flat"] is None
+    assert g["window_a_closes_flat_warn"] is False
     assert "0/30" in g["line"]
     assert "promote off · streak paused" in g["line"]
     assert f"A {a_days}/{WINDOW_A_TARGET_TRADING_DAYS}d" in g["line"]
@@ -2292,6 +2295,124 @@ def test_calm_streak_glance_promote_off_paused_closes_win_streak_max_equal_silen
     assert g["window_a_closes_win_streak_max_hot"] is False
     assert "win max" not in g["line"]
     assert "win hot · 2" in g["line"]
+    assert len(g["line"]) <= 96
+
+
+def test_calm_streak_glance_promote_off_paused_closes_flat_warns() -> None:
+    """Win max alone must not hide zero-P&L sells in the sell meter."""
+    as_of = date(2026, 8, 18)
+    runtime = {
+        "calm_streak_days": 0,
+        "calm_required_days": 30,
+        "calm_ready": False,
+        "calm_detail": "promote filter off — streak paused",
+    }
+    base = {
+        "trades": 24,
+        "buys": 12,
+        "sells": 12,
+        "fees": 4.0,
+        "realized_pnl": 40.0,
+        "net_after_all_fees": 36.0,
+        "wins": 6,
+        "losses": 4,
+        "avg_win": 8.0,
+        "avg_loss": 4.0,
+        "loss_streak": 0,
+        "win_streak": 0,
+        "win_streak_max": 3,
+        "flat_closes": 0,
+    }
+    without = build_calm_streak_glance(
+        runtime, as_of=as_of, window_stats=base
+    )
+    g = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats={**base, "flat_closes": 2},
+    )
+    assert g["window_a_closes_win_streak_max"] == 3
+    assert g["window_a_closes_win_streak_max_bit"] == "win max · 3"
+    assert g["window_a_closes_flat"] == 2
+    assert g["window_a_closes_flat_warn"] is True
+    assert g["window_a_closes_flat_bit"] == "flats · 2"
+    assert g["tone"] == "warn"
+    assert without["tone"] != "warn" or "flats" not in without["line"]
+    assert "win max" not in g["line"]  # peak stays in fields
+    assert "flats · 2" in g["line"]
+    assert len(g["line"]) <= 96
+
+
+def test_calm_streak_glance_promote_off_paused_closes_flat_zero_silent() -> None:
+    """Zero flats stay silent — sell meter already matches decided closes."""
+    as_of = date(2026, 8, 18)
+    stats = {
+        "trades": 24,
+        "buys": 12,
+        "sells": 12,
+        "fees": 4.0,
+        "realized_pnl": 40.0,
+        "net_after_all_fees": 36.0,
+        "wins": 8,
+        "losses": 4,
+        "avg_win": 8.0,
+        "avg_loss": 4.0,
+        "loss_streak": 0,
+        "win_streak": 0,
+        "win_streak_max": 3,
+        "flat_closes": 0,
+    }
+    g = build_calm_streak_glance(
+        {
+            "calm_streak_days": 0,
+            "calm_required_days": 30,
+            "calm_ready": False,
+            "calm_detail": "promote filter off — streak paused",
+        },
+        as_of=as_of,
+        window_stats=stats,
+    )
+    assert g["window_a_closes_flat"] is None
+    assert g["window_a_closes_flat_bit"] == ""
+    assert g["window_a_closes_flat_warn"] is False
+    assert "flats" not in g["line"]
+    assert "win max · 3" in g["line"]
+    assert len(g["line"]) <= 96
+
+
+def test_calm_streak_glance_promote_off_paused_closes_flat_missing_fail_open() -> None:
+    """Missing flat_closes key fails open — do not invent a warn."""
+    as_of = date(2026, 8, 18)
+    stats = {
+        "trades": 24,
+        "buys": 12,
+        "sells": 12,
+        "fees": 4.0,
+        "realized_pnl": 40.0,
+        "net_after_all_fees": 36.0,
+        "wins": 8,
+        "losses": 4,
+        "avg_win": 8.0,
+        "avg_loss": 4.0,
+        "loss_streak": 0,
+        "win_streak": 0,
+        "win_streak_max": 3,
+    }
+    g = build_calm_streak_glance(
+        {
+            "calm_streak_days": 0,
+            "calm_required_days": 30,
+            "calm_ready": False,
+            "calm_detail": "promote filter off — streak paused",
+        },
+        as_of=as_of,
+        window_stats=stats,
+    )
+    assert g["window_a_closes_flat"] is None
+    assert g["window_a_closes_flat_bit"] == ""
+    assert g["window_a_closes_flat_warn"] is False
+    assert "flats" not in g["line"]
+    assert "win max · 3" in g["line"]
     assert len(g["line"]) <= 96
 
 

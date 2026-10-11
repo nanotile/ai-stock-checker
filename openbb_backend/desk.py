@@ -2420,6 +2420,9 @@ def build_calm_streak_glance(
         "window_a_closes_win_streak_max_bit": "",
         "window_a_closes_win_streak_max": None,
         "window_a_closes_win_streak_max_hot": False,
+        "window_a_closes_flat_bit": "",
+        "window_a_closes_flat": None,
+        "window_a_closes_flat_warn": False,
     }
     if not isinstance(runtime, dict) or not runtime:
         return empty
@@ -2546,6 +2549,9 @@ def build_calm_streak_glance(
     window_a_closes_win_streak_max_bit = ""
     window_a_closes_win_streak_max: int | None = None
     window_a_closes_win_streak_max_hot = False
+    window_a_closes_flat_bit = ""
+    window_a_closes_flat: int | None = None
+    window_a_closes_flat_warn = False
     if calm_ready:
         tone = "ready"
         status = "compose promote default ready"
@@ -2557,26 +2563,27 @@ def build_calm_streak_glance(
         # Kelly + half-Kelly vs sizer + half-Kelly vs slot + half-Kelly
         # vs conc cap + quarter-Kelly triad + pract-K + K-sample +
         # loss streak + loss streak max + win streak + win streak max +
-        # fill/sell meters beside the pause — calm glance alone hid day
-        # floor / thin ledger / building vs ready / fee-burned edge /
-        # mild vs severe drag / all-win vs all-loss / count lean ≠ €
-        # payoff / payoff ≠ €/close / €/close ≠ total-€ PF / PF ≠ hit
-        # rate / hit rate ≠ cushion vs breakeven / gross €/close ≠
-        # fee-adjusted net €/close / net ≠ fee take €/close / fee take ≠
-        # fee-adjusted PF / net PF ≠ net÷fee-take multiples / WR−BE ≠
-        # size fraction / full Kelly ≠ cash sizer slice / cash sizer ≠
-        # equal book weight / equal slot ≠ single-name ceiling /
+        # flat closes + fill/sell meters beside the pause — calm glance
+        # alone hid day floor / thin ledger / building vs ready /
+        # fee-burned edge / mild vs severe drag / all-win vs all-loss /
+        # count lean ≠ € payoff / payoff ≠ €/close / €/close ≠ total-€
+        # PF / PF ≠ hit rate / hit rate ≠ cushion vs breakeven / gross
+        # €/close ≠ fee-adjusted net €/close / net ≠ fee take €/close /
+        # fee take ≠ fee-adjusted PF / net PF ≠ net÷fee-take multiples /
+        # WR−BE ≠ size fraction / full Kelly ≠ cash sizer slice / cash
+        # sizer ≠ equal book weight / equal slot ≠ single-name ceiling /
         # half-Kelly ≠ quarter-Kelly vs cash slice / triad comparisons ≠
         # one practical Kelly pick ≠ Kelly sample size ≠ newest
         # losing-close run ≠ peak > ending loss run ≠ newest
-        # winning-close run ≠ peak > ending win run
+        # winning-close run ≠ peak > ending win run ≠ zero-P&L sells in
+        # the sell meter but not in WR/Kelly
         # (days ≠ fills ≠ fair sample ≠ net edge ≠ severity band ≠
         # win/lose mix ≠ avg-win÷avg-loss ≠ expectancy ≠ PF ≠ WR% ≠
         # WR−BE ≠ net expect ≠ fee take ≠ net PF ≠ net/fee ≠ Kelly ≠
         # half-Kelly vs sizer ≠ half-Kelly vs slot ≠ half-Kelly vs
         # conc cap ≠ quarter-Kelly vs sizer ≠ practical Kelly ≠
         # Kelly sample thin/ok ≠ loss quiet/hot ≠ loss max ≠ win quiet/hot
-        # ≠ win max).
+        # ≠ win max ≠ flats).
         tone = "paused"
         status = "promote off · streak paused"
         from stock_checker.promote_ab import (
@@ -4361,6 +4368,61 @@ def build_calm_streak_glance(
                     status = (
                         f"{status} · {window_a_closes_win_streak_max_bit}"
                     )
+                # Flat closes after win streak max — sell meter + win/lose
+                # alone hid zero-P&L sells that inflate N/3 sells but sit
+                # out of WR/Kelly (portfolio AI sample honesty). Compact
+                # "A flats …" → "flats …"; drop win max (or ending win /
+                # loss max / ending loss) from the line when flats spoke
+                # so the 96-char clip keeps sample honesty (win/loss bits
+                # stay in fields). Warn only. Silent when zero / missing
+                # key (fail-open).
+                raw_flat = str(
+                    sample.get("closes_flat_bit") or ""
+                ).strip()
+                if raw_flat:
+                    window_a_closes_flat_bit = raw_flat.replace(
+                        "A flats", "flats", 1
+                    ).strip()
+                    window_a_closes_flat_warn = bool(
+                        sample.get("closes_flat_warn")
+                    )
+                    try:
+                        fn = sample.get("closes_flat")
+                        window_a_closes_flat = (
+                            int(fn) if fn is not None else None
+                        )
+                    except (TypeError, ValueError):
+                        window_a_closes_flat = None
+                    if window_a_closes_win_streak_max_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_win_streak_max_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_win_streak_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_win_streak_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_loss_streak_max_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_loss_streak_max_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_loss_streak_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_loss_streak_bit}",
+                            "",
+                            1,
+                        )
+                    status = status.replace(
+                        "streak paused", "paused", 1
+                    )
+                    status = (
+                        f"{status} · {window_a_closes_flat_bit}"
+                    )
             # Fill meters stay in fields; omit from the line when mood spoke
             # so the 96-char clip keeps severity over N/M counts.
             if not window_a_fee_mood_bit:
@@ -4421,6 +4483,8 @@ def build_calm_streak_glance(
                 # Win streak / win streak max hot speak only (do not warn)
                 # — speak-both-sides after loss; win/lose counts ≠ a
                 # current win run; ending alone ≠ earlier peak.
+                # Flat closes warn: sell meter alone hid zero-P&L sells
+                # that sit out of WR/Kelly (still ready for B).
                 if (
                     (
                         window_a_days >= window_a_target_days
@@ -4456,6 +4520,7 @@ def build_calm_streak_glance(
                     or window_a_closes_kelly_sample_thin
                     or window_a_closes_loss_streak_hot
                     or window_a_closes_loss_streak_max_hot
+                    or window_a_closes_flat_warn
                 ):
                     tone = "warn"
     elif streak <= 0:
@@ -4701,6 +4766,9 @@ def build_calm_streak_glance(
         "window_a_closes_win_streak_max_hot": (
             window_a_closes_win_streak_max_hot
         ),
+        "window_a_closes_flat_bit": window_a_closes_flat_bit,
+        "window_a_closes_flat": window_a_closes_flat,
+        "window_a_closes_flat_warn": window_a_closes_flat_warn,
     }
 
 
