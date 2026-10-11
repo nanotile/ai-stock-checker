@@ -2452,6 +2452,9 @@ def build_calm_streak_glance(
         "window_a_closes_loss_streak_cv_bit": "",
         "window_a_closes_loss_streak_cv": None,
         "window_a_closes_loss_streak_cv_hot": False,
+        "window_a_closes_win_streak_cv_bit": "",
+        "window_a_closes_win_streak_cv": None,
+        "window_a_closes_win_streak_cv_hot": False,
     }
     if not isinstance(runtime, dict) or not runtime:
         return empty
@@ -2610,6 +2613,9 @@ def build_calm_streak_glance(
     window_a_closes_loss_streak_cv_bit = ""
     window_a_closes_loss_streak_cv: float | None = None
     window_a_closes_loss_streak_cv_hot = False
+    window_a_closes_win_streak_cv_bit = ""
+    window_a_closes_win_streak_cv: float | None = None
+    window_a_closes_win_streak_cv_hot = False
     if calm_ready:
         tone = "ready"
         status = "compose promote default ready"
@@ -2624,7 +2630,7 @@ def build_calm_streak_glance(
         # flat closes + loss streak mean + win streak mean +
         # loss streak median + win streak median + loss streak min +
         # win streak min + loss streak σ + win streak σ + loss streak CV +
-        # fill/sell meters beside the pause —
+        # win streak CV + fill/sell meters beside the pause —
         # calm glance alone hid day floor /
         # thin ledger / building vs ready / fee-burned edge / mild vs
         # severe drag / all-win vs all-loss / count lean ≠ € payoff /
@@ -2649,7 +2655,8 @@ def build_calm_streak_glance(
         # ≠ win max ≠ flats ≠ loss mean ≠ win mean ≠ loss med ≠ win med
         # ≠ loss min when floor < peak ≠ win min when floor < peak
         # ≠ loss σ when ≥3 runs and lengths uneven
-        # ≠ loss CV when σ÷mean scales absolute spread by typical run).
+        # ≠ loss CV when σ÷mean scales absolute spread by typical run
+        # ≠ win CV when σ÷mean scales absolute win-run spread).
         tone = "paused"
         status = "promote off · streak paused"
         from stock_checker.promote_ab import (
@@ -5306,6 +5313,126 @@ def build_calm_streak_glance(
                         f"{status} · "
                         f"{window_a_closes_loss_streak_cv_bit}"
                     )
+                # Win streak CV after loss CV — speak-both-sides complement
+                # (portfolio AI + xang1234 flip-run CV). Speak when ≥3 win
+                # runs and σ÷mean ≥ 0.05. Compact "A win streak CV …" →
+                # "win CV …"; drop loss CV (or win σ / loss σ / win min /
+                # loss min / win med / loss med / win mean / loss mean /
+                # flats / win max / win / loss max / ending loss) from the
+                # line when CV spoke so the 96-char clip keeps relative
+                # win-dispersion honesty (prior bits stay in fields). Wide
+                # CV ≥2 speaks, does not warn. Silent when <3 runs /
+                # near-zero CV / mean ≤0 / missing keys (fail-open).
+                raw_ws_cv = str(
+                    sample.get("closes_win_streak_cv_bit") or ""
+                ).strip()
+                if raw_ws_cv:
+                    window_a_closes_win_streak_cv_bit = (
+                        raw_ws_cv.replace(
+                            "A win streak CV", "win CV", 1
+                        ).strip()
+                    )
+                    window_a_closes_win_streak_cv_hot = bool(
+                        sample.get("closes_win_streak_cv_hot")
+                    )
+                    try:
+                        wscv = sample.get("closes_win_streak_cv")
+                        window_a_closes_win_streak_cv = (
+                            float(wscv) if wscv is not None else None
+                        )
+                    except (TypeError, ValueError):
+                        window_a_closes_win_streak_cv = None
+                    if window_a_closes_loss_streak_cv_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_loss_streak_cv_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_win_streak_stdev_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_win_streak_stdev_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_loss_streak_stdev_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_loss_streak_stdev_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_win_streak_min_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_win_streak_min_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_loss_streak_min_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_loss_streak_min_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_win_streak_median_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_win_streak_median_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_loss_streak_median_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_loss_streak_median_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_win_streak_mean_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_win_streak_mean_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_loss_streak_mean_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_loss_streak_mean_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_flat_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_flat_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_win_streak_max_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_win_streak_max_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_win_streak_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_win_streak_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_loss_streak_max_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_loss_streak_max_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_loss_streak_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_loss_streak_bit}",
+                            "",
+                            1,
+                        )
+                    status = status.replace(
+                        "streak paused", "paused", 1
+                    )
+                    status = (
+                        f"{status} · "
+                        f"{window_a_closes_win_streak_cv_bit}"
+                    )
             # Fill meters stay in fields; omit from the line when mood spoke
             # so the 96-char clip keeps severity over N/M counts.
             if not window_a_fee_mood_bit:
@@ -5754,6 +5881,15 @@ def build_calm_streak_glance(
         ),
         "window_a_closes_loss_streak_cv_hot": (
             window_a_closes_loss_streak_cv_hot
+        ),
+        "window_a_closes_win_streak_cv_bit": (
+            window_a_closes_win_streak_cv_bit
+        ),
+        "window_a_closes_win_streak_cv": (
+            window_a_closes_win_streak_cv
+        ),
+        "window_a_closes_win_streak_cv_hot": (
+            window_a_closes_win_streak_cv_hot
         ),
     }
 
