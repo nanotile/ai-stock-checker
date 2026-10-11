@@ -2408,6 +2408,9 @@ def build_calm_streak_glance(
         "window_a_closes_kelly_sample": "",
         "window_a_closes_kelly_sample_n": None,
         "window_a_closes_kelly_sample_thin": False,
+        "window_a_closes_loss_streak_bit": "",
+        "window_a_closes_loss_streak": None,
+        "window_a_closes_loss_streak_hot": False,
     }
     if not isinstance(runtime, dict) or not runtime:
         return empty
@@ -2522,6 +2525,9 @@ def build_calm_streak_glance(
     window_a_closes_kelly_sample = ""
     window_a_closes_kelly_sample_n: int | None = None
     window_a_closes_kelly_sample_thin = False
+    window_a_closes_loss_streak_bit = ""
+    window_a_closes_loss_streak: int | None = None
+    window_a_closes_loss_streak_hot = False
     if calm_ready:
         tone = "ready"
         status = "compose promote default ready"
@@ -2531,23 +2537,24 @@ def build_calm_streak_glance(
         # + close payoff + close expectancy + close PF + close WR +
         # WR vs BE + net expectancy + fee take + net PF + net/fee +
         # Kelly + half-Kelly vs sizer + half-Kelly vs slot + half-Kelly
-        # vs conc cap + quarter-Kelly vs sizer + fill/sell meters beside
-        # the pause — calm glance alone hid day floor / thin ledger /
-        # building vs ready / fee-burned edge / mild vs severe drag /
-        # all-win vs all-loss / count lean ≠ € payoff / payoff ≠ €/close /
-        # €/close ≠ total-€ PF / PF ≠ hit rate / hit rate ≠ cushion vs
-        # breakeven / gross €/close ≠ fee-adjusted net €/close / net ≠
-        # fee take €/close / fee take ≠ fee-adjusted PF / net PF ≠
-        # net÷fee-take multiples / WR−BE ≠ size fraction / full Kelly ≠
-        # cash sizer slice / cash sizer ≠ equal book weight / equal slot ≠
-        # single-name ceiling / half-Kelly ≠ quarter-Kelly vs cash slice /
-        # triad comparisons ≠ one practical Kelly pick ≠ Kelly sample
-        # size (days ≠ fills ≠ fair sample ≠ net edge ≠ severity band ≠
+        # vs conc cap + quarter-Kelly triad + pract-K + K-sample +
+        # loss streak + fill/sell meters beside the pause — calm glance
+        # alone hid day floor / thin ledger / building vs ready /
+        # fee-burned edge / mild vs severe drag / all-win vs all-loss /
+        # count lean ≠ € payoff / payoff ≠ €/close / €/close ≠ total-€ PF /
+        # PF ≠ hit rate / hit rate ≠ cushion vs breakeven / gross €/close ≠
+        # fee-adjusted net €/close / net ≠ fee take €/close / fee take ≠
+        # fee-adjusted PF / net PF ≠ net÷fee-take multiples / WR−BE ≠ size
+        # fraction / full Kelly ≠ cash sizer slice / cash sizer ≠ equal
+        # book weight / equal slot ≠ single-name ceiling / half-Kelly ≠
+        # quarter-Kelly vs cash slice / triad comparisons ≠ one practical
+        # Kelly pick ≠ Kelly sample size ≠ newest losing-close run
+        # (days ≠ fills ≠ fair sample ≠ net edge ≠ severity band ≠
         # win/lose mix ≠ avg-win÷avg-loss ≠ expectancy ≠ PF ≠ WR% ≠
         # WR−BE ≠ net expect ≠ fee take ≠ net PF ≠ net/fee ≠ Kelly ≠
         # half-Kelly vs sizer ≠ half-Kelly vs slot ≠ half-Kelly vs
         # conc cap ≠ quarter-Kelly vs sizer ≠ practical Kelly ≠
-        # Kelly sample thin/ok).
+        # Kelly sample thin/ok ≠ loss quiet/hot).
         tone = "paused"
         status = "promote off · streak paused"
         from stock_checker.promote_ab import (
@@ -4159,6 +4166,43 @@ def build_calm_streak_glance(
                     status = (
                         f"{status} · {window_a_closes_kelly_sample_bit}"
                     )
+                # Loss streak after K-sample — sample size alone hid the
+                # newest losing-close run (portfolio AI + tradermonty).
+                # Compact "A loss streak …" → "loss …"; drop K-sample from
+                # the line when streak spoke so the 96-char clip keeps
+                # quiet/hot (K-sample stays in fields). Hot ≥2 warns only.
+                # Silent without loss_streak key (fail-open).
+                raw_ls = str(
+                    sample.get("closes_loss_streak_bit") or ""
+                ).strip()
+                if raw_ls:
+                    window_a_closes_loss_streak_bit = (
+                        raw_ls.replace(
+                            "A loss streak", "loss", 1
+                        ).strip()
+                    )
+                    window_a_closes_loss_streak_hot = bool(
+                        sample.get("closes_loss_streak_hot")
+                    )
+                    try:
+                        lsn = sample.get("closes_loss_streak")
+                        window_a_closes_loss_streak = (
+                            int(lsn) if lsn is not None else None
+                        )
+                    except (TypeError, ValueError):
+                        window_a_closes_loss_streak = None
+                    if window_a_closes_kelly_sample_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_kelly_sample_bit}",
+                            "",
+                            1,
+                        )
+                    status = status.replace(
+                        "streak paused", "paused", 1
+                    )
+                    status = (
+                        f"{status} · {window_a_closes_loss_streak_bit}"
+                    )
             # Fill meters stay in fields; omit from the line when mood spoke
             # so the 96-char clip keeps severity over N/M counts.
             if not window_a_fee_mood_bit:
@@ -4212,6 +4256,8 @@ def build_calm_streak_glance(
                 # conventional fraction fits the ~10% cash slice (or f*≤0).
                 # Kelly sample thin: pract alone hid that Kelly from few
                 # closes is noise (close floor of 3 ≠ a size sample).
+                # Loss streak hot: K-sample alone hid a run of ≥2 losing
+                # closes (win/lose counts ≠ a current run).
                 if (
                     (
                         window_a_days >= window_a_target_days
@@ -4245,6 +4291,7 @@ def build_calm_streak_glance(
                     or window_a_closes_quarter_kelly_cap_under
                     or window_a_closes_practical_kelly_cut
                     or window_a_closes_kelly_sample_thin
+                    or window_a_closes_loss_streak_hot
                 ):
                     tone = "warn"
     elif streak <= 0:
@@ -4453,6 +4500,15 @@ def build_calm_streak_glance(
         ),
         "window_a_closes_kelly_sample_thin": (
             window_a_closes_kelly_sample_thin
+        ),
+        "window_a_closes_loss_streak_bit": (
+            window_a_closes_loss_streak_bit
+        ),
+        "window_a_closes_loss_streak": (
+            window_a_closes_loss_streak
+        ),
+        "window_a_closes_loss_streak_hot": (
+            window_a_closes_loss_streak_hot
         ),
     }
 
