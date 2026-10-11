@@ -203,6 +203,10 @@ def test_calm_streak_glance_promote_off_paused() -> None:
     assert g["window_a_closes_exit_tp_share_pct"] is None
     assert g["window_a_closes_exit_tp_share_severity"] == ""
     assert g["window_a_closes_exit_tp_share_thin"] is False
+    assert g["window_a_closes_exit_sl_share_bit"] == ""
+    assert g["window_a_closes_exit_sl_share_pct"] is None
+    assert g["window_a_closes_exit_sl_share_severity"] == ""
+    assert g["window_a_closes_exit_sl_share_hot"] is False
     assert g["window_a_closes_exit_tp"] is None
     assert g["window_a_closes_exit_sl"] is None
     assert g["window_a_closes_exit_rot"] is None
@@ -4890,13 +4894,18 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_mix_hot() -> None:
     )
     assert g["window_a_closes_exit_tp_share_thin"] is True
     assert g["window_a_closes_exit_tp_share_bit"] == "tp share thin · 16.7%"
+    assert g["window_a_closes_exit_sl_share_pct"] == 41.7
+    assert g["window_a_closes_exit_sl_share_severity"] == ""
+    assert g["window_a_closes_exit_sl_share_hot"] is False
+    assert g["window_a_closes_exit_sl_share_bit"] == "sl share · 41.7%"
     assert g["window_a_closes_exit_unknown_warn"] is False
     assert g["tone"] == "warn"
     assert "exits" not in without["line"]
     assert "win CV" not in g["line"]  # win CV stays in fields
     assert "unknown" not in g["line"]
     assert "exits tp 2 · sl 5 · rot 3 · trim 2" not in g["line"]  # mix fields
-    assert "tp share thin · 16.7%" in g["line"]
+    assert "tp share thin · 16.7%" not in g["line"]  # tp stays in fields
+    assert "sl share · 41.7%" in g["line"]
     assert len(g["line"]) <= 96
 
 
@@ -4961,11 +4970,16 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_mix_tp_led() -> None:
     assert g["window_a_closes_exit_tp_share_severity"] == "strong"
     assert g["window_a_closes_exit_tp_share_thin"] is False
     assert g["window_a_closes_exit_tp_share_bit"] == "tp share strong · 66.7%"
+    assert g["window_a_closes_exit_sl_share_pct"] == 16.7
+    assert g["window_a_closes_exit_sl_share_severity"] == "quiet"
+    assert g["window_a_closes_exit_sl_share_hot"] is False
+    assert g["window_a_closes_exit_sl_share_bit"] == "sl share quiet · 16.7%"
     assert g["window_a_closes_exit_unknown_warn"] is False
     assert g["tone"] == without["tone"]
     assert "unknown" not in g["line"]
     assert "exits tp 8 · sl 2 · rot 1 · trim 1" not in g["line"]  # mix fields
-    assert "tp share strong · 66.7%" in g["line"]
+    assert "tp share strong · 66.7%" not in g["line"]  # tp stays in fields
+    assert "sl share quiet · 16.7%" in g["line"]
     assert "win CV" not in g["line"]
     assert len(g["line"]) <= 96
 
@@ -5084,17 +5098,21 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_unknown_warn() -> Non
     assert g["window_a_closes_exit_mix_bit"] == "exits tp 3 · sl 1"
     assert g["window_a_closes_exit_tp_share_severity"] == "strong"
     assert g["window_a_closes_exit_tp_share_bit"] == "tp share strong · 75%"
+    assert g["window_a_closes_exit_sl_share_pct"] == 25.0
+    assert g["window_a_closes_exit_sl_share_severity"] == "quiet"
+    assert g["window_a_closes_exit_sl_share_bit"] == "sl share quiet · 25%"
     assert g["tone"] == "warn"
     assert "exits unknown" not in covered["line"]
     assert covered["window_a_closes_exit_unknown_warn"] is False
     assert "exits tp 3 · sl 1" not in g["line"]  # mix stays in fields
     assert "exits unknown · 8" not in g["line"]  # unknown stays in fields
-    assert "tp share strong · 75%" in g["line"]
+    assert "tp share strong · 75%" not in g["line"]  # tp stays in fields
+    assert "sl share quiet · 25%" in g["line"]
     assert len(g["line"]) <= 96
 
 
 def test_calm_streak_glance_promote_off_paused_closes_exit_unknown_zero_silent() -> None:
-    """Zero unknown stays silent — TP share keeps the clip over mix counts."""
+    """Zero unknown stays silent — SL share keeps the clip over mix/TP."""
     as_of = date(2026, 8, 18)
     g = build_calm_streak_glance(
         {
@@ -5143,9 +5161,12 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_unknown_zero_silent()
     assert g["window_a_closes_exit_unknown_warn"] is False
     assert g["window_a_closes_exit_tp_share_severity"] == "strong"
     assert g["window_a_closes_exit_tp_share_bit"] == "tp share strong · 66.7%"
+    assert g["window_a_closes_exit_sl_share_severity"] == "quiet"
+    assert g["window_a_closes_exit_sl_share_bit"] == "sl share quiet · 16.7%"
     assert "unknown" not in g["line"]
     assert "exits tp 8 · sl 2 · rot 1 · trim 1" not in g["line"]  # mix fields
-    assert "tp share strong · 66.7%" in g["line"]
+    assert "tp share strong · 66.7%" not in g["line"]  # tp stays in fields
+    assert "sl share quiet · 16.7%" in g["line"]
     assert len(g["line"]) <= 96
 
 
@@ -5207,13 +5228,18 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_tp_share_thin() -> No
     assert g["window_a_closes_exit_tp_share_severity"] == "thin"
     assert g["window_a_closes_exit_tp_share_thin"] is True
     assert g["window_a_closes_exit_tp_share_bit"] == "tp share thin · 20%"
+    assert g["window_a_closes_exit_sl_share_pct"] == 40.0
+    assert g["window_a_closes_exit_sl_share_severity"] == ""
+    assert g["window_a_closes_exit_sl_share_hot"] is False
+    assert g["window_a_closes_exit_sl_share_bit"] == "sl share · 40%"
     assert g["window_a_closes_exit_mix_bit"] == (
         "exits tp 2 · sl 4 · rot 3 · trim 1"
     )
     assert g["tone"] == "warn"
     assert "tp share" not in without["line"]
     assert "exits tp 2 · sl 4 · rot 3 · trim 1" not in g["line"]
-    assert "tp share thin · 20%" in g["line"]
+    assert "tp share thin · 20%" not in g["line"]  # tp stays in fields
+    assert "sl share · 40%" in g["line"]
     assert len(g["line"]) <= 96
 
 
@@ -5275,10 +5301,141 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_tp_share_mid() -> Non
     assert g["window_a_closes_exit_tp_share_severity"] == ""
     assert g["window_a_closes_exit_tp_share_thin"] is False
     assert g["window_a_closes_exit_tp_share_bit"] == "tp share · 50%"
+    assert g["window_a_closes_exit_sl_share_pct"] == 30.0
+    assert g["window_a_closes_exit_sl_share_severity"] == "quiet"
+    assert g["window_a_closes_exit_sl_share_hot"] is False
+    assert g["window_a_closes_exit_sl_share_bit"] == "sl share quiet · 30%"
     assert g["window_a_closes_exit_mix_hot"] is False
     assert g["tone"] == without["tone"]
-    assert "tp share · 50%" in g["line"]
+    assert "tp share · 50%" not in g["line"]  # tp stays in fields
+    assert "sl share quiet · 30%" in g["line"]
     assert "exits tp 5" not in g["line"]
+    assert len(g["line"]) <= 96
+
+
+def test_calm_streak_glance_promote_off_paused_closes_exit_sl_share_hot() -> None:
+    """TP share alone must not hide a hot stop-loss slice (warns only)."""
+    as_of = date(2026, 8, 18)
+    runtime = {
+        "calm_streak_days": 0,
+        "calm_required_days": 30,
+        "calm_ready": False,
+        "calm_detail": "promote filter off — streak paused",
+    }
+    base = {
+        "trades": 24,
+        "buys": 12,
+        "sells": 5,
+        "fees": 4.0,
+        "realized_pnl": 40.0,
+        "net_after_all_fees": 36.0,
+        "wins": 3,
+        "losses": 2,
+        "avg_win": 8.0,
+        "avg_loss": 4.0,
+        "loss_streak": 0,
+        "loss_streak_max": 2,
+        "win_streak": 0,
+        "win_streak_max": 2,
+        "flat_closes": 0,
+        "loss_streak_mean": 2.0,
+        "loss_streak_runs": 2,
+        "win_streak_mean": 2.0,
+        "win_streak_runs": 2,
+        "loss_streak_min": 1,
+        "win_streak_min": 1,
+    }
+    without = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats=base,
+    )
+    g = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats={
+            **base,
+            "exit_tp": 1,
+            "exit_sl": 4,
+            "exit_rot": 0,
+            "exit_trim": 0,
+        },
+    )
+    assert g["window_a_closes_exit_sl_share_pct"] == 80.0
+    assert g["window_a_closes_exit_sl_share_severity"] == "hot"
+    assert g["window_a_closes_exit_sl_share_hot"] is True
+    assert g["window_a_closes_exit_sl_share_bit"] == "sl share hot · 80%"
+    assert g["window_a_closes_exit_tp_share_pct"] == 20.0
+    assert g["window_a_closes_exit_tp_share_thin"] is True
+    assert g["tone"] == "warn"
+    assert "sl share" not in without["line"]
+    assert "tp share thin · 20%" not in g["line"]  # tp stays in fields
+    assert "sl share hot · 80%" in g["line"]
+    assert len(g["line"]) <= 96
+
+
+def test_calm_streak_glance_promote_off_paused_closes_exit_sl_share_quiet() -> None:
+    """Quiet stop share speaks without escalating tone."""
+    as_of = date(2026, 8, 18)
+    runtime = {
+        "calm_streak_days": 0,
+        "calm_required_days": 30,
+        "calm_ready": False,
+        "calm_detail": "promote filter off — streak paused",
+    }
+    base = {
+        "trades": 24,
+        "buys": 12,
+        "sells": 12,
+        "fees": 4.0,
+        "realized_pnl": 40.0,
+        "net_after_all_fees": 36.0,
+        "wins": 8,
+        "losses": 4,
+        "avg_win": 8.0,
+        "avg_loss": 4.0,
+        "loss_streak": 0,
+        "loss_streak_max": 3,
+        "win_streak": 0,
+        "win_streak_max": 3,
+        "flat_closes": 0,
+        "loss_streak_mean": 2.0,
+        "loss_streak_runs": 3,
+        "loss_streak_median": 1.0,
+        "win_streak_mean": 2.0,
+        "win_streak_runs": 3,
+        "win_streak_median": 1.0,
+        "loss_streak_min": 1,
+        "win_streak_min": 1,
+        "loss_streak_stdev": 1.0,
+        "win_streak_stdev": 1.0,
+        "loss_streak_cv": 0.5,
+        "win_streak_cv": 0.5,
+    }
+    without = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats=base,
+    )
+    g = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats={
+            **base,
+            "exit_tp": 8,
+            "exit_sl": 2,
+            "exit_rot": 1,
+            "exit_trim": 1,
+        },
+    )
+    assert g["window_a_closes_exit_sl_share_pct"] == 16.7
+    assert g["window_a_closes_exit_sl_share_severity"] == "quiet"
+    assert g["window_a_closes_exit_sl_share_hot"] is False
+    assert g["window_a_closes_exit_sl_share_bit"] == "sl share quiet · 16.7%"
+    assert g["window_a_closes_exit_tp_share_severity"] == "strong"
+    assert g["tone"] == without["tone"]
+    assert "sl share quiet · 16.7%" in g["line"]
+    assert "tp share strong · 66.7%" not in g["line"]
     assert len(g["line"]) <= 96
 
 
