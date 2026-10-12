@@ -2530,6 +2530,10 @@ def build_calm_streak_glance(
         "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs": None,
         "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_window": None,
         "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_warn": False,
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_bit": "",
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap": None,
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_ratio": None,
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_warn": False,
         "window_a_closes_exit_tp": None,
         "window_a_closes_exit_sl": None,
         "window_a_closes_exit_rot": None,
@@ -2770,6 +2774,10 @@ def build_calm_streak_glance(
     window_a_closes_exit_euro_size_sign_clash_keep_fees_vs: str | None = None
     window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_window: str | None = None
     window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_warn = False
+    window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_bit = ""
+    window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap: str | None = None
+    window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_ratio: float | None = None
+    window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_warn = False
     window_a_closes_exit_tp: int | None = None
     window_a_closes_exit_sl: int | None = None
     window_a_closes_exit_rot: int | None = None
@@ -9504,6 +9512,291 @@ def build_calm_streak_glance(
                         f"{status} · "
                         f"{window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_bit}"
                     )
+                # Exit € size clash keep fees vs drag gap — hotter fees× ÷
+                # cooler fees× when vs already spoke. Mood labels ≠ how far
+                # apart the multiples sit. Fee-drag total fail-open (no
+                # window fees×). Compact after vs so the 96-char clip keeps
+                # the gap (prior bits stay in fields). wide/thin; worse
+                # warns only. Watch quiet (no new digest commits; xang1234
+                # #581 Server-Timing / #579 skeleton / #577 card lists /
+                # #582 SVG sparks still deferred) — adapted portfolio AI
+                # fee-burn + xang1234 severity after clash keep fees vs.
+                raw_euro_size_sign_clash_keep_fees_vs_gap = str(
+                    sample.get(
+                        "closes_exit_euro_size_sign_clash_keep_fees_vs_gap_bit"
+                    )
+                    or ""
+                ).strip()
+                if raw_euro_size_sign_clash_keep_fees_vs_gap:
+                    # Compact: drop "A exits € size clash" so the 96-char
+                    # calm clip keeps gap after pause · A days.
+                    window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_bit = (
+                        raw_euro_size_sign_clash_keep_fees_vs_gap.replace(
+                            "A exits € size clash keep fees vs drag gap",
+                            "keep fees vs drag gap",
+                            1,
+                        ).strip()
+                    )
+                    window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_warn = (
+                        bool(
+                            sample.get(
+                                "closes_exit_euro_size_sign_clash_keep_fees_vs_gap_warn"
+                            )
+                        )
+                    )
+                    gap_label = str(
+                        sample.get(
+                            "closes_exit_euro_size_sign_clash_keep_fees_vs_gap"
+                        )
+                        or ""
+                    ).strip()
+                    window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap = (
+                        gap_label or None
+                    )
+                    gap_ratio = sample.get(
+                        "closes_exit_euro_size_sign_clash_keep_fees_vs_gap_ratio"
+                    )
+                    if isinstance(gap_ratio, (int, float)) and gap_ratio == gap_ratio:
+                        window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_ratio = (
+                            float(gap_ratio)
+                        )
+                    else:
+                        window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_ratio = (
+                            None
+                        )
+                    # Drop vs (or earlier exit bits) so gap owns the clip.
+                    # Also drop fee-mood · compact € when present —
+                    # hotter÷cooler is more specific than mood alone
+                    # (fields keep both).
+                    if window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_exit_euro_size_sign_clash_keep_fees_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_euro_size_sign_clash_keep_fees_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_exit_euro_size_sign_clash_keep_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_euro_size_sign_clash_keep_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_exit_euro_size_sign_clash_net_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_euro_size_sign_clash_net_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_exit_euro_size_sign_clash_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_euro_size_sign_clash_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_exit_euro_size_rest_sign_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_euro_size_rest_sign_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_exit_euro_size_sign_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_euro_size_sign_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_exit_euro_size_n_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_euro_size_n_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_exit_euro_size_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_euro_size_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_exit_euro_count_skew_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_euro_count_skew_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_exit_euro_conc_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_euro_conc_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_exit_euro_gap_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_euro_gap_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_exit_euro_offset_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_euro_offset_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_exit_euro_lead_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_euro_lead_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_exit_trim_share_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_trim_share_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_exit_rot_share_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_rot_share_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_exit_sl_share_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_sl_share_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_exit_tp_share_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_tp_share_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_exit_unknown_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_unknown_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_exit_mix_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_mix_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_win_streak_cv_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_win_streak_cv_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_loss_streak_cv_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_loss_streak_cv_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_win_streak_stdev_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_win_streak_stdev_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_loss_streak_stdev_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_loss_streak_stdev_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_win_streak_min_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_win_streak_min_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_loss_streak_min_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_loss_streak_min_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_win_streak_median_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_win_streak_median_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_loss_streak_median_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_loss_streak_median_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_win_streak_mean_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_win_streak_mean_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_loss_streak_mean_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_loss_streak_mean_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_flat_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_flat_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_win_streak_max_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_win_streak_max_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_win_streak_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_win_streak_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_loss_streak_max_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_loss_streak_max_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_loss_streak_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_loss_streak_bit}",
+                            "",
+                            1,
+                        )
+                    if window_a_fee_mood_bit:
+                        status = status.replace(
+                            f" · {window_a_fee_mood_bit}",
+                            "",
+                            1,
+                        )
+                    if window_a_fee_net_bit:
+                        status = status.replace(
+                            f" · {window_a_fee_net_bit}",
+                            "",
+                            1,
+                        )
+                    status = status.replace(
+                        "streak paused", "paused", 1
+                    )
+                    status = (
+                        f"{status} · "
+                        f"{window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_bit}"
+                    )
             # Fill meters stay in fields; omit from the line when mood spoke
             # so the 96-char clip keeps severity over N/M counts.
             if not window_a_fee_mood_bit:
@@ -9653,6 +9946,7 @@ def build_calm_streak_glance(
                     or window_a_closes_exit_euro_size_sign_clash_keep_thin
                     or window_a_closes_exit_euro_size_sign_clash_keep_fees_warn
                     or window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_warn
+                    or window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_warn
                 ):
                     tone = "warn"
     elif streak <= 0:
@@ -10221,6 +10515,18 @@ def build_calm_streak_glance(
         ),
         "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_warn": (
             window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_warn
+        ),
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_bit": (
+            window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_bit
+        ),
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap": (
+            window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap
+        ),
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_ratio": (
+            window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_ratio
+        ),
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_warn": (
+            window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_warn
         ),
         "window_a_closes_exit_tp": window_a_closes_exit_tp,
         "window_a_closes_exit_sl": window_a_closes_exit_sl,
