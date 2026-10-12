@@ -232,6 +232,9 @@ def test_calm_streak_glance_promote_off_paused() -> None:
     assert g["window_a_closes_exit_euro_conc"] is None
     assert g["window_a_closes_exit_euro_conc_pct"] is None
     assert g["window_a_closes_exit_euro_conc_hot"] is False
+    assert g["window_a_closes_exit_euro_count_skew_bit"] == ""
+    assert g["window_a_closes_exit_euro_count_skew_pp"] is None
+    assert g["window_a_closes_exit_euro_count_skew_hot"] is False
     assert g["window_a_closes_exit_tp"] is None
     assert g["window_a_closes_exit_sl"] is None
     assert g["window_a_closes_exit_rot"] is None
@@ -6482,6 +6485,169 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_conc_quiet() -> 
         "€ conc quiet · tp · 28.6%"
     )
     assert "€ conc quiet · tp · 28.6%" in g["line"]
+    assert len(g["line"]) <= 96
+
+
+def test_calm_streak_glance_promote_off_paused_closes_exit_euro_count_skew_quiet() -> None:
+    """Same-reason count/€ ownership with ≥20pp share gap speaks quiet skew."""
+    as_of = date(2026, 8, 18)
+    runtime = {
+        "calm_streak_days": 0,
+        "calm_required_days": 30,
+        "calm_ready": False,
+        "calm_detail": "promote filter off — streak paused",
+    }
+    without = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats={
+            "trades": 12,
+            "buys": 4,
+            "sells": 8,
+            "fees": 4.0,
+            "realized_pnl": 80.0,
+            "net_after_all_fees": 76.0,
+            "wins": 6,
+            "losses": 2,
+            "avg_win": 15.0,
+            "avg_loss": 5.0,
+            "loss_streak": 0,
+            "loss_streak_max": 1,
+            "win_streak": 0,
+            "win_streak_max": 2,
+            "flat_closes": 0,
+            "exit_tp": 6,
+            "exit_sl": 2,
+            "exit_rot": 0,
+            "exit_trim": 0,
+            "exit_pnl_tp": 80.0,
+            "exit_pnl_sl": -20.0,
+            "exit_pnl_rot": 0.0,
+            "exit_pnl_trim": 0.0,
+        },
+    )
+    g = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats={
+            "trades": 12,
+            "buys": 4,
+            "sells": 8,
+            "fees": 4.0,
+            "realized_pnl": 95.0,
+            "net_after_all_fees": 91.0,
+            "wins": 6,
+            "losses": 2,
+            "avg_win": 16.67,
+            "avg_loss": 2.5,
+            "loss_streak": 0,
+            "loss_streak_max": 1,
+            "win_streak": 0,
+            "win_streak_max": 2,
+            "flat_closes": 0,
+            "exit_tp": 6,
+            "exit_sl": 2,
+            "exit_rot": 0,
+            "exit_trim": 0,
+            "exit_pnl_tp": 100.0,
+            "exit_pnl_sl": -5.0,
+            "exit_pnl_rot": 0.0,
+            "exit_pnl_trim": 0.0,
+        },
+    )
+    # Count lead tp 75%; € conc tp 95.2% → gap 20.2pp quiet.
+    assert g["window_a_closes_exit_euro_conc"] == "tp"
+    assert g["window_a_closes_exit_euro_conc_pct"] == 95.2
+    assert g["window_a_closes_exit_euro_count_skew_pp"] == 20.2
+    assert g["window_a_closes_exit_euro_count_skew_hot"] is False
+    assert g["window_a_closes_exit_euro_count_skew_bit"] == (
+        "€ skew quiet · tp · n 75% · € 95.2%"
+    )
+    assert "€ skew" not in without["line"]  # thin share gap silent
+    assert "€ conc" not in g["line"]  # conc stays in fields
+    assert "€ skew quiet · tp · n 75% · € 95.2%" in g["line"]
+    assert len(g["line"]) <= 96
+
+
+def test_calm_streak_glance_promote_off_paused_closes_exit_euro_count_skew_hot() -> None:
+    """€ conc alone must not hide that count/€ shares diverge ≥20pp on adverse."""
+    as_of = date(2026, 8, 18)
+    runtime = {
+        "calm_streak_days": 0,
+        "calm_required_days": 30,
+        "calm_ready": False,
+        "calm_detail": "promote filter off — streak paused",
+    }
+    without = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats={
+            "trades": 12,
+            "buys": 4,
+            "sells": 8,
+            "fees": 4.0,
+            "realized_pnl": -60.0,
+            "net_after_all_fees": -64.0,
+            "wins": 2,
+            "losses": 6,
+            "avg_win": 10.0,
+            "avg_loss": 13.33,
+            "loss_streak": 2,
+            "loss_streak_max": 3,
+            "win_streak": 0,
+            "win_streak_max": 1,
+            "flat_closes": 0,
+            "exit_tp": 2,
+            "exit_sl": 6,
+            "exit_rot": 0,
+            "exit_trim": 0,
+            "exit_pnl_tp": 20.0,
+            "exit_pnl_sl": -80.0,
+            "exit_pnl_rot": 0.0,
+            "exit_pnl_trim": 0.0,
+        },
+    )
+    g = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats={
+            "trades": 12,
+            "buys": 4,
+            "sells": 8,
+            "fees": 4.0,
+            "realized_pnl": -190.0,
+            "net_after_all_fees": -194.0,
+            "wins": 2,
+            "losses": 6,
+            "avg_win": 5.0,
+            "avg_loss": 33.33,
+            "loss_streak": 2,
+            "loss_streak_max": 3,
+            "win_streak": 0,
+            "win_streak_max": 1,
+            "flat_closes": 0,
+            "exit_tp": 2,
+            "exit_sl": 6,
+            "exit_rot": 0,
+            "exit_trim": 0,
+            "exit_pnl_tp": 10.0,
+            "exit_pnl_sl": -200.0,
+            "exit_pnl_rot": 0.0,
+            "exit_pnl_trim": 0.0,
+        },
+    )
+    # Count lead sl 75%; € conc sl 95.2% → gap 20.2pp hot.
+    assert g["window_a_closes_exit_euro_conc"] == "sl"
+    assert g["window_a_closes_exit_euro_conc_pct"] == 95.2
+    assert g["window_a_closes_exit_euro_count_skew_pp"] == 20.2
+    assert g["window_a_closes_exit_euro_count_skew_hot"] is True
+    assert g["window_a_closes_exit_euro_count_skew_bit"] == (
+        "€ skew hot · sl · n 75% · € 95.2%"
+    )
+    assert g["tone"] == "warn"
+    assert "€ skew" not in without["line"]  # thin share gap silent
+    assert "€ conc" not in g["line"]  # conc stays in fields
+    assert "€ skew hot · sl · n 75% · € 95.2%" in g["line"]
     assert len(g["line"]) <= 96
 
 

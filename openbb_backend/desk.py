@@ -2493,6 +2493,9 @@ def build_calm_streak_glance(
         "window_a_closes_exit_euro_conc": None,
         "window_a_closes_exit_euro_conc_pct": None,
         "window_a_closes_exit_euro_conc_hot": False,
+        "window_a_closes_exit_euro_count_skew_bit": "",
+        "window_a_closes_exit_euro_count_skew_pp": None,
+        "window_a_closes_exit_euro_count_skew_hot": False,
         "window_a_closes_exit_tp": None,
         "window_a_closes_exit_sl": None,
         "window_a_closes_exit_rot": None,
@@ -2696,6 +2699,9 @@ def build_calm_streak_glance(
     window_a_closes_exit_euro_conc: str | None = None
     window_a_closes_exit_euro_conc_pct: float | None = None
     window_a_closes_exit_euro_conc_hot = False
+    window_a_closes_exit_euro_count_skew_bit = ""
+    window_a_closes_exit_euro_count_skew_pp: float | None = None
+    window_a_closes_exit_euro_count_skew_hot = False
     window_a_closes_exit_tp: int | None = None
     window_a_closes_exit_sl: int | None = None
     window_a_closes_exit_rot: int | None = None
@@ -2717,6 +2723,7 @@ def build_calm_streak_glance(
         # win streak CV + exit mix (tp/sl/rot/trim) + unknown exits +
         # exit TP share + exit SL share + exit rot share + exit trim share
         # + exit € lead + exit € offset + exit € gap + exit € conc
+        # + exit €/count conc skew
         # + fill/sell meters beside the pause —
         # calm glance alone hid day floor /
         # thin ledger / building vs ready / fee-burned edge / mild vs
@@ -7136,6 +7143,197 @@ def build_calm_streak_glance(
                         f"{status} · "
                         f"{window_a_closes_exit_euro_conc_bit}"
                     )
+                # Exit €/count conc skew — same reason owns count lead and
+                # € conc but |€%−n%| ≥20pp. Conc names ownership; skew
+                # asks if share still lies. Compact after € conc so the
+                # 96-char clip keeps share-gap honesty (prior bits stay
+                # in fields). Adverse hot warns only; take-profit quiet
+                # speaks; disagree stays on € lead; thin gap silent.
+                # Watch quiet (no new digest commits); xang1234 #578
+                # Inter self-host / #575 demo / #574 theme not
+                # transferable — desk already has DESIGN tokens;
+                # #570/#568/#566 + tradermonty d92c667/595b9e5/725ce0e
+                # still deferred — €-skew honesty shipped instead.
+                raw_euro_skew = str(
+                    sample.get("closes_exit_euro_count_skew_bit") or ""
+                ).strip()
+                if raw_euro_skew:
+                    window_a_closes_exit_euro_count_skew_bit = (
+                        raw_euro_skew.replace(
+                            "A exits € skew", "€ skew", 1
+                        ).strip()
+                    )
+                    window_a_closes_exit_euro_count_skew_hot = bool(
+                        sample.get("closes_exit_euro_count_skew_hot")
+                    )
+                    try:
+                        skew_pp = sample.get(
+                            "closes_exit_euro_count_skew_pp"
+                        )
+                        window_a_closes_exit_euro_count_skew_pp = (
+                            float(skew_pp)
+                            if skew_pp is not None
+                            else None
+                        )
+                    except (TypeError, ValueError):
+                        window_a_closes_exit_euro_count_skew_pp = None
+                    if window_a_closes_exit_euro_conc_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_euro_conc_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_exit_euro_gap_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_euro_gap_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_exit_euro_offset_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_euro_offset_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_exit_euro_lead_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_euro_lead_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_exit_trim_share_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_trim_share_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_exit_rot_share_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_rot_share_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_exit_sl_share_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_sl_share_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_exit_tp_share_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_tp_share_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_exit_unknown_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_unknown_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_exit_mix_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_mix_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_win_streak_cv_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_win_streak_cv_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_loss_streak_cv_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_loss_streak_cv_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_win_streak_stdev_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_win_streak_stdev_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_loss_streak_stdev_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_loss_streak_stdev_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_win_streak_min_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_win_streak_min_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_loss_streak_min_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_loss_streak_min_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_win_streak_median_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_win_streak_median_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_loss_streak_median_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_loss_streak_median_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_win_streak_mean_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_win_streak_mean_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_loss_streak_mean_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_loss_streak_mean_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_flat_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_flat_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_win_streak_max_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_win_streak_max_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_win_streak_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_win_streak_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_loss_streak_max_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_loss_streak_max_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_loss_streak_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_loss_streak_bit}",
+                            "",
+                            1,
+                        )
+                    status = status.replace(
+                        "streak paused", "paused", 1
+                    )
+                    status = (
+                        f"{status} · "
+                        f"{window_a_closes_exit_euro_count_skew_bit}"
+                    )
             # Fill meters stay in fields; omit from the line when mood spoke
             # so the 96-char clip keeps severity over N/M counts.
             if not window_a_fee_mood_bit:
@@ -7275,6 +7473,7 @@ def build_calm_streak_glance(
                     or window_a_closes_exit_euro_offset_hot
                     or window_a_closes_exit_euro_gap_hot
                     or window_a_closes_exit_euro_conc_hot
+                    or window_a_closes_exit_euro_count_skew_hot
                 ):
                     tone = "warn"
     elif streak <= 0:
@@ -7732,6 +7931,15 @@ def build_calm_streak_glance(
         ),
         "window_a_closes_exit_euro_conc_hot": (
             window_a_closes_exit_euro_conc_hot
+        ),
+        "window_a_closes_exit_euro_count_skew_bit": (
+            window_a_closes_exit_euro_count_skew_bit
+        ),
+        "window_a_closes_exit_euro_count_skew_pp": (
+            window_a_closes_exit_euro_count_skew_pp
+        ),
+        "window_a_closes_exit_euro_count_skew_hot": (
+            window_a_closes_exit_euro_count_skew_hot
         ),
         "window_a_closes_exit_tp": window_a_closes_exit_tp,
         "window_a_closes_exit_sl": window_a_closes_exit_sl,
