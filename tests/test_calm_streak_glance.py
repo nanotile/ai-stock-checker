@@ -325,6 +325,15 @@ def test_calm_streak_glance_promote_off_paused() -> None:
     assert g[
         "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_delta_warn"
     ] is False
+    assert g[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_bit"
+    ] == ""
+    assert g[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta"
+    ] is None
+    assert g[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_warn"
+    ] is False
     assert g["window_a_closes_exit_tp"] is None
     assert g["window_a_closes_exit_sl"] is None
     assert g["window_a_closes_exit_rot"] is None
@@ -8297,7 +8306,7 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_
     assert "keep fees vs drag worse" not in worse_gap["line"]
     assert "keep fees vs drag gap wide" not in worse_gap["line"]
     assert "keep fees vs drag gap dir below · 0.31×" not in worse_gap["line"]
-    # mid additive Δ (|−0.46×|) stays silent — share Δ owns the clip.
+    # mid additive Δ (|−0.46×|) · wide share Δ → share vs Δ clash owns the clip.
     assert worse_gap[
         "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_delta_bit"
     ] == ""
@@ -8306,7 +8315,8 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_
     ] == "sides share · leftover 23.9% · window 76.1%"
     assert "gap dir sides · leftover 0.21× · window 0.67×" not in worse_gap["line"]
     assert "sides share · leftover 23.9% · window 76.1%" not in worse_gap["line"]
-    assert "sides share Δ wide · −52.2pp" in worse_gap["line"]
+    assert "sides share Δ wide · −52.2pp" not in worse_gap["line"]
+    assert "sides share vs Δ clash · × mid · % wide" in worse_gap["line"]
     assert worse_gap["tone"] == "warn"
 
     assert better_gap["window_a_closes_exit_euro_size_sign_clash_keep_fees_vs"] == (
@@ -8433,12 +8443,13 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_
     assert below[
         "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_bit"
     ] == "keep fees vs drag gap dir below · 0.31×"
-    # Share Δ owns the clip; dir/sides/share stay in fields.
+    # × mid · % wide → share vs Δ clash owns the clip; prior bits stay in fields.
     assert "keep fees vs drag gap wide" not in below["line"]
     assert "keep fees vs drag gap dir below · 0.31×" not in below["line"]
     assert "gap dir sides · leftover 0.21× · window 0.67×" not in below["line"]
     assert "sides share · leftover 23.9% · window 76.1%" not in below["line"]
-    assert "sides share Δ wide · −52.2pp" in below["line"]
+    assert "sides share Δ wide · −52.2pp" not in below["line"]
+    assert "sides share vs Δ clash · × mid · % wide" in below["line"]
     assert below["tone"] == "warn"
 
     assert above[
@@ -8553,7 +8564,8 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_
     assert "keep fees vs drag gap dir below · 0.31×" not in below["line"]
     assert "gap dir sides · leftover 0.21× · window 0.67×" not in below["line"]
     assert "sides share · leftover 23.9% · window 76.1%" not in below["line"]
-    assert "sides share Δ wide · −52.2pp" in below["line"]
+    assert "sides share Δ wide · −52.2pp" not in below["line"]
+    assert "sides share vs Δ clash · × mid · % wide" in below["line"]
     assert below["tone"] == "warn"
 
     assert above[
@@ -8718,9 +8730,10 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_
     ] == ""
     assert "gap dir sides · leftover 0.21× · window 0.67×" not in mid["line"]
     assert "gap dir sides Δ" not in mid["line"]
-    # share Δ owns the clip when |pp| is wide (share stays in fields).
+    # × mid · % wide → share vs Δ clash owns the clip (share/Δ stay in fields).
     assert "sides share · leftover 23.9% · window 76.1%" not in mid["line"]
-    assert "sides share Δ wide · −52.2pp" in mid["line"]
+    assert "sides share Δ wide · −52.2pp" not in mid["line"]
+    assert "sides share vs Δ clash · × mid · % wide" in mid["line"]
     assert mid["tone"] == "warn"
 
     assert total_no_delta[
@@ -8830,7 +8843,9 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_
     ] == "sides share · leftover 23.9% · window 76.1%"
     assert "gap dir sides · leftover 0.21× · window 0.67×" not in thin_book["line"]
     assert "sides share · leftover 23.9% · window 76.1%" not in thin_book["line"]
-    assert "sides share Δ wide · −52.2pp" in thin_book["line"]
+    # × mid · % wide → share vs Δ clash owns the clip (share Δ stays in fields).
+    assert "sides share Δ wide · −52.2pp" not in thin_book["line"]
+    assert "sides share vs Δ clash · × mid · % wide" in thin_book["line"]
     assert thin_book["tone"] == "warn"
 
     assert mid_share_delta[
@@ -8839,8 +8854,10 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_
     assert mid_share_delta[
         "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_delta_bit"
     ] == ""
-    assert "sides share · leftover 44.6% · window 55.4%" in mid_share_delta["line"]
+    # × thin · % mid → share vs Δ clash owns the clip (share stays in fields).
+    assert "sides share · leftover 44.6% · window 55.4%" not in mid_share_delta["line"]
     assert "sides share Δ" not in mid_share_delta["line"]
+    assert "sides share vs Δ clash · × thin · % mid" in mid_share_delta["line"]
     assert mid_share_delta["tone"] == "warn"
 
     assert total_no_share[
@@ -8952,8 +8969,10 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_
     assert mid[
         "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_delta"
     ] is None
-    assert "sides share · leftover 44.6% · window 55.4%" in mid["line"]
+    # × thin · % mid → share vs Δ clash owns the clip.
+    assert "sides share · leftover 44.6% · window 55.4%" not in mid["line"]
     assert "sides share Δ" not in mid["line"]
+    assert "sides share vs Δ clash · × thin · % mid" in mid["line"]
     assert mid["tone"] == "warn"
 
     assert total_no_delta[
@@ -8971,6 +8990,113 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_
     assert len(thin["line"]) <= 96
     assert len(mid["line"]) <= 96
     assert len(total_no_delta["line"]) <= 96
+
+
+def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta() -> None:
+    """Additive × Δ lean alone must not hide mid-vs-spoke ownership clash."""
+    as_of = date(2026, 8, 18)
+    runtime = {
+        "calm_streak_days": 0,
+        "calm_required_days": 30,
+        "calm_ready": False,
+        "calm_detail": "promote filter off — streak paused",
+    }
+    base = {
+        "trades": 12,
+        "buys": 4,
+        "sells": 8,
+        "wins": 6,
+        "losses": 2,
+        "avg_win": 16.67,
+        "avg_loss": 2.5,
+        "loss_streak": 0,
+        "loss_streak_max": 1,
+        "win_streak": 2,
+        "win_streak_max": 3,
+        "flat_closes": 0,
+        "exit_tp": 6,
+        "exit_sl": 2,
+        "exit_rot": 0,
+        "exit_trim": 0,
+        "exit_pnl_tp": 100.0,
+        "exit_pnl_sl": -5.0,
+        "exit_pnl_rot": 0.0,
+        "exit_pnl_trim": 0.0,
+    }
+
+    # Both wide — same lean stays silent; share Δ keeps the clip.
+    both_wide = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats={**base, "fees": 200.0, "realized_pnl": 1000.0},
+    )
+    # × thin · % mid → clash owns the clip.
+    x_thin_s_mid = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats={**base, "fees": 38.5, "realized_pnl": 75.0},
+    )
+    # × mid · % wide → clash owns the clip.
+    x_mid_s_wide = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats={**base, "fees": 20.0, "realized_pnl": 30.0},
+    )
+    # Both thin — same lean stays silent; share Δ keeps the clip.
+    both_thin = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats={**base, "fees": 42.75, "realized_pnl": 85.5},
+    )
+
+    assert both_wide[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_bit"
+    ] == ""
+    assert both_wide[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta"
+    ] is None
+    assert "sides share Δ wide · +82.6pp" in both_wide["line"]
+    assert "sides share vs Δ" not in both_wide["line"]
+    assert both_wide["tone"] == "warn"
+
+    assert x_thin_s_mid[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta"
+    ] == "clash"
+    assert x_thin_s_mid[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_warn"
+    ] is True
+    assert x_thin_s_mid[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_bit"
+    ] == "sides share vs Δ clash · × thin · % mid"
+    assert "sides share · leftover 44.6% · window 55.4%" not in x_thin_s_mid["line"]
+    assert "sides share Δ" not in x_thin_s_mid["line"]
+    assert "sides share vs Δ clash · × thin · % mid" in x_thin_s_mid["line"]
+    assert x_thin_s_mid["tone"] == "warn"
+
+    assert x_mid_s_wide[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta"
+    ] == "clash"
+    assert x_mid_s_wide[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_warn"
+    ] is True
+    assert x_mid_s_wide[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_bit"
+    ] == "sides share vs Δ clash · × mid · % wide"
+    assert "sides share Δ wide · −52.2pp" not in x_mid_s_wide["line"]
+    assert "sides share vs Δ clash · × mid · % wide" in x_mid_s_wide["line"]
+    assert x_mid_s_wide["tone"] == "warn"
+
+    assert both_thin[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_bit"
+    ] == ""
+    assert "sides share Δ thin · −5.2pp" in both_thin["line"]
+    assert "sides share vs Δ" not in both_thin["line"]
+    assert both_thin["tone"] == "warn"
+
+    assert len(both_wide["line"]) <= 96
+    assert len(x_thin_s_mid["line"]) <= 96
+    assert len(x_mid_s_wide["line"]) <= 96
+    assert len(both_thin["line"]) <= 96
 
 
 def test_calm_streak_glance_progress() -> None:
