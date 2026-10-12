@@ -219,6 +219,11 @@ def test_calm_streak_glance_promote_off_paused() -> None:
     assert g["window_a_closes_exit_euro_lead"] is None
     assert g["window_a_closes_exit_euro_pnl"] is None
     assert g["window_a_closes_exit_euro_lead_hot"] is False
+    assert g["window_a_closes_exit_euro_offset_bit"] == ""
+    assert g["window_a_closes_exit_euro_offset"] is None
+    assert g["window_a_closes_exit_euro_offset_pnl"] is None
+    assert g["window_a_closes_exit_euro_offset_ratio"] is None
+    assert g["window_a_closes_exit_euro_offset_hot"] is False
     assert g["window_a_closes_exit_tp"] is None
     assert g["window_a_closes_exit_sl"] is None
     assert g["window_a_closes_exit_rot"] is None
@@ -5965,9 +5970,167 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_lead_match_silen
     assert g["window_a_closes_exit_euro_lead"] is None
     assert g["window_a_closes_exit_euro_lead_bit"] == ""
     assert g["window_a_closes_exit_euro_lead_hot"] is False
+    assert g["window_a_closes_exit_euro_offset"] is None
+    assert g["window_a_closes_exit_euro_offset_bit"] == ""
+    assert g["window_a_closes_exit_euro_offset_hot"] is False
     assert g["window_a_closes_exit_trim_share_bit"] == "trim share quiet · 8.3%"
     assert "€ lead" not in g["line"]
+    assert "€ offset" not in g["line"]
     assert "trim share quiet · 8.3%" in g["line"]
+    assert len(g["line"]) <= 96
+
+
+def test_calm_streak_glance_promote_off_paused_closes_exit_euro_offset_hot() -> None:
+    """Matching lead alone must not hide a large adverse runner-up (warns)."""
+    as_of = date(2026, 8, 18)
+    runtime = {
+        "calm_streak_days": 0,
+        "calm_required_days": 30,
+        "calm_ready": False,
+        "calm_detail": "promote filter off — streak paused",
+    }
+    base = {
+        "trades": 24,
+        "buys": 12,
+        "sells": 4,
+        "fees": 4.0,
+        "realized_pnl": 36.0,
+        "net_after_all_fees": 32.0,
+        "wins": 3,
+        "losses": 1,
+        "avg_win": 100.0 / 3.0,
+        "avg_loss": 60.0,
+        "loss_streak": 0,
+        "loss_streak_max": 1,
+        "win_streak": 0,
+        "win_streak_max": 2,
+        "flat_closes": 0,
+    }
+    without = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats={
+            **base,
+            "exit_tp": 3,
+            "exit_sl": 1,
+            "exit_rot": 0,
+            "exit_trim": 0,
+            "exit_pnl_tp": 100.0,
+            "exit_pnl_sl": -10.0,
+            "exit_pnl_rot": 0.0,
+            "exit_pnl_trim": 0.0,
+        },
+    )
+    g = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats={
+            **base,
+            "exit_tp": 3,
+            "exit_sl": 1,
+            "exit_rot": 0,
+            "exit_trim": 0,
+            "exit_pnl_tp": 100.0,
+            "exit_pnl_sl": -60.0,
+            "exit_pnl_rot": 0.0,
+            "exit_pnl_trim": 0.0,
+        },
+    )
+    assert g["window_a_closes_exit_euro_lead"] is None
+    assert g["window_a_closes_exit_euro_lead_bit"] == ""
+    assert g["window_a_closes_exit_euro_offset"] == "sl"
+    assert g["window_a_closes_exit_euro_offset_pnl"] == -60.0
+    assert g["window_a_closes_exit_euro_offset_ratio"] == 0.6
+    assert g["window_a_closes_exit_euro_offset_hot"] is True
+    assert g["window_a_closes_exit_euro_offset_bit"] == (
+        "€ offset hot · sl −€60 · 0.6×"
+    )
+    assert g["window_a_closes_exit_trim_share_bit"] == "trim share quiet · 0%"
+    assert g["tone"] == "warn"
+    assert "€ offset" not in without["line"]
+    assert "trim share quiet · 0%" not in g["line"]  # trim stays in fields
+    assert "€ offset hot · sl −€60 · 0.6×" in g["line"]
+    assert len(g["line"]) <= 96
+
+
+def test_calm_streak_glance_promote_off_paused_closes_exit_euro_offset_quiet() -> None:
+    """Take-profit runner-up speaks without escalating from offset alone."""
+    as_of = date(2026, 8, 18)
+    runtime = {
+        "calm_streak_days": 0,
+        "calm_required_days": 30,
+        "calm_ready": False,
+        "calm_detail": "promote filter off — streak paused",
+    }
+    without = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats={
+            "trades": 24,
+            "buys": 12,
+            "sells": 4,
+            "fees": 4.0,
+            "realized_pnl": -44.0,
+            "net_after_all_fees": -48.0,
+            "wins": 1,
+            "losses": 3,
+            "avg_win": 60.0,
+            "avg_loss": 100.0 / 3.0,
+            "loss_streak": 0,
+            "loss_streak_max": 2,
+            "win_streak": 0,
+            "win_streak_max": 1,
+            "flat_closes": 0,
+            "exit_tp": 1,
+            "exit_sl": 3,
+            "exit_rot": 0,
+            "exit_trim": 0,
+            "exit_pnl_tp": 10.0,
+            "exit_pnl_sl": -100.0,
+            "exit_pnl_rot": 0.0,
+            "exit_pnl_trim": 0.0,
+        },
+    )
+    g = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats={
+            "trades": 24,
+            "buys": 12,
+            "sells": 4,
+            "fees": 4.0,
+            "realized_pnl": -40.0,
+            "net_after_all_fees": -44.0,
+            "wins": 1,
+            "losses": 3,
+            "avg_win": 60.0,
+            "avg_loss": 100.0 / 3.0,
+            "loss_streak": 0,
+            "loss_streak_max": 2,
+            "win_streak": 0,
+            "win_streak_max": 1,
+            "flat_closes": 0,
+            "exit_tp": 1,
+            "exit_sl": 3,
+            "exit_rot": 0,
+            "exit_trim": 0,
+            "exit_pnl_tp": 60.0,
+            "exit_pnl_sl": -100.0,
+            "exit_pnl_rot": 0.0,
+            "exit_pnl_trim": 0.0,
+        },
+    )
+    assert g["window_a_closes_exit_euro_lead"] is None
+    assert g["window_a_closes_exit_euro_offset"] == "tp"
+    assert g["window_a_closes_exit_euro_offset_hot"] is False
+    assert g["window_a_closes_exit_euro_offset_bit"] == (
+        "€ offset quiet · tp +€60 · 0.6×"
+    )
+    # SL share hot (75%) already warns; offset quiet does not add warn.
+    assert g["window_a_closes_exit_sl_share_hot"] is True
+    assert g["tone"] == "warn"
+    assert "€ offset" not in without["line"]
+    assert "€ offset quiet · tp +€60 · 0.6×" in g["line"]
     assert len(g["line"]) <= 96
 
 
