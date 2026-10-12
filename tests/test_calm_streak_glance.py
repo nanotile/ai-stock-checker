@@ -215,6 +215,10 @@ def test_calm_streak_glance_promote_off_paused() -> None:
     assert g["window_a_closes_exit_trim_share_pct"] is None
     assert g["window_a_closes_exit_trim_share_severity"] == ""
     assert g["window_a_closes_exit_trim_share_hot"] is False
+    assert g["window_a_closes_exit_euro_lead_bit"] == ""
+    assert g["window_a_closes_exit_euro_lead"] is None
+    assert g["window_a_closes_exit_euro_pnl"] is None
+    assert g["window_a_closes_exit_euro_lead_hot"] is False
     assert g["window_a_closes_exit_tp"] is None
     assert g["window_a_closes_exit_sl"] is None
     assert g["window_a_closes_exit_rot"] is None
@@ -5775,6 +5779,195 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_trim_share_quiet() ->
     assert g["tone"] == without["tone"]
     assert "trim share quiet · 8.3%" in g["line"]
     assert "rot share quiet · 8.3%" not in g["line"]
+    assert len(g["line"]) <= 96
+
+
+def test_calm_streak_glance_promote_off_paused_closes_exit_euro_lead_hot() -> None:
+    """Trim share alone must not hide an adverse € lead (warns only)."""
+    as_of = date(2026, 8, 18)
+    runtime = {
+        "calm_streak_days": 0,
+        "calm_required_days": 30,
+        "calm_ready": False,
+        "calm_detail": "promote filter off — streak paused",
+    }
+    base = {
+        "trades": 24,
+        "buys": 12,
+        "sells": 4,
+        "fees": 4.0,
+        "realized_pnl": -188.0,
+        "net_after_all_fees": -192.0,
+        "wins": 3,
+        "losses": 1,
+        "avg_win": 4.0,
+        "avg_loss": 200.0,
+        "loss_streak": 0,
+        "loss_streak_max": 1,
+        "win_streak": 0,
+        "win_streak_max": 2,
+        "flat_closes": 0,
+    }
+    without = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats={
+            **base,
+            "exit_tp": 3,
+            "exit_sl": 1,
+            "exit_rot": 0,
+            "exit_trim": 0,
+        },
+    )
+    g = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats={
+            **base,
+            "exit_tp": 3,
+            "exit_sl": 1,
+            "exit_rot": 0,
+            "exit_trim": 0,
+            "exit_pnl_tp": 12.0,
+            "exit_pnl_sl": -200.0,
+            "exit_pnl_rot": 0.0,
+            "exit_pnl_trim": 0.0,
+        },
+    )
+    assert g["window_a_closes_exit_euro_lead"] == "sl"
+    assert g["window_a_closes_exit_euro_pnl"] == -200.0
+    assert g["window_a_closes_exit_euro_lead_hot"] is True
+    assert g["window_a_closes_exit_euro_lead_bit"] == "€ lead sl · −€200"
+    assert g["window_a_closes_exit_trim_share_bit"] == "trim share quiet · 0%"
+    assert g["tone"] == "warn"
+    assert "€ lead" not in without["line"]
+    assert "trim share quiet · 0%" not in g["line"]  # trim stays in fields
+    assert "€ lead sl · −€200" in g["line"]
+    assert len(g["line"]) <= 96
+
+
+def test_calm_streak_glance_promote_off_paused_closes_exit_euro_lead_tp() -> None:
+    """Take-profit € lead speaks without escalating tone."""
+    as_of = date(2026, 8, 18)
+    runtime = {
+        "calm_streak_days": 0,
+        "calm_required_days": 30,
+        "calm_ready": False,
+        "calm_detail": "promote filter off — streak paused",
+    }
+    base = {
+        "trades": 24,
+        "buys": 12,
+        "sells": 4,
+        "fees": 4.0,
+        "realized_pnl": 82.0,
+        "net_after_all_fees": 78.0,
+        "wins": 1,
+        "losses": 3,
+        "avg_win": 90.0,
+        "avg_loss": 8.0 / 3.0,
+        "loss_streak": 0,
+        "loss_streak_max": 2,
+        "win_streak": 0,
+        "win_streak_max": 1,
+        "flat_closes": 0,
+    }
+    without = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats={
+            **base,
+            "exit_tp": 1,
+            "exit_sl": 3,
+            "exit_rot": 0,
+            "exit_trim": 0,
+        },
+    )
+    g = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats={
+            **base,
+            "exit_tp": 1,
+            "exit_sl": 3,
+            "exit_rot": 0,
+            "exit_trim": 0,
+            "exit_pnl_tp": 90.0,
+            "exit_pnl_sl": -8.0,
+            "exit_pnl_rot": 0.0,
+            "exit_pnl_trim": 0.0,
+        },
+    )
+    assert g["window_a_closes_exit_euro_lead"] == "tp"
+    assert g["window_a_closes_exit_euro_pnl"] == 90.0
+    assert g["window_a_closes_exit_euro_lead_hot"] is False
+    assert g["window_a_closes_exit_euro_lead_bit"] == "€ lead tp · +€90"
+    assert g["window_a_closes_exit_trim_share_bit"] == "trim share quiet · 0%"
+    # SL share hot (75%) already warns; € lead itself does not add warn.
+    assert g["window_a_closes_exit_sl_share_hot"] is True
+    assert g["tone"] == "warn"
+    assert "€ lead" not in without["line"]
+    assert "trim share quiet · 0%" not in g["line"]
+    assert "€ lead tp · +€90" in g["line"]
+    assert len(g["line"]) <= 96
+
+
+def test_calm_streak_glance_promote_off_paused_closes_exit_euro_lead_match_silent() -> None:
+    """When count lead matches € lead, bit stays silent — trim keeps the clip."""
+    as_of = date(2026, 8, 18)
+    runtime = {
+        "calm_streak_days": 0,
+        "calm_required_days": 30,
+        "calm_ready": False,
+        "calm_detail": "promote filter off — streak paused",
+    }
+    g = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats={
+            "trades": 24,
+            "buys": 12,
+            "sells": 12,
+            "fees": 4.0,
+            "realized_pnl": 40.0,
+            "net_after_all_fees": 36.0,
+            "wins": 8,
+            "losses": 4,
+            "avg_win": 8.0,
+            "avg_loss": 4.0,
+            "loss_streak": 0,
+            "loss_streak_max": 3,
+            "win_streak": 0,
+            "win_streak_max": 3,
+            "flat_closes": 0,
+            "loss_streak_mean": 2.0,
+            "loss_streak_runs": 3,
+            "loss_streak_median": 1.0,
+            "win_streak_mean": 2.0,
+            "win_streak_runs": 3,
+            "win_streak_median": 1.0,
+            "loss_streak_min": 1,
+            "win_streak_min": 1,
+            "loss_streak_stdev": 1.0,
+            "win_streak_stdev": 1.0,
+            "loss_streak_cv": 0.5,
+            "win_streak_cv": 0.5,
+            "exit_tp": 8,
+            "exit_sl": 2,
+            "exit_rot": 1,
+            "exit_trim": 1,
+            "exit_pnl_tp": 64.0,
+            "exit_pnl_sl": -8.0,
+            "exit_pnl_rot": -2.0,
+            "exit_pnl_trim": -2.0,
+        },
+    )
+    assert g["window_a_closes_exit_euro_lead"] is None
+    assert g["window_a_closes_exit_euro_lead_bit"] == ""
+    assert g["window_a_closes_exit_euro_lead_hot"] is False
+    assert g["window_a_closes_exit_trim_share_bit"] == "trim share quiet · 8.3%"
+    assert "€ lead" not in g["line"]
+    assert "trim share quiet · 8.3%" in g["line"]
     assert len(g["line"]) <= 96
 
 
