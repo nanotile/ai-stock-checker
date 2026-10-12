@@ -265,6 +265,10 @@ def test_calm_streak_glance_promote_off_paused() -> None:
     assert g["window_a_closes_exit_euro_size_sign_clash_keep_fees"] is None
     assert g["window_a_closes_exit_euro_size_sign_clash_keep_fees_ratio"] is None
     assert g["window_a_closes_exit_euro_size_sign_clash_keep_fees_warn"] is False
+    assert g["window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_bit"] == ""
+    assert g["window_a_closes_exit_euro_size_sign_clash_keep_fees_vs"] is None
+    assert g["window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_window"] is None
+    assert g["window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_warn"] is False
     assert g["window_a_closes_exit_tp"] is None
     assert g["window_a_closes_exit_sl"] is None
     assert g["window_a_closes_exit_rot"] is None
@@ -7865,11 +7869,12 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_
             "exit_pnl_trim": 0.0,
         }
 
-    # Comfortable leftover fees — keep fees owns the clip (keep stays in fields).
+    # Comfortable leftover vs fee-drag total — vs owns the clip (keep fees
+    # stays in fields). Thin/eat match hot window mood → vs silent.
     calm = build_calm_streak_glance(runtime, as_of=as_of, window_stats=_ws(4.0))
-    # Thin fees÷leftover ≥0.5 — warns and owns the clip.
+    # Thin fees÷leftover ≥0.5 — warns and owns the clip (vs silent).
     thin = build_calm_streak_glance(runtime, as_of=as_of, window_stats=_ws(50.0))
-    # Fees exceed leftover — eat warns and owns the clip.
+    # Fees exceed leftover — eat warns and owns the clip (vs silent).
     eat = build_calm_streak_glance(runtime, as_of=as_of, window_stats=_ws(200.0))
     # Zero fees stay silent — keep can still own the clip.
     zero_stats = _ws(0.0)
@@ -7891,9 +7896,20 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_
     assert calm["window_a_closes_exit_euro_size_sign_clash_keep_bit"] == (
         "€ size clash keep strong · 0.9×"
     )
+    assert calm["window_a_closes_exit_euro_size_sign_clash_keep_fees_vs"] == (
+        "worse"
+    )
+    assert calm["window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_window"] == (
+        "total"
+    )
+    assert calm["window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_warn"] is True
+    assert calm["window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_bit"] == (
+        "keep fees vs drag worse · calm · total"
+    )
     assert "€ size clash keep strong · 0.9×" not in calm["line"]
-    assert "keep fees calm · 0.04×" in calm["line"]
-    assert "drag total" not in calm["line"]  # mood stays in fields
+    assert "keep fees calm · 0.04×" not in calm["line"]
+    assert "keep fees vs drag worse · calm · total" in calm["line"]
+    assert calm["tone"] == "warn"
 
     assert thin["window_a_closes_exit_euro_size_sign_clash_keep_fees"] == "thin"
     assert thin["window_a_closes_exit_euro_size_sign_clash_keep_fees_ratio"] == 0.53
@@ -7901,6 +7917,7 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_
     assert thin["window_a_closes_exit_euro_size_sign_clash_keep_fees_bit"] == (
         "keep fees thin · 0.53×"
     )
+    assert thin["window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_bit"] == ""
     assert thin["tone"] == "warn"
     assert "€ size clash keep strong" not in thin["line"]
     assert "keep fees thin · 0.53×" in thin["line"]
@@ -7911,12 +7928,14 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_
     assert eat["window_a_closes_exit_euro_size_sign_clash_keep_fees_bit"] == (
         "keep fees eat · 2.1×"
     )
+    assert eat["window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_bit"] == ""
     assert eat["tone"] == "warn"
     assert "€ size clash keep strong" not in eat["line"]
     assert "keep fees eat · 2.1×" in eat["line"]
 
     assert zero["window_a_closes_exit_euro_size_sign_clash_keep_fees_bit"] == ""
     assert zero["window_a_closes_exit_euro_size_sign_clash_keep_fees"] is None
+    assert zero["window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_bit"] == ""
     assert zero["window_a_closes_exit_euro_size_sign_clash_keep"] == "strong"
     assert "€ size clash keep strong · 0.9×" in zero["line"]
     assert "keep fees" not in zero["line"]
@@ -7924,6 +7943,147 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_
     assert len(thin["line"]) <= 96
     assert len(eat["line"]) <= 96
     assert len(zero["line"]) <= 96
+
+
+def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_keep_fees_vs() -> None:
+    """Keep fees alone must not hide leftover mood vs window fee mood."""
+    as_of = date(2026, 8, 18)
+    runtime = {
+        "calm_streak_days": 0,
+        "calm_required_days": 30,
+        "calm_ready": False,
+        "calm_detail": "promote filter off — streak paused",
+    }
+
+    # Calm leftover · fee-drag total → worse owns the clip.
+    worse = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats={
+            "trades": 12,
+            "buys": 4,
+            "sells": 8,
+            "fees": 4.0,
+            "wins": 6,
+            "losses": 2,
+            "avg_win": 16.67,
+            "avg_loss": 2.5,
+            "loss_streak": 0,
+            "loss_streak_max": 1,
+            "win_streak": 2,
+            "win_streak_max": 3,
+            "flat_closes": 0,
+            "exit_tp": 6,
+            "exit_sl": 2,
+            "exit_rot": 0,
+            "exit_trim": 0,
+            "exit_pnl_tp": 100.0,
+            "exit_pnl_sl": -5.0,
+            "exit_pnl_rot": 0.0,
+            "exit_pnl_trim": 0.0,
+        },
+    )
+    # Hot leftover · calm book → better owns the clip (does not warn).
+    better = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats={
+            "trades": 12,
+            "buys": 4,
+            "sells": 8,
+            "fees": 200.0,
+            "realized_pnl": 1000.0,
+            "wins": 6,
+            "losses": 2,
+            "avg_win": 16.67,
+            "avg_loss": 2.5,
+            "loss_streak": 0,
+            "loss_streak_max": 1,
+            "win_streak": 2,
+            "win_streak_max": 3,
+            "flat_closes": 0,
+            "exit_tp": 6,
+            "exit_sl": 2,
+            "exit_rot": 0,
+            "exit_trim": 0,
+            "exit_pnl_tp": 100.0,
+            "exit_pnl_sl": -5.0,
+            "exit_pnl_rot": 0.0,
+            "exit_pnl_trim": 0.0,
+        },
+    )
+    # Same hot mood (eat + fee-drag total) stays silent — keep fees owns clip.
+    same = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats={
+            "trades": 12,
+            "buys": 4,
+            "sells": 8,
+            "fees": 200.0,
+            "wins": 6,
+            "losses": 2,
+            "avg_win": 16.67,
+            "avg_loss": 2.5,
+            "loss_streak": 0,
+            "loss_streak_max": 1,
+            "win_streak": 2,
+            "win_streak_max": 3,
+            "flat_closes": 0,
+            "exit_tp": 6,
+            "exit_sl": 2,
+            "exit_rot": 0,
+            "exit_trim": 0,
+            "exit_pnl_tp": 100.0,
+            "exit_pnl_sl": -5.0,
+            "exit_pnl_rot": 0.0,
+            "exit_pnl_trim": 0.0,
+        },
+    )
+
+    assert worse["window_a_closes_exit_euro_size_sign_clash_keep_fees"] == (
+        "comfortable"
+    )
+    assert worse["window_a_closes_exit_euro_size_sign_clash_keep_fees_vs"] == (
+        "worse"
+    )
+    assert worse["window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_window"] == (
+        "total"
+    )
+    assert worse["window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_warn"] is True
+    assert worse["window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_bit"] == (
+        "keep fees vs drag worse · calm · total"
+    )
+    assert worse["tone"] == "warn"
+    assert "keep fees calm · 0.04×" not in worse["line"]
+    assert "keep fees vs drag worse · calm · total" in worse["line"]
+
+    assert better["window_a_closes_exit_euro_size_sign_clash_keep_fees"] == "eat"
+    assert better["window_a_closes_exit_euro_size_sign_clash_keep_fees_vs"] == (
+        "better"
+    )
+    assert better[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_window"
+    ] == "comfortable"
+    assert better["window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_warn"] is False
+    assert better["window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_bit"] == (
+        "keep fees vs drag better · eat · calm"
+    )
+    assert "keep fees eat" not in better["line"]
+    assert "keep fees vs drag better · eat · calm" in better["line"]
+    # eat alone would warn; better vs does not escalate from vs_warn.
+    # keep_fees_warn is still True in fields — tone stays warn from eat.
+    assert better["window_a_closes_exit_euro_size_sign_clash_keep_fees_warn"] is True
+    assert better["tone"] == "warn"
+
+    assert same["window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_bit"] == ""
+    assert same["window_a_closes_exit_euro_size_sign_clash_keep_fees_vs"] is None
+    assert same["window_a_closes_exit_euro_size_sign_clash_keep_fees"] == "eat"
+    assert "keep fees eat · 2.1×" in same["line"]
+    assert "keep fees vs drag" not in same["line"]
+    assert len(worse["line"]) <= 96
+    assert len(better["line"]) <= 96
+    assert len(same["line"]) <= 96
 
 
 def test_calm_streak_glance_progress() -> None:
