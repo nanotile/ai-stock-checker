@@ -277,6 +277,18 @@ def test_calm_streak_glance_promote_off_paused() -> None:
     assert g["window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir"] is None
     assert g["window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_ratio"] is None
     assert g["window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_warn"] is False
+    assert g[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_bit"
+    ] == ""
+    assert g[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_leftover"
+    ] is None
+    assert g[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_window"
+    ] is None
+    assert g[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_warn"
+    ] is False
     assert g["window_a_closes_exit_tp"] is None
     assert g["window_a_closes_exit_sl"] is None
     assert g["window_a_closes_exit_rot"] is None
@@ -8077,9 +8089,10 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_
     assert better["window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_bit"] == (
         "keep fees vs drag better · eat · calm"
     )
-    # Gap + dir own the clip when leftover× and window× both exist
-    # (fee-drag total fail-open stays on vs). Mood labels ≠ how far
-    # multiples sit; unsigned gap ≠ which side is hotter.
+    # Gap + dir + sides own the clip when leftover× and window× both
+    # exist (fee-drag total fail-open stays on vs). Mood labels ≠ how
+    # far multiples sit; unsigned gap ≠ which side is hotter; directed
+    # ratio ≠ both audit multiples.
     assert better["window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap"] == (
         "wide"
     )
@@ -8098,13 +8111,26 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_
     assert better[
         "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_bit"
     ] == "keep fees vs drag gap dir above · 10.5×"
+    assert better[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_leftover"
+    ] == 2.11
+    assert better[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_window"
+    ] == 0.2
+    assert better[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_warn"
+    ] is False
+    assert better[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_bit"
+    ] == "gap dir sides · leftover 2.1× · window 0.20×"
     assert "keep fees eat" not in better["line"]
     assert "keep fees vs drag better · eat · calm" not in better["line"]
     assert "keep fees vs drag gap wide · 10.5×" not in better["line"]
-    assert "keep fees vs drag gap dir above · 10.5×" in better["line"]
-    # eat alone would warn; better vs/gap/dir do not escalate from
-    # vs/gap/dir_warn. keep_fees_warn is still True in fields — tone
-    # stays warn from eat.
+    assert "keep fees vs drag gap dir above · 10.5×" not in better["line"]
+    assert "gap dir sides · leftover 2.1× · window 0.20×" in better["line"]
+    # eat alone would warn; better vs/gap/dir/sides do not escalate from
+    # vs/gap/dir/sides_warn. keep_fees_warn is still True in fields —
+    # tone stays warn from eat.
     assert better["window_a_closes_exit_euro_size_sign_clash_keep_fees_warn"] is True
     assert better["tone"] == "warn"
 
@@ -8113,6 +8139,9 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_
     assert same["window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_bit"] == ""
     assert same[
         "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_bit"
+    ] == ""
+    assert same[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_bit"
     ] == ""
     assert same["window_a_closes_exit_euro_size_sign_clash_keep_fees"] == "eat"
     assert "keep fees eat · 2.1×" in same["line"]
@@ -8154,20 +8183,21 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_
         "exit_pnl_trim": 0.0,
     }
 
-    # Calm leftover · fees-ok thin → worse + wide gap + dir below owns clip.
+    # Calm leftover · fees-ok thin → worse + wide gap + dir below + sides
+    # own clip.
     worse_gap = build_calm_streak_glance(
         runtime,
         as_of=as_of,
         window_stats={**base, "fees": 20.0, "realized_pnl": 30.0},
     )
-    # Hot leftover · calm book → better + wide gap + dir above owns clip
-    # (gap/dir do not warn; eat still warns in fields).
+    # Hot leftover · calm book → better + wide gap + dir above + sides
+    # own clip (gap/dir/sides do not warn; eat still warns in fields).
     better_gap = build_calm_streak_glance(
         runtime,
         as_of=as_of,
         window_stats={**base, "fees": 200.0, "realized_pnl": 1000.0},
     )
-    # Fee-drag total has no window fees× — gap/dir fail-open; vs owns clip.
+    # Fee-drag total has no window fees× — gap/dir/sides fail-open; vs owns clip.
     total_no_gap = build_calm_streak_glance(
         runtime,
         as_of=as_of,
@@ -8195,9 +8225,13 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_
     assert worse_gap[
         "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_warn"
     ] is True
+    assert worse_gap[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_bit"
+    ] == "gap dir sides · leftover 0.21× · window 0.67×"
     assert "keep fees vs drag worse" not in worse_gap["line"]
     assert "keep fees vs drag gap wide" not in worse_gap["line"]
-    assert "keep fees vs drag gap dir below · 0.31×" in worse_gap["line"]
+    assert "keep fees vs drag gap dir below · 0.31×" not in worse_gap["line"]
+    assert "gap dir sides · leftover 0.21× · window 0.67×" in worse_gap["line"]
     assert worse_gap["tone"] == "warn"
 
     assert better_gap["window_a_closes_exit_euro_size_sign_clash_keep_fees_vs"] == (
@@ -8217,7 +8251,8 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_
     ] is False
     assert "keep fees vs drag better" not in better_gap["line"]
     assert "keep fees vs drag gap wide · 10.5×" not in better_gap["line"]
-    assert "keep fees vs drag gap dir above · 10.5×" in better_gap["line"]
+    assert "keep fees vs drag gap dir above · 10.5×" not in better_gap["line"]
+    assert "gap dir sides · leftover 2.1× · window 0.20×" in better_gap["line"]
     assert better_gap["tone"] == "warn"
 
     assert total_no_gap[
@@ -8228,6 +8263,9 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_
     ] is None
     assert total_no_gap[
         "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_bit"
+    ] == ""
+    assert total_no_gap[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_bit"
     ] == ""
     assert total_no_gap[
         "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_bit"
@@ -8271,19 +8309,19 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_
         "exit_pnl_trim": 0.0,
     }
 
-    # Calm leftover · fees-ok thin → dir below (book hotter) owns clip.
+    # Calm leftover · fees-ok thin → dir below + sides (book hotter).
     below = build_calm_streak_glance(
         runtime,
         as_of=as_of,
         window_stats={**base, "fees": 20.0, "realized_pnl": 30.0},
     )
-    # Hot leftover · calm book → dir above (leftover hotter) owns clip.
+    # Hot leftover · calm book → dir above + sides (leftover hotter).
     above = build_calm_streak_glance(
         runtime,
         as_of=as_of,
         window_stats={**base, "fees": 200.0, "realized_pnl": 1000.0},
     )
-    # Fee-drag total — no window fees× → gap/dir fail-open.
+    # Fee-drag total — no window fees× → gap/dir/sides fail-open.
     total_no_dir = build_calm_streak_glance(
         runtime,
         as_of=as_of,
@@ -8305,8 +8343,10 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_
     assert below[
         "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_bit"
     ] == "keep fees vs drag gap dir below · 0.31×"
+    # Sides own the clip; dir stays in fields.
     assert "keep fees vs drag gap wide" not in below["line"]
-    assert "keep fees vs drag gap dir below · 0.31×" in below["line"]
+    assert "keep fees vs drag gap dir below · 0.31×" not in below["line"]
+    assert "gap dir sides · leftover 0.21× · window 0.67×" in below["line"]
     assert below["tone"] == "warn"
 
     assert above[
@@ -8322,7 +8362,8 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_
         "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_bit"
     ] == "keep fees vs drag gap dir above · 10.5×"
     assert "keep fees vs drag gap wide · 10.5×" not in above["line"]
-    assert "keep fees vs drag gap dir above · 10.5×" in above["line"]
+    assert "keep fees vs drag gap dir above · 10.5×" not in above["line"]
+    assert "gap dir sides · leftover 2.1× · window 0.20×" in above["line"]
     assert above["tone"] == "warn"
 
     assert total_no_dir[
@@ -8331,11 +8372,119 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_
     assert total_no_dir[
         "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir"
     ] is None
+    assert total_no_dir[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_bit"
+    ] == ""
     assert "keep fees vs drag worse · calm · total" in total_no_dir["line"]
     assert "keep fees vs drag gap dir" not in total_no_dir["line"]
     assert len(below["line"]) <= 96
     assert len(above["line"]) <= 96
     assert len(total_no_dir["line"]) <= 96
+
+
+def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides() -> None:
+    """Directed ratio alone must not hide leftover fees× and window fees×."""
+    as_of = date(2026, 8, 18)
+    runtime = {
+        "calm_streak_days": 0,
+        "calm_required_days": 30,
+        "calm_ready": False,
+        "calm_detail": "promote filter off — streak paused",
+    }
+    base = {
+        "trades": 12,
+        "buys": 4,
+        "sells": 8,
+        "wins": 6,
+        "losses": 2,
+        "avg_win": 16.67,
+        "avg_loss": 2.5,
+        "loss_streak": 0,
+        "loss_streak_max": 1,
+        "win_streak": 2,
+        "win_streak_max": 3,
+        "flat_closes": 0,
+        "exit_tp": 6,
+        "exit_sl": 2,
+        "exit_rot": 0,
+        "exit_trim": 0,
+        "exit_pnl_tp": 100.0,
+        "exit_pnl_sl": -5.0,
+        "exit_pnl_rot": 0.0,
+        "exit_pnl_trim": 0.0,
+    }
+
+    # Calm leftover · fees-ok thin → sides audit both multiples.
+    below = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats={**base, "fees": 20.0, "realized_pnl": 30.0},
+    )
+    # Hot leftover · calm book → sides audit both multiples.
+    above = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats={**base, "fees": 200.0, "realized_pnl": 1000.0},
+    )
+    # Fee-drag total — no window fees× → gap/dir/sides fail-open.
+    total_no_sides = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats={**base, "fees": 4.0},
+    )
+
+    assert below[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir"
+    ] == "below"
+    assert below[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_leftover"
+    ] == 0.21
+    assert below[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_window"
+    ] == 0.67
+    assert below[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_warn"
+    ] is True
+    assert below[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_bit"
+    ] == "gap dir sides · leftover 0.21× · window 0.67×"
+    assert "keep fees vs drag gap dir below · 0.31×" not in below["line"]
+    assert "gap dir sides · leftover 0.21× · window 0.67×" in below["line"]
+    assert below["tone"] == "warn"
+
+    assert above[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir"
+    ] == "above"
+    assert above[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_leftover"
+    ] == 2.11
+    assert above[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_window"
+    ] == 0.2
+    assert above[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_warn"
+    ] is False
+    assert above[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_bit"
+    ] == "gap dir sides · leftover 2.1× · window 0.20×"
+    assert "keep fees vs drag gap dir above · 10.5×" not in above["line"]
+    assert "gap dir sides · leftover 2.1× · window 0.20×" in above["line"]
+    assert above["tone"] == "warn"
+
+    assert total_no_sides[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_bit"
+    ] == ""
+    assert total_no_sides[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_leftover"
+    ] is None
+    assert total_no_sides[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_window"
+    ] is None
+    assert "keep fees vs drag worse · calm · total" in total_no_sides["line"]
+    assert "gap dir sides" not in total_no_sides["line"]
+    assert len(below["line"]) <= 96
+    assert len(above["line"]) <= 96
+    assert len(total_no_sides["line"]) <= 96
 
 
 def test_calm_streak_glance_progress() -> None:
