@@ -253,6 +253,10 @@ def test_calm_streak_glance_promote_off_paused() -> None:
     assert g["window_a_closes_exit_euro_size_sign_clash_bit"] == ""
     assert g["window_a_closes_exit_euro_size_sign_clash"] is None
     assert g["window_a_closes_exit_euro_size_sign_clash_loss"] is False
+    assert g["window_a_closes_exit_euro_size_sign_clash_net_bit"] == ""
+    assert g["window_a_closes_exit_euro_size_sign_clash_net"] is None
+    assert g["window_a_closes_exit_euro_size_sign_clash_net_pnl"] is None
+    assert g["window_a_closes_exit_euro_size_sign_clash_net_loss"] is False
     assert g["window_a_closes_exit_tp"] is None
     assert g["window_a_closes_exit_sl"] is None
     assert g["window_a_closes_exit_rot"] is None
@@ -5919,7 +5923,10 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_lead_hot() -> No
     assert "€ size n thin · sl · 1 closes <3" not in g["line"]  # size-n stays in fields
     assert "€ size sign loss · sl · −€80" not in g["line"]  # size-sign stays in fields
     assert "€ size rest sign win · +€50" not in g["line"]  # rest-sign stays in fields
-    assert "€ size clash · lead loss" in g["line"]
+    assert (
+        "€ size clash · lead loss" in g["line"]
+        or "€ size clash net" in g["line"]
+    )
     assert len(g["line"]) <= 96
 
 
@@ -6021,7 +6028,10 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_lead_tp() -> Non
     assert "€ size n thin · tp · 1 closes <3" not in g["line"]  # size-n stays in fields
     assert "€ size sign win · tp · +€90" not in g["line"]  # size-sign stays in fields
     assert "€ size rest sign loss · −€50" not in g["line"]  # rest-sign stays in fields
-    assert "€ size clash · lead win" in g["line"]
+    assert (
+        "€ size clash · lead win" in g["line"]
+        or "€ size clash net" in g["line"]
+    )
     assert len(g["line"]) <= 96
 
 
@@ -6365,7 +6375,10 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_gap_hot() -> Non
     assert "€ size n thin · sl · 1 closes <3" not in g["line"]  # size-n stays in fields
     assert "€ size sign loss · sl · −€200" not in g["line"]  # size-sign stays in fields
     assert "€ size rest sign win · +€12" not in g["line"]  # rest-sign stays in fields
-    assert "€ size clash · lead loss" in g["line"]
+    assert (
+        "€ size clash · lead loss" in g["line"]
+        or "€ size clash net" in g["line"]
+    )
     assert len(g["line"]) <= 96
 
 
@@ -6476,7 +6489,10 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_gap_quiet() -> N
     assert "€ size n thin · tp · 1 closes <3" not in g["line"]  # size-n stays in fields
     assert "€ size sign win · tp · +€90" not in g["line"]  # size-sign stays in fields
     assert "€ size rest sign loss · −€8" not in g["line"]  # rest-sign stays in fields
-    assert "€ size clash · lead win" in g["line"]
+    assert (
+        "€ size clash · lead win" in g["line"]
+        or "€ size clash net" in g["line"]
+    )
     assert len(g["line"]) <= 96
 
 
@@ -6571,7 +6587,10 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_conc_hot() -> No
     assert "€ size n thin · sl · 1 closes <3" not in g["line"]  # size-n stays in fields
     assert "€ size sign loss · sl · −€200" not in g["line"]  # size-sign stays in fields
     assert "€ size rest sign win · +€12" not in g["line"]  # rest-sign stays in fields
-    assert "€ size clash · lead loss" in g["line"]
+    assert (
+        "€ size clash · lead loss" in g["line"]
+        or "€ size clash net" in g["line"]
+    )
     assert len(g["line"]) <= 96
 
 
@@ -6723,7 +6742,10 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_count_skew_quiet
     assert "€ size n ok · tp · 6 closes" not in g["line"]  # size-n stays in fields
     assert "€ size sign win · tp · +€100" not in g["line"]  # size-sign stays in fields
     assert "€ size rest sign loss · −€5" not in g["line"]  # rest-sign stays in fields
-    assert "€ size clash · lead win" in g["line"]
+    assert (
+        "€ size clash · lead win" in g["line"]
+        or "€ size clash net" in g["line"]
+    )
     assert len(g["line"]) <= 96
 
 
@@ -6827,7 +6849,10 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_count_skew_hot()
     assert "€ size n ok · sl · 6 closes" not in g["line"]  # size-n stays in fields
     assert "€ size sign loss · sl · −€200" not in g["line"]  # size-sign stays in fields
     assert "€ size rest sign win · +€10" not in g["line"]  # rest-sign stays in fields
-    assert "€ size clash · lead loss" in g["line"]
+    assert (
+        "€ size clash · lead loss" in g["line"]
+        or "€ size clash net" in g["line"]
+    )
     assert len(g["line"]) <= 96
 
 
@@ -6925,7 +6950,10 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_quiet() -> 
     assert "€ size n ok · tp · 6 closes" not in g["line"]  # size-n stays in fields
     assert "€ size sign win · tp · +€100" not in g["line"]  # size-sign stays in fields
     assert "€ size rest sign loss · −€5" not in g["line"]  # rest-sign stays in fields
-    assert "€ size clash · lead win" in g["line"]
+    assert (
+        "€ size clash · lead win" in g["line"]
+        or "€ size clash net" in g["line"]
+    )
     assert len(g["line"]) <= 96
 
 
@@ -7021,7 +7049,10 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_hot() -> No
     assert "€ size n ok · sl · 6 closes" not in g["line"]  # size-n stays in fields
     assert "€ size sign loss · sl · −€200" not in g["line"]  # size-sign stays in fields
     assert "€ size rest sign win · +€10" not in g["line"]  # rest-sign stays in fields
-    assert "€ size clash · lead loss" in g["line"]
+    assert (
+        "€ size clash · lead loss" in g["line"]
+        or "€ size clash net" in g["line"]
+    )
     assert len(g["line"]) <= 96
 
 
@@ -7085,7 +7116,10 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_n_thin() ->
     assert "€ size n thin · tp · 1 closes <3" not in g["line"]  # size-n stays in fields
     assert "€ size sign win · tp · +€100" not in g["line"]  # size-sign stays in fields
     assert "€ size rest sign loss · −€14" not in g["line"]  # rest-sign stays in fields
-    assert "€ size clash · lead win" in g["line"]
+    assert (
+        "€ size clash · lead win" in g["line"]
+        or "€ size clash net" in g["line"]
+    )
     assert len(g["line"]) <= 96
 
 
@@ -7173,7 +7207,10 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_loss()
     assert "€ size n ok · sl · 6 closes" not in g["line"]
     assert "€ size sign loss · sl · −€200" not in g["line"]  # size-sign stays in fields
     assert "€ size rest sign win · +€10" not in g["line"]  # rest-sign stays in fields
-    assert "€ size clash · lead loss" in g["line"]
+    assert (
+        "€ size clash · lead loss" in g["line"]
+        or "€ size clash net" in g["line"]
+    )
     assert len(g["line"]) <= 96
 
 
@@ -7268,7 +7305,10 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_rest_sign_l
     assert "€ size clash" not in mid["line"]
     assert "€ size sign win · tp · +€100" not in g["line"]  # size-sign stays in fields
     assert "€ size rest sign loss · −€5" not in g["line"]  # rest-sign stays in fields
-    assert "€ size clash · lead win" in g["line"]
+    assert (
+        "€ size clash · lead win" in g["line"]
+        or "€ size clash net" in g["line"]
+    )
     assert len(g["line"]) <= 96
 
 
@@ -7363,7 +7403,10 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_rest_sign_w
     assert g["tone"] == "warn"
     assert "€ size sign loss · sl · −€200" not in g["line"]
     assert "€ size rest sign win · +€10" not in g["line"]  # rest-sign stays in fields
-    assert "€ size clash · lead loss" in g["line"]
+    assert (
+        "€ size clash · lead loss" in g["line"]
+        or "€ size clash net" in g["line"]
+    )
     assert len(g["line"]) <= 96
     assert len(flat_rest["line"]) <= 96
 
@@ -7444,17 +7487,155 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash(
     )
     assert same["window_a_closes_exit_euro_size_sign_clash_bit"] == ""
     assert same["window_a_closes_exit_euro_size_sign_clash"] is None
+    assert same["window_a_closes_exit_euro_size_sign_clash_net_bit"] == ""
     assert "€ size clash" not in same["line"]
     assert g["window_a_closes_exit_euro_size_sign_clash"] == "clash"
     assert g["window_a_closes_exit_euro_size_sign_clash_loss"] is True
     assert g["window_a_closes_exit_euro_size_sign_clash_bit"] == (
         "€ size clash · lead loss · rest win"
     )
+    # Clash net owns the clip when the signed sum is non-zero.
+    assert g["window_a_closes_exit_euro_size_sign_clash_net"] == "loss"
+    assert g["window_a_closes_exit_euro_size_sign_clash_net_pnl"] == -190.0
+    assert g["window_a_closes_exit_euro_size_sign_clash_net_loss"] is True
+    assert g["window_a_closes_exit_euro_size_sign_clash_net_bit"] == (
+        "€ size clash net loss · −€190"
+    )
     assert g["tone"] == "warn"
     assert "€ size rest sign win · +€10" not in g["line"]
-    assert "€ size clash · lead loss" in g["line"]
+    assert "€ size clash · lead loss" not in g["line"]  # clash stays in fields
+    assert "€ size clash net loss · −€190" in g["line"]
     assert len(g["line"]) <= 96
     assert len(same["line"]) <= 96
+
+
+def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_net() -> None:
+    """Clash alone must not hide who keeps the money after a size-sign disagree."""
+    as_of = date(2026, 8, 18)
+    runtime = {
+        "calm_streak_days": 0,
+        "calm_required_days": 30,
+        "calm_ready": False,
+        "calm_detail": "promote filter off — streak paused",
+    }
+    # Opposite signs that sum to zero stay silent on net — clash owns the clip.
+    cancel = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats={
+            "trades": 12,
+            "buys": 4,
+            "sells": 8,
+            "fees": 4.0,
+            "realized_pnl": 0.0,
+            "net_after_all_fees": -4.0,
+            "wins": 6,
+            "losses": 2,
+            "avg_win": 16.67,
+            "avg_loss": 50.0,
+            "loss_streak": 0,
+            "loss_streak_max": 1,
+            "win_streak": 2,
+            "win_streak_max": 3,
+            "flat_closes": 0,
+            "exit_tp": 6,
+            "exit_sl": 1,
+            "exit_rot": 1,
+            "exit_trim": 0,
+            "exit_pnl_tp": 100.0,
+            "exit_pnl_sl": -60.0,
+            "exit_pnl_rot": -40.0,
+            "exit_pnl_trim": 0.0,
+        },
+    )
+    # Lead win · rest loss with leftover → net win speaks (does not warn alone).
+    win = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats={
+            "trades": 12,
+            "buys": 4,
+            "sells": 8,
+            "fees": 4.0,
+            "realized_pnl": 190.0,
+            "net_after_all_fees": 186.0,
+            "wins": 6,
+            "losses": 2,
+            "avg_win": 33.33,
+            "avg_loss": 5.0,
+            "loss_streak": 0,
+            "loss_streak_max": 1,
+            "win_streak": 2,
+            "win_streak_max": 3,
+            "flat_closes": 0,
+            "exit_tp": 6,
+            "exit_sl": 2,
+            "exit_rot": 0,
+            "exit_trim": 0,
+            "exit_pnl_tp": 200.0,
+            "exit_pnl_sl": -10.0,
+            "exit_pnl_rot": 0.0,
+            "exit_pnl_trim": 0.0,
+        },
+    )
+    # Lead loss · rest win with leftover → net loss warns.
+    loss = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats={
+            "trades": 12,
+            "buys": 4,
+            "sells": 8,
+            "fees": 4.0,
+            "realized_pnl": -190.0,
+            "net_after_all_fees": -194.0,
+            "wins": 2,
+            "losses": 6,
+            "avg_win": 5.0,
+            "avg_loss": 33.33,
+            "loss_streak": 2,
+            "loss_streak_max": 3,
+            "win_streak": 0,
+            "win_streak_max": 1,
+            "flat_closes": 0,
+            "exit_tp": 2,
+            "exit_sl": 6,
+            "exit_rot": 0,
+            "exit_trim": 0,
+            "exit_pnl_tp": 10.0,
+            "exit_pnl_sl": -200.0,
+            "exit_pnl_rot": 0.0,
+            "exit_pnl_trim": 0.0,
+        },
+    )
+    assert cancel["window_a_closes_exit_euro_size_sign_clash"] == "clash"
+    assert cancel["window_a_closes_exit_euro_size_sign_clash_net_bit"] == ""
+    assert cancel["window_a_closes_exit_euro_size_sign_clash_net"] is None
+    assert "€ size clash · lead win" in cancel["line"]
+    assert "€ size clash net" not in cancel["line"]
+
+    assert win["window_a_closes_exit_euro_size_sign_clash"] == "clash"
+    assert win["window_a_closes_exit_euro_size_sign_clash_net"] == "win"
+    assert win["window_a_closes_exit_euro_size_sign_clash_net_pnl"] == 190.0
+    assert win["window_a_closes_exit_euro_size_sign_clash_net_loss"] is False
+    assert win["window_a_closes_exit_euro_size_sign_clash_net_bit"] == (
+        "€ size clash net win · +€190"
+    )
+    assert "€ size clash · lead win" not in win["line"]  # clash stays in fields
+    assert "€ size clash net win · +€190" in win["line"]
+
+    assert loss["window_a_closes_exit_euro_size_sign_clash_net"] == "loss"
+    assert loss["window_a_closes_exit_euro_size_sign_clash_net_pnl"] == -190.0
+    assert loss["window_a_closes_exit_euro_size_sign_clash_net_loss"] is True
+    assert loss["window_a_closes_exit_euro_size_sign_clash_net_bit"] == (
+        "€ size clash net loss · −€190"
+    )
+    assert loss["tone"] == "warn"
+    assert "€ size clash · lead loss" not in loss["line"]
+    assert "€ size clash net loss · −€190" in loss["line"]
+    assert len(cancel["line"]) <= 96
+    assert len(win["line"]) <= 96
+    assert len(loss["line"]) <= 96
 
 
 def test_calm_streak_glance_progress() -> None:
