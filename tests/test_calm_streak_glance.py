@@ -238,6 +238,10 @@ def test_calm_streak_glance_promote_off_paused() -> None:
     assert g["window_a_closes_exit_euro_size_bit"] == ""
     assert g["window_a_closes_exit_euro_size_ratio"] is None
     assert g["window_a_closes_exit_euro_size_hot"] is False
+    assert g["window_a_closes_exit_euro_size_n_bit"] == ""
+    assert g["window_a_closes_exit_euro_size_n"] is None
+    assert g["window_a_closes_exit_euro_size_n_count"] is None
+    assert g["window_a_closes_exit_euro_size_n_thin"] is False
     assert g["window_a_closes_exit_tp"] is None
     assert g["window_a_closes_exit_sl"] is None
     assert g["window_a_closes_exit_rot"] is None
@@ -5862,7 +5866,7 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_lead_hot() -> No
     assert g["window_a_closes_exit_euro_lead_bit"] == "€ lead sl · −€80"
     assert g["window_a_closes_exit_euro_gap_bit"] == ""
     assert g["window_a_closes_exit_euro_gap_hot"] is False
-    # |sl| 80 / 130 ≈ 61.5% → hot conc + fat size; size owns the clip.
+    # |sl| 80 / 130 ≈ 61.5% → hot conc + fat size; size-n thin owns clip.
     assert g["window_a_closes_exit_euro_conc"] == "sl"
     assert g["window_a_closes_exit_euro_conc_pct"] == 61.5
     assert g["window_a_closes_exit_euro_conc_hot"] is True
@@ -5870,6 +5874,12 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_lead_hot() -> No
     assert g["window_a_closes_exit_euro_size_ratio"] == 4.8
     assert g["window_a_closes_exit_euro_size_hot"] is True
     assert g["window_a_closes_exit_euro_size_bit"] == "€ size fat hot · sl · 4.8×"
+    assert g["window_a_closes_exit_euro_size_n"] == "thin"
+    assert g["window_a_closes_exit_euro_size_n_count"] == 1
+    assert g["window_a_closes_exit_euro_size_n_thin"] is True
+    assert g["window_a_closes_exit_euro_size_n_bit"] == (
+        "€ size n thin · sl · 1 closes <3"
+    )
     assert g["window_a_closes_exit_trim_share_bit"] == "trim share quiet · 0%"
     assert g["tone"] == "warn"
     assert "€ lead" not in without["line"]
@@ -5877,7 +5887,8 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_lead_hot() -> No
     assert "trim share quiet · 0%" not in g["line"]  # trim stays in fields
     assert "€ lead sl · −€80" not in g["line"]  # lead stays in fields
     assert "€ conc hot · sl · 61.5%" not in g["line"]  # conc stays in fields
-    assert "€ size fat hot · sl · 4.8×" in g["line"]
+    assert "€ size fat hot · sl · 4.8×" not in g["line"]  # size stays in fields
+    assert "€ size n thin · sl · 1 closes <3" in g["line"]
     assert len(g["line"]) <= 96
 
 
@@ -5942,7 +5953,7 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_lead_tp() -> Non
     assert g["window_a_closes_exit_euro_lead_bit"] == "€ lead tp · +€90"
     assert g["window_a_closes_exit_euro_gap_bit"] == ""
     assert g["window_a_closes_exit_euro_gap_hot"] is False
-    # |tp| 90 / 140 ≈ 64.3% → strong conc + fat size; size owns the clip.
+    # |tp| 90 / 140 ≈ 64.3% → strong conc + fat size; size-n thin owns clip.
     assert g["window_a_closes_exit_euro_conc"] == "tp"
     assert g["window_a_closes_exit_euro_conc_pct"] == 64.3
     assert g["window_a_closes_exit_euro_conc_hot"] is False
@@ -5954,8 +5965,14 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_lead_tp() -> Non
     assert g["window_a_closes_exit_euro_size_bit"] == (
         "€ size fat quiet · tp · 5.4×"
     )
+    assert g["window_a_closes_exit_euro_size_n"] == "thin"
+    assert g["window_a_closes_exit_euro_size_n_count"] == 1
+    assert g["window_a_closes_exit_euro_size_n_thin"] is True
+    assert g["window_a_closes_exit_euro_size_n_bit"] == (
+        "€ size n thin · tp · 1 closes <3"
+    )
     assert g["window_a_closes_exit_trim_share_bit"] == "trim share quiet · 0%"
-    # SL share hot (75%) already warns; € lead / size quiet do not add warn.
+    # SL share hot (75%) + size-n thin warn; € lead / size quiet do not alone.
     assert g["window_a_closes_exit_sl_share_hot"] is True
     assert g["tone"] == "warn"
     assert "€ lead" not in without["line"]
@@ -5963,7 +5980,8 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_lead_tp() -> Non
     assert "trim share quiet · 0%" not in g["line"]
     assert "€ lead tp · +€90" not in g["line"]  # lead stays in fields
     assert "€ conc strong · tp · 64.3%" not in g["line"]  # conc stays in fields
-    assert "€ size fat quiet · tp · 5.4×" in g["line"]
+    assert "€ size fat quiet · tp · 5.4×" not in g["line"]  # size stays in fields
+    assert "€ size n thin · tp · 1 closes <3" in g["line"]
     assert len(g["line"]) <= 96
 
 
@@ -6278,7 +6296,7 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_gap_hot() -> Non
     assert g["window_a_closes_exit_euro_gap_vs"] == "tp"
     assert g["window_a_closes_exit_euro_gap_hot"] is True
     assert g["window_a_closes_exit_euro_gap_bit"] == "€ gap hot · 16.7× vs tp"
-    # |sl| 200 / 212 ≈ 94.3% → hot conc + fat size 50×; size owns the clip.
+    # |sl| 200 / 212 ≈ 94.3% → hot conc + fat size 50×; size-n thin owns clip.
     assert g["window_a_closes_exit_euro_conc"] == "sl"
     assert g["window_a_closes_exit_euro_conc_pct"] == 94.3
     assert g["window_a_closes_exit_euro_conc_hot"] is True
@@ -6286,12 +6304,19 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_gap_hot() -> Non
     assert g["window_a_closes_exit_euro_size_ratio"] == 50.0
     assert g["window_a_closes_exit_euro_size_hot"] is True
     assert g["window_a_closes_exit_euro_size_bit"] == "€ size fat hot · sl · 50×"
+    assert g["window_a_closes_exit_euro_size_n"] == "thin"
+    assert g["window_a_closes_exit_euro_size_n_count"] == 1
+    assert g["window_a_closes_exit_euro_size_n_thin"] is True
+    assert g["window_a_closes_exit_euro_size_n_bit"] == (
+        "€ size n thin · sl · 1 closes <3"
+    )
     assert g["tone"] == "warn"
     assert "€ gap" not in without["line"]
     assert "€ lead sl · −€200" not in g["line"]  # lead stays in fields
     assert "€ gap hot · 16.7× vs tp" not in g["line"]  # gap stays in fields
     assert "€ conc hot · sl · 94.3%" not in g["line"]  # conc stays in fields
-    assert "€ size fat hot · sl · 50×" in g["line"]
+    assert "€ size fat hot · sl · 50×" not in g["line"]  # size stays in fields
+    assert "€ size n thin · sl · 1 closes <3" in g["line"]
     assert len(g["line"]) <= 96
 
 
@@ -6367,7 +6392,7 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_gap_quiet() -> N
     assert g["window_a_closes_exit_euro_gap_vs"] == "sl"
     assert g["window_a_closes_exit_euro_gap_hot"] is False
     assert g["window_a_closes_exit_euro_gap_bit"] == "€ gap quiet · 11.2× vs sl"
-    # |tp| 90 / 98 ≈ 91.8% → strong conc + fat size; size owns the clip.
+    # |tp| 90 / 98 ≈ 91.8% → strong conc + fat size; size-n thin owns clip.
     assert g["window_a_closes_exit_euro_conc"] == "tp"
     assert g["window_a_closes_exit_euro_conc_pct"] == 91.8
     assert g["window_a_closes_exit_euro_conc_hot"] is False
@@ -6379,14 +6404,21 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_gap_quiet() -> N
     assert g["window_a_closes_exit_euro_size_bit"] == (
         "€ size fat quiet · tp · 33.8×"
     )
-    # SL share hot (75%) already warns; gap quiet / size quiet do not add warn.
+    assert g["window_a_closes_exit_euro_size_n"] == "thin"
+    assert g["window_a_closes_exit_euro_size_n_count"] == 1
+    assert g["window_a_closes_exit_euro_size_n_thin"] is True
+    assert g["window_a_closes_exit_euro_size_n_bit"] == (
+        "€ size n thin · tp · 1 closes <3"
+    )
+    # SL share hot (75%) + size-n thin warn; gap/size quiet do not alone.
     assert g["window_a_closes_exit_sl_share_hot"] is True
     assert g["tone"] == "warn"
     assert "€ gap" not in without["line"]
     assert "€ lead tp · +€90" not in g["line"]  # lead stays in fields
     assert "€ gap quiet · 11.2× vs sl" not in g["line"]  # gap stays in fields
     assert "€ conc strong · tp · 91.8%" not in g["line"]  # conc stays in fields
-    assert "€ size fat quiet · tp · 33.8×" in g["line"]
+    assert "€ size fat quiet · tp · 33.8×" not in g["line"]  # size stays in fields
+    assert "€ size n thin · tp · 1 closes <3" in g["line"]
     assert len(g["line"]) <= 96
 
 
@@ -6461,11 +6493,18 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_conc_hot() -> No
     assert g["window_a_closes_exit_euro_size_ratio"] == 50.0
     assert g["window_a_closes_exit_euro_size_hot"] is True
     assert g["window_a_closes_exit_euro_size_bit"] == "€ size fat hot · sl · 50×"
+    assert g["window_a_closes_exit_euro_size_n"] == "thin"
+    assert g["window_a_closes_exit_euro_size_n_count"] == 1
+    assert g["window_a_closes_exit_euro_size_n_thin"] is True
+    assert g["window_a_closes_exit_euro_size_n_bit"] == (
+        "€ size n thin · sl · 1 closes <3"
+    )
     assert g["tone"] == "warn"
     assert "€ size" not in without["line"]
     assert "€ gap hot · 16.7× vs tp" not in g["line"]  # gap stays in fields
     assert "€ conc hot · sl · 94.3%" not in g["line"]  # conc stays in fields
-    assert "€ size fat hot · sl · 50×" in g["line"]
+    assert "€ size fat hot · sl · 50×" not in g["line"]  # size stays in fields
+    assert "€ size n thin · sl · 1 closes <3" in g["line"]
     assert len(g["line"]) <= 96
 
 
@@ -6598,10 +6637,17 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_count_skew_quiet
     assert g["window_a_closes_exit_euro_size_bit"] == (
         "€ size fat quiet · tp · 6.7×"
     )
+    assert g["window_a_closes_exit_euro_size_n"] == "ok"
+    assert g["window_a_closes_exit_euro_size_n_count"] == 6
+    assert g["window_a_closes_exit_euro_size_n_thin"] is False
+    assert g["window_a_closes_exit_euro_size_n_bit"] == (
+        "€ size n ok · tp · 6 closes"
+    )
     assert "€ size" not in without["line"]  # mid size silent
     assert "€ skew" not in g["line"]  # skew stays in fields
     assert "€ conc" not in g["line"]  # conc stays in fields
-    assert "€ size fat quiet · tp · 6.7×" in g["line"]
+    assert "€ size fat quiet · tp · 6.7×" not in g["line"]  # size stays in fields
+    assert "€ size n ok · tp · 6 closes" in g["line"]
     assert len(g["line"]) <= 96
 
 
@@ -6685,11 +6731,18 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_count_skew_hot()
     assert g["window_a_closes_exit_euro_size_bit"] == (
         "€ size fat hot · sl · 6.7×"
     )
+    assert g["window_a_closes_exit_euro_size_n"] == "ok"
+    assert g["window_a_closes_exit_euro_size_n_count"] == 6
+    assert g["window_a_closes_exit_euro_size_n_thin"] is False
+    assert g["window_a_closes_exit_euro_size_n_bit"] == (
+        "€ size n ok · sl · 6 closes"
+    )
     assert g["tone"] == "warn"
     assert "€ size" not in without["line"]  # mid size silent
     assert "€ skew" not in g["line"]  # skew stays in fields
     assert "€ conc" not in g["line"]  # conc stays in fields
-    assert "€ size fat hot · sl · 6.7×" in g["line"]
+    assert "€ size fat hot · sl · 6.7×" not in g["line"]  # size stays in fields
+    assert "€ size n ok · sl · 6 closes" in g["line"]
     assert len(g["line"]) <= 96
 
 
@@ -6760,18 +6813,25 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_quiet() -> 
             "exit_pnl_trim": 0.0,
         },
     )
-    # tp avg €16.67 vs sl avg €2.5 → 6.67× fat quiet.
+    # tp avg €16.67 vs sl avg €2.5 → 6.67× fat quiet; size-n ok owns clip.
     assert g["window_a_closes_exit_euro_size_ratio"] == 6.67
     assert g["window_a_closes_exit_euro_size_hot"] is False
     assert g["window_a_closes_exit_euro_size_bit"] == (
         "€ size fat quiet · tp · 6.7×"
+    )
+    assert g["window_a_closes_exit_euro_size_n"] == "ok"
+    assert g["window_a_closes_exit_euro_size_n_count"] == 6
+    assert g["window_a_closes_exit_euro_size_n_thin"] is False
+    assert g["window_a_closes_exit_euro_size_n_bit"] == (
+        "€ size n ok · tp · 6 closes"
     )
     assert g["window_a_closes_exit_euro_count_skew_bit"] == (
         "€ skew quiet · tp · n 75% · € 95.2%"
     )
     assert "€ size" not in without["line"]  # mid size silent
     assert "€ skew" not in g["line"]  # skew stays in fields
-    assert "€ size fat quiet · tp · 6.7×" in g["line"]
+    assert "€ size fat quiet · tp · 6.7×" not in g["line"]  # size stays in fields
+    assert "€ size n ok · tp · 6 closes" in g["line"]
     assert len(g["line"]) <= 96
 
 
@@ -6842,16 +6902,78 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_hot() -> No
             "exit_pnl_trim": 0.0,
         },
     )
-    # sl avg €33.33 vs tp avg €5 → 6.67× fat hot.
+    # sl avg €33.33 vs tp avg €5 → 6.67× fat hot; size-n ok owns clip.
     assert g["window_a_closes_exit_euro_size_ratio"] == 6.67
     assert g["window_a_closes_exit_euro_size_hot"] is True
     assert g["window_a_closes_exit_euro_size_bit"] == (
         "€ size fat hot · sl · 6.7×"
     )
+    assert g["window_a_closes_exit_euro_size_n"] == "ok"
+    assert g["window_a_closes_exit_euro_size_n_count"] == 6
+    assert g["window_a_closes_exit_euro_size_n_thin"] is False
+    assert g["window_a_closes_exit_euro_size_n_bit"] == (
+        "€ size n ok · sl · 6 closes"
+    )
     assert g["tone"] == "warn"
     assert "€ size" not in without["line"]  # mid size silent
     assert "€ skew" not in g["line"]  # skew stays in fields
-    assert "€ size fat hot · sl · 6.7×" in g["line"]
+    assert "€ size fat hot · sl · 6.7×" not in g["line"]  # size stays in fields
+    assert "€ size n ok · sl · 6 closes" in g["line"]
+    assert len(g["line"]) <= 96
+
+
+def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_n_thin() -> None:
+    """Fat € size from one close must speak size-n thin (sample honesty)."""
+    as_of = date(2026, 8, 18)
+    runtime = {
+        "calm_streak_days": 0,
+        "calm_required_days": 30,
+        "calm_ready": False,
+        "calm_detail": "promote filter off — streak paused",
+    }
+    without = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats={
+            "trades": 12,
+            "buys": 4,
+            "sells": 8,
+            "fees": 4.0,
+            "realized_pnl": 80.0,
+            "net_after_all_fees": 76.0,
+            "wins": 1,
+            "losses": 7,
+            "avg_win": 100.0,
+            "avg_loss": 2.0,
+            "loss_streak": 2,
+            "loss_streak_max": 3,
+            "win_streak": 0,
+            "win_streak_max": 1,
+            "flat_closes": 0,
+            "exit_tp": 1,
+            "exit_sl": 7,
+            "exit_rot": 0,
+            "exit_trim": 0,
+            "exit_pnl_tp": 100.0,
+            "exit_pnl_sl": -14.0,
+            "exit_pnl_rot": 0.0,
+            "exit_pnl_trim": 0.0,
+        },
+    )
+    g = without  # same fixture: fat from 1 tp close → size-n thin
+    assert g["window_a_closes_exit_euro_size_ratio"] == 50.0
+    assert g["window_a_closes_exit_euro_size_bit"] == (
+        "€ size fat quiet · tp · 50×"
+    )
+    assert g["window_a_closes_exit_euro_size_n"] == "thin"
+    assert g["window_a_closes_exit_euro_size_n_count"] == 1
+    assert g["window_a_closes_exit_euro_size_n_thin"] is True
+    assert g["window_a_closes_exit_euro_size_n_bit"] == (
+        "€ size n thin · tp · 1 closes <3"
+    )
+    assert g["tone"] == "warn"
+    assert "€ size fat quiet · tp · 50×" not in g["line"]  # size stays in fields
+    assert "€ size n thin · tp · 1 closes <3" in g["line"]
     assert len(g["line"]) <= 96
 
 
