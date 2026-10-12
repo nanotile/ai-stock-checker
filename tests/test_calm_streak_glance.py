@@ -257,6 +257,10 @@ def test_calm_streak_glance_promote_off_paused() -> None:
     assert g["window_a_closes_exit_euro_size_sign_clash_net"] is None
     assert g["window_a_closes_exit_euro_size_sign_clash_net_pnl"] is None
     assert g["window_a_closes_exit_euro_size_sign_clash_net_loss"] is False
+    assert g["window_a_closes_exit_euro_size_sign_clash_keep_bit"] == ""
+    assert g["window_a_closes_exit_euro_size_sign_clash_keep"] is None
+    assert g["window_a_closes_exit_euro_size_sign_clash_keep_ratio"] is None
+    assert g["window_a_closes_exit_euro_size_sign_clash_keep_thin"] is False
     assert g["window_a_closes_exit_tp"] is None
     assert g["window_a_closes_exit_sl"] is None
     assert g["window_a_closes_exit_rot"] is None
@@ -5926,6 +5930,7 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_lead_hot() -> No
     assert (
         "€ size clash · lead loss" in g["line"]
         or "€ size clash net" in g["line"]
+        or "€ size clash keep" in g["line"]
     )
     assert len(g["line"]) <= 96
 
@@ -6031,6 +6036,7 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_lead_tp() -> Non
     assert (
         "€ size clash · lead win" in g["line"]
         or "€ size clash net" in g["line"]
+        or "€ size clash keep" in g["line"]
     )
     assert len(g["line"]) <= 96
 
@@ -6378,6 +6384,7 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_gap_hot() -> Non
     assert (
         "€ size clash · lead loss" in g["line"]
         or "€ size clash net" in g["line"]
+        or "€ size clash keep" in g["line"]
     )
     assert len(g["line"]) <= 96
 
@@ -6492,6 +6499,7 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_gap_quiet() -> N
     assert (
         "€ size clash · lead win" in g["line"]
         or "€ size clash net" in g["line"]
+        or "€ size clash keep" in g["line"]
     )
     assert len(g["line"]) <= 96
 
@@ -6590,6 +6598,7 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_conc_hot() -> No
     assert (
         "€ size clash · lead loss" in g["line"]
         or "€ size clash net" in g["line"]
+        or "€ size clash keep" in g["line"]
     )
     assert len(g["line"]) <= 96
 
@@ -6745,6 +6754,7 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_count_skew_quiet
     assert (
         "€ size clash · lead win" in g["line"]
         or "€ size clash net" in g["line"]
+        or "€ size clash keep" in g["line"]
     )
     assert len(g["line"]) <= 96
 
@@ -6852,6 +6862,7 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_count_skew_hot()
     assert (
         "€ size clash · lead loss" in g["line"]
         or "€ size clash net" in g["line"]
+        or "€ size clash keep" in g["line"]
     )
     assert len(g["line"]) <= 96
 
@@ -6953,6 +6964,7 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_quiet() -> 
     assert (
         "€ size clash · lead win" in g["line"]
         or "€ size clash net" in g["line"]
+        or "€ size clash keep" in g["line"]
     )
     assert len(g["line"]) <= 96
 
@@ -7052,6 +7064,7 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_hot() -> No
     assert (
         "€ size clash · lead loss" in g["line"]
         or "€ size clash net" in g["line"]
+        or "€ size clash keep" in g["line"]
     )
     assert len(g["line"]) <= 96
 
@@ -7119,6 +7132,7 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_n_thin() ->
     assert (
         "€ size clash · lead win" in g["line"]
         or "€ size clash net" in g["line"]
+        or "€ size clash keep" in g["line"]
     )
     assert len(g["line"]) <= 96
 
@@ -7210,6 +7224,7 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_loss()
     assert (
         "€ size clash · lead loss" in g["line"]
         or "€ size clash net" in g["line"]
+        or "€ size clash keep" in g["line"]
     )
     assert len(g["line"]) <= 96
 
@@ -7308,6 +7323,7 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_rest_sign_l
     assert (
         "€ size clash · lead win" in g["line"]
         or "€ size clash net" in g["line"]
+        or "€ size clash keep" in g["line"]
     )
     assert len(g["line"]) <= 96
 
@@ -7406,6 +7422,7 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_rest_sign_w
     assert (
         "€ size clash · lead loss" in g["line"]
         or "€ size clash net" in g["line"]
+        or "€ size clash keep" in g["line"]
     )
     assert len(g["line"]) <= 96
     assert len(flat_rest["line"]) <= 96
@@ -7494,17 +7511,24 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash(
     assert g["window_a_closes_exit_euro_size_sign_clash_bit"] == (
         "€ size clash · lead loss · rest win"
     )
-    # Clash net owns the clip when the signed sum is non-zero.
+    # Clash keep owns the clip when |net|÷(|lead|+|rest|) is strong/thin.
     assert g["window_a_closes_exit_euro_size_sign_clash_net"] == "loss"
     assert g["window_a_closes_exit_euro_size_sign_clash_net_pnl"] == -190.0
     assert g["window_a_closes_exit_euro_size_sign_clash_net_loss"] is True
     assert g["window_a_closes_exit_euro_size_sign_clash_net_bit"] == (
         "€ size clash net loss · −€190"
     )
+    assert g["window_a_closes_exit_euro_size_sign_clash_keep"] == "strong"
+    assert g["window_a_closes_exit_euro_size_sign_clash_keep_ratio"] == 0.9
+    assert g["window_a_closes_exit_euro_size_sign_clash_keep_thin"] is False
+    assert g["window_a_closes_exit_euro_size_sign_clash_keep_bit"] == (
+        "€ size clash keep strong · 0.9×"
+    )
     assert g["tone"] == "warn"
     assert "€ size rest sign win · +€10" not in g["line"]
     assert "€ size clash · lead loss" not in g["line"]  # clash stays in fields
-    assert "€ size clash net loss · −€190" in g["line"]
+    assert "€ size clash net loss · −€190" not in g["line"]  # net stays in fields
+    assert "€ size clash keep strong · 0.9×" in g["line"]
     assert len(g["line"]) <= 96
     assert len(same["line"]) <= 96
 
@@ -7518,8 +7542,8 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_
         "calm_ready": False,
         "calm_detail": "promote filter off — streak paused",
     }
-    # Opposite signs that sum to zero stay silent on net — clash owns the clip.
-    cancel = build_calm_streak_glance(
+    # Mid keep (0.25..0.5) stays silent — net owns the clip.
+    mid_keep = build_calm_streak_glance(
         runtime,
         as_of=as_of,
         window_stats={
@@ -7527,28 +7551,28 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_
             "buys": 4,
             "sells": 8,
             "fees": 4.0,
-            "realized_pnl": 0.0,
-            "net_after_all_fees": -4.0,
-            "wins": 6,
-            "losses": 2,
-            "avg_win": 16.67,
-            "avg_loss": 50.0,
+            "realized_pnl": 80.0,
+            "net_after_all_fees": 76.0,
+            "wins": 4,
+            "losses": 4,
+            "avg_win": 35.0,
+            "avg_loss": 15.0,
             "loss_streak": 0,
             "loss_streak_max": 1,
-            "win_streak": 2,
-            "win_streak_max": 3,
+            "win_streak": 1,
+            "win_streak_max": 1,
             "flat_closes": 0,
-            "exit_tp": 6,
-            "exit_sl": 1,
-            "exit_rot": 1,
+            "exit_tp": 4,
+            "exit_sl": 4,
+            "exit_rot": 0,
             "exit_trim": 0,
-            "exit_pnl_tp": 100.0,
+            "exit_pnl_tp": 140.0,
             "exit_pnl_sl": -60.0,
-            "exit_pnl_rot": -40.0,
+            "exit_pnl_rot": 0.0,
             "exit_pnl_trim": 0.0,
         },
     )
-    # Lead win · rest loss with leftover → net win speaks (does not warn alone).
+    # Lead win · rest loss with leftover → net + strong keep; keep owns clip.
     win = build_calm_streak_glance(
         runtime,
         as_of=as_of,
@@ -7578,7 +7602,7 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_
             "exit_pnl_trim": 0.0,
         },
     )
-    # Lead loss · rest win with leftover → net loss warns.
+    # Lead loss · rest win with leftover → net loss + strong keep; keep owns clip.
     loss = build_calm_streak_glance(
         runtime,
         as_of=as_of,
@@ -7608,11 +7632,15 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_
             "exit_pnl_trim": 0.0,
         },
     )
-    assert cancel["window_a_closes_exit_euro_size_sign_clash"] == "clash"
-    assert cancel["window_a_closes_exit_euro_size_sign_clash_net_bit"] == ""
-    assert cancel["window_a_closes_exit_euro_size_sign_clash_net"] is None
-    assert "€ size clash · lead win" in cancel["line"]
-    assert "€ size clash net" not in cancel["line"]
+    assert mid_keep["window_a_closes_exit_euro_size_sign_clash"] == "clash"
+    assert mid_keep["window_a_closes_exit_euro_size_sign_clash_net"] == "win"
+    assert mid_keep["window_a_closes_exit_euro_size_sign_clash_net_bit"] == (
+        "€ size clash net win · +€80"
+    )
+    assert mid_keep["window_a_closes_exit_euro_size_sign_clash_keep_bit"] == ""
+    assert mid_keep["window_a_closes_exit_euro_size_sign_clash_keep"] is None
+    assert "€ size clash net win · +€80" in mid_keep["line"]
+    assert "€ size clash keep" not in mid_keep["line"]
 
     assert win["window_a_closes_exit_euro_size_sign_clash"] == "clash"
     assert win["window_a_closes_exit_euro_size_sign_clash_net"] == "win"
@@ -7621,8 +7649,15 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_
     assert win["window_a_closes_exit_euro_size_sign_clash_net_bit"] == (
         "€ size clash net win · +€190"
     )
+    assert win["window_a_closes_exit_euro_size_sign_clash_keep"] == "strong"
+    assert win["window_a_closes_exit_euro_size_sign_clash_keep_ratio"] == 0.9
+    assert win["window_a_closes_exit_euro_size_sign_clash_keep_thin"] is False
+    assert win["window_a_closes_exit_euro_size_sign_clash_keep_bit"] == (
+        "€ size clash keep strong · 0.9×"
+    )
     assert "€ size clash · lead win" not in win["line"]  # clash stays in fields
-    assert "€ size clash net win · +€190" in win["line"]
+    assert "€ size clash net win · +€190" not in win["line"]  # net stays in fields
+    assert "€ size clash keep strong · 0.9×" in win["line"]
 
     assert loss["window_a_closes_exit_euro_size_sign_clash_net"] == "loss"
     assert loss["window_a_closes_exit_euro_size_sign_clash_net_pnl"] == -190.0
@@ -7630,12 +7665,150 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_
     assert loss["window_a_closes_exit_euro_size_sign_clash_net_bit"] == (
         "€ size clash net loss · −€190"
     )
+    assert loss["window_a_closes_exit_euro_size_sign_clash_keep"] == "strong"
+    assert loss["window_a_closes_exit_euro_size_sign_clash_keep_bit"] == (
+        "€ size clash keep strong · 0.9×"
+    )
     assert loss["tone"] == "warn"
     assert "€ size clash · lead loss" not in loss["line"]
-    assert "€ size clash net loss · −€190" in loss["line"]
-    assert len(cancel["line"]) <= 96
+    assert "€ size clash net loss · −€190" not in loss["line"]
+    assert "€ size clash keep strong · 0.9×" in loss["line"]
+    assert len(mid_keep["line"]) <= 96
     assert len(win["line"]) <= 96
     assert len(loss["line"]) <= 96
+
+
+def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_keep() -> None:
+    """Clash net alone must not hide how much two-sided money survives."""
+    as_of = date(2026, 8, 18)
+    runtime = {
+        "calm_streak_days": 0,
+        "calm_required_days": 30,
+        "calm_ready": False,
+        "calm_detail": "promote filter off — streak paused",
+    }
+    # Full cancel — net silent, keep thin · 0× owns the clip and warns.
+    cancel = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats={
+            "trades": 12,
+            "buys": 4,
+            "sells": 8,
+            "fees": 4.0,
+            "realized_pnl": 0.0,
+            "net_after_all_fees": -4.0,
+            "wins": 6,
+            "losses": 2,
+            "avg_win": 16.67,
+            "avg_loss": 50.0,
+            "loss_streak": 0,
+            "loss_streak_max": 1,
+            "win_streak": 2,
+            "win_streak_max": 3,
+            "flat_closes": 0,
+            "exit_tp": 6,
+            "exit_sl": 1,
+            "exit_rot": 1,
+            "exit_trim": 0,
+            "exit_pnl_tp": 100.0,
+            "exit_pnl_sl": -60.0,
+            "exit_pnl_rot": -40.0,
+            "exit_pnl_trim": 0.0,
+        },
+    )
+    # Strong leftover — keep owns the clip (net stays in fields).
+    strong = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats={
+            "trades": 12,
+            "buys": 4,
+            "sells": 8,
+            "fees": 4.0,
+            "realized_pnl": 190.0,
+            "net_after_all_fees": 186.0,
+            "wins": 6,
+            "losses": 2,
+            "avg_win": 33.33,
+            "avg_loss": 5.0,
+            "loss_streak": 0,
+            "loss_streak_max": 1,
+            "win_streak": 2,
+            "win_streak_max": 3,
+            "flat_closes": 0,
+            "exit_tp": 6,
+            "exit_sl": 2,
+            "exit_rot": 0,
+            "exit_trim": 0,
+            "exit_pnl_tp": 200.0,
+            "exit_pnl_sl": -10.0,
+            "exit_pnl_rot": 0.0,
+            "exit_pnl_trim": 0.0,
+        },
+    )
+    # Mid keep silent — net still owns the clip.
+    mid = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats={
+            "trades": 12,
+            "buys": 4,
+            "sells": 8,
+            "fees": 4.0,
+            "realized_pnl": 80.0,
+            "net_after_all_fees": 76.0,
+            "wins": 4,
+            "losses": 4,
+            "avg_win": 35.0,
+            "avg_loss": 15.0,
+            "loss_streak": 0,
+            "loss_streak_max": 1,
+            "win_streak": 1,
+            "win_streak_max": 1,
+            "flat_closes": 0,
+            "exit_tp": 4,
+            "exit_sl": 4,
+            "exit_rot": 0,
+            "exit_trim": 0,
+            "exit_pnl_tp": 140.0,
+            "exit_pnl_sl": -60.0,
+            "exit_pnl_rot": 0.0,
+            "exit_pnl_trim": 0.0,
+        },
+    )
+    assert cancel["window_a_closes_exit_euro_size_sign_clash"] == "clash"
+    assert cancel["window_a_closes_exit_euro_size_sign_clash_net_bit"] == ""
+    assert cancel["window_a_closes_exit_euro_size_sign_clash_keep"] == "thin"
+    assert cancel["window_a_closes_exit_euro_size_sign_clash_keep_ratio"] == 0.0
+    assert cancel["window_a_closes_exit_euro_size_sign_clash_keep_thin"] is True
+    assert cancel["window_a_closes_exit_euro_size_sign_clash_keep_bit"] == (
+        "€ size clash keep thin · 0×"
+    )
+    assert cancel["tone"] == "warn"
+    assert "€ size clash · lead win" not in cancel["line"]
+    assert "€ size clash keep thin · 0×" in cancel["line"]
+
+    assert strong["window_a_closes_exit_euro_size_sign_clash_keep"] == "strong"
+    assert strong["window_a_closes_exit_euro_size_sign_clash_keep_ratio"] == 0.9
+    assert strong["window_a_closes_exit_euro_size_sign_clash_keep_thin"] is False
+    assert strong["window_a_closes_exit_euro_size_sign_clash_keep_bit"] == (
+        "€ size clash keep strong · 0.9×"
+    )
+    assert strong["window_a_closes_exit_euro_size_sign_clash_net_bit"] == (
+        "€ size clash net win · +€190"
+    )
+    assert "€ size clash net win · +€190" not in strong["line"]
+    assert "€ size clash keep strong · 0.9×" in strong["line"]
+
+    assert mid["window_a_closes_exit_euro_size_sign_clash_keep_bit"] == ""
+    assert mid["window_a_closes_exit_euro_size_sign_clash_keep"] is None
+    assert mid["window_a_closes_exit_euro_size_sign_clash_net"] == "win"
+    assert "€ size clash net win · +€80" in mid["line"]
+    assert "€ size clash keep" not in mid["line"]
+    assert len(cancel["line"]) <= 96
+    assert len(strong["line"]) <= 96
+    assert len(mid["line"]) <= 96
 
 
 def test_calm_streak_glance_progress() -> None:
