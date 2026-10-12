@@ -228,6 +228,10 @@ def test_calm_streak_glance_promote_off_paused() -> None:
     assert g["window_a_closes_exit_euro_gap_ratio"] is None
     assert g["window_a_closes_exit_euro_gap_vs"] is None
     assert g["window_a_closes_exit_euro_gap_hot"] is False
+    assert g["window_a_closes_exit_euro_conc_bit"] == ""
+    assert g["window_a_closes_exit_euro_conc"] is None
+    assert g["window_a_closes_exit_euro_conc_pct"] is None
+    assert g["window_a_closes_exit_euro_conc_hot"] is False
     assert g["window_a_closes_exit_tp"] is None
     assert g["window_a_closes_exit_sl"] is None
     assert g["window_a_closes_exit_rot"] is None
@@ -5794,7 +5798,7 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_trim_share_quiet() ->
 def test_calm_streak_glance_promote_off_paused_closes_exit_euro_lead_hot() -> None:
     """Trim share alone must not hide an adverse € lead (warns only).
 
-    Thin gap (<2×) so € gap stays silent and lead keeps the clip.
+    Thin gap (<2×) so € gap stays silent; € conc owns the clip.
     """
     as_of = date(2026, 8, 18)
     runtime = {
@@ -5852,19 +5856,25 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_lead_hot() -> No
     assert g["window_a_closes_exit_euro_lead_bit"] == "€ lead sl · −€80"
     assert g["window_a_closes_exit_euro_gap_bit"] == ""
     assert g["window_a_closes_exit_euro_gap_hot"] is False
+    # |sl| 80 / 130 ≈ 61.5% → hot conc owns the clip; lead stays in fields.
+    assert g["window_a_closes_exit_euro_conc"] == "sl"
+    assert g["window_a_closes_exit_euro_conc_pct"] == 61.5
+    assert g["window_a_closes_exit_euro_conc_hot"] is True
+    assert g["window_a_closes_exit_euro_conc_bit"] == "€ conc hot · sl · 61.5%"
     assert g["window_a_closes_exit_trim_share_bit"] == "trim share quiet · 0%"
     assert g["tone"] == "warn"
     assert "€ lead" not in without["line"]
     assert "€ gap" not in g["line"]
     assert "trim share quiet · 0%" not in g["line"]  # trim stays in fields
-    assert "€ lead sl · −€80" in g["line"]
+    assert "€ lead sl · −€80" not in g["line"]  # lead stays in fields
+    assert "€ conc hot · sl · 61.5%" in g["line"]
     assert len(g["line"]) <= 96
 
 
 def test_calm_streak_glance_promote_off_paused_closes_exit_euro_lead_tp() -> None:
     """Take-profit € lead speaks without escalating tone.
 
-    Thin gap (<2×) so € gap stays silent and lead keeps the clip.
+    Thin gap (<2×) so € gap stays silent; € conc owns the clip.
     """
     as_of = date(2026, 8, 18)
     runtime = {
@@ -5922,19 +5932,27 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_lead_tp() -> Non
     assert g["window_a_closes_exit_euro_lead_bit"] == "€ lead tp · +€90"
     assert g["window_a_closes_exit_euro_gap_bit"] == ""
     assert g["window_a_closes_exit_euro_gap_hot"] is False
+    # |tp| 90 / 140 ≈ 64.3% → strong conc owns the clip; lead stays in fields.
+    assert g["window_a_closes_exit_euro_conc"] == "tp"
+    assert g["window_a_closes_exit_euro_conc_pct"] == 64.3
+    assert g["window_a_closes_exit_euro_conc_hot"] is False
+    assert g["window_a_closes_exit_euro_conc_bit"] == (
+        "€ conc strong · tp · 64.3%"
+    )
     assert g["window_a_closes_exit_trim_share_bit"] == "trim share quiet · 0%"
-    # SL share hot (75%) already warns; € lead itself does not add warn.
+    # SL share hot (75%) already warns; € lead / strong conc do not add warn.
     assert g["window_a_closes_exit_sl_share_hot"] is True
     assert g["tone"] == "warn"
     assert "€ lead" not in without["line"]
     assert "€ gap" not in g["line"]
     assert "trim share quiet · 0%" not in g["line"]
-    assert "€ lead tp · +€90" in g["line"]
+    assert "€ lead tp · +€90" not in g["line"]  # lead stays in fields
+    assert "€ conc strong · tp · 64.3%" in g["line"]
     assert len(g["line"]) <= 96
 
 
 def test_calm_streak_glance_promote_off_paused_closes_exit_euro_lead_match_silent() -> None:
-    """When count lead matches € lead, bit stays silent — trim keeps the clip."""
+    """When count lead matches € lead, lead/offset/gap stay silent — € conc owns clip."""
     as_of = date(2026, 8, 18)
     runtime = {
         "calm_streak_days": 0,
@@ -5991,11 +6009,19 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_lead_match_silen
     assert g["window_a_closes_exit_euro_offset_hot"] is False
     assert g["window_a_closes_exit_euro_gap_bit"] == ""
     assert g["window_a_closes_exit_euro_gap_hot"] is False
+    # |tp| 64 / 76 ≈ 84.2% → strong conc owns the clip; trim stays in fields.
+    assert g["window_a_closes_exit_euro_conc"] == "tp"
+    assert g["window_a_closes_exit_euro_conc_pct"] == 84.2
+    assert g["window_a_closes_exit_euro_conc_hot"] is False
+    assert g["window_a_closes_exit_euro_conc_bit"] == (
+        "€ conc strong · tp · 84.2%"
+    )
     assert g["window_a_closes_exit_trim_share_bit"] == "trim share quiet · 8.3%"
     assert "€ lead" not in g["line"]
     assert "€ offset" not in g["line"]
     assert "€ gap" not in g["line"]
-    assert "trim share quiet · 8.3%" in g["line"]
+    assert "trim share quiet · 8.3%" not in g["line"]  # trim stays in fields
+    assert "€ conc strong · tp · 84.2%" in g["line"]
     assert len(g["line"]) <= 96
 
 
@@ -6064,11 +6090,19 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_offset_hot() -> 
     assert g["window_a_closes_exit_euro_offset_bit"] == (
         "€ offset hot · sl −€60 · 0.6×"
     )
+    # |tp| 100 / 160 = 62.5% → strong conc owns the clip; offset stays in fields.
+    assert g["window_a_closes_exit_euro_conc"] == "tp"
+    assert g["window_a_closes_exit_euro_conc_pct"] == 62.5
+    assert g["window_a_closes_exit_euro_conc_hot"] is False
+    assert g["window_a_closes_exit_euro_conc_bit"] == (
+        "€ conc strong · tp · 62.5%"
+    )
     assert g["window_a_closes_exit_trim_share_bit"] == "trim share quiet · 0%"
     assert g["tone"] == "warn"
     assert "€ offset" not in without["line"]
     assert "trim share quiet · 0%" not in g["line"]  # trim stays in fields
-    assert "€ offset hot · sl −€60 · 0.6×" in g["line"]
+    assert "€ offset hot · sl −€60 · 0.6×" not in g["line"]  # offset in fields
+    assert "€ conc strong · tp · 62.5%" in g["line"]
     assert len(g["line"]) <= 96
 
 
@@ -6146,12 +6180,18 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_offset_quiet() -
         "€ offset quiet · tp +€60 · 0.6×"
     )
     assert g["window_a_closes_exit_euro_gap_bit"] == ""
-    # SL share hot (75%) already warns; offset quiet does not add warn.
+    # |sl| 100 / 160 = 62.5% → hot conc owns the clip; offset stays in fields.
+    assert g["window_a_closes_exit_euro_conc"] == "sl"
+    assert g["window_a_closes_exit_euro_conc_pct"] == 62.5
+    assert g["window_a_closes_exit_euro_conc_hot"] is True
+    assert g["window_a_closes_exit_euro_conc_bit"] == "€ conc hot · sl · 62.5%"
+    # SL share hot (75%) + conc hot warn; offset quiet does not add warn.
     assert g["window_a_closes_exit_sl_share_hot"] is True
     assert g["tone"] == "warn"
     assert "€ offset" not in without["line"]
     assert "€ gap" not in g["line"]
-    assert "€ offset quiet · tp +€60 · 0.6×" in g["line"]
+    assert "€ offset quiet · tp +€60 · 0.6×" not in g["line"]  # offset in fields
+    assert "€ conc hot · sl · 62.5%" in g["line"]
     assert len(g["line"]) <= 96
 
 
@@ -6219,10 +6259,16 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_gap_hot() -> Non
     assert g["window_a_closes_exit_euro_gap_vs"] == "tp"
     assert g["window_a_closes_exit_euro_gap_hot"] is True
     assert g["window_a_closes_exit_euro_gap_bit"] == "€ gap hot · 16.7× vs tp"
+    # |sl| 200 / 212 ≈ 94.3% → hot conc owns the clip; gap stays in fields.
+    assert g["window_a_closes_exit_euro_conc"] == "sl"
+    assert g["window_a_closes_exit_euro_conc_pct"] == 94.3
+    assert g["window_a_closes_exit_euro_conc_hot"] is True
+    assert g["window_a_closes_exit_euro_conc_bit"] == "€ conc hot · sl · 94.3%"
     assert g["tone"] == "warn"
     assert "€ gap" not in without["line"]
     assert "€ lead sl · −€200" not in g["line"]  # lead stays in fields
-    assert "€ gap hot · 16.7× vs tp" in g["line"]
+    assert "€ gap hot · 16.7× vs tp" not in g["line"]  # gap stays in fields
+    assert "€ conc hot · sl · 94.3%" in g["line"]
     assert len(g["line"]) <= 96
 
 
@@ -6298,12 +6344,144 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_gap_quiet() -> N
     assert g["window_a_closes_exit_euro_gap_vs"] == "sl"
     assert g["window_a_closes_exit_euro_gap_hot"] is False
     assert g["window_a_closes_exit_euro_gap_bit"] == "€ gap quiet · 11.2× vs sl"
-    # SL share hot (75%) already warns; gap quiet does not add warn.
+    # |tp| 90 / 98 ≈ 91.8% → strong conc owns the clip; gap stays in fields.
+    assert g["window_a_closes_exit_euro_conc"] == "tp"
+    assert g["window_a_closes_exit_euro_conc_pct"] == 91.8
+    assert g["window_a_closes_exit_euro_conc_hot"] is False
+    assert g["window_a_closes_exit_euro_conc_bit"] == (
+        "€ conc strong · tp · 91.8%"
+    )
+    # SL share hot (75%) already warns; gap quiet / strong conc do not add warn.
     assert g["window_a_closes_exit_sl_share_hot"] is True
     assert g["tone"] == "warn"
     assert "€ gap" not in without["line"]
     assert "€ lead tp · +€90" not in g["line"]  # lead stays in fields
-    assert "€ gap quiet · 11.2× vs sl" in g["line"]
+    assert "€ gap quiet · 11.2× vs sl" not in g["line"]  # gap stays in fields
+    assert "€ conc strong · tp · 91.8%" in g["line"]
+    assert len(g["line"]) <= 96
+
+
+def test_calm_streak_glance_promote_off_paused_closes_exit_euro_conc_hot() -> None:
+    """€ gap alone must not hide that one adverse reason owns most |exit €|."""
+    as_of = date(2026, 8, 18)
+    runtime = {
+        "calm_streak_days": 0,
+        "calm_required_days": 30,
+        "calm_ready": False,
+        "calm_detail": "promote filter off — streak paused",
+    }
+    without = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats={
+            "trades": 24,
+            "buys": 12,
+            "sells": 4,
+            "fees": 4.0,
+            "realized_pnl": -188.0,
+            "net_after_all_fees": -192.0,
+            "wins": 3,
+            "losses": 1,
+            "avg_win": 4.0,
+            "avg_loss": 200.0,
+            "loss_streak": 0,
+            "loss_streak_max": 1,
+            "win_streak": 0,
+            "win_streak_max": 2,
+            "flat_closes": 0,
+            "exit_tp": 3,
+            "exit_sl": 1,
+            "exit_rot": 0,
+            "exit_trim": 0,
+        },
+    )
+    g = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats={
+            "trades": 24,
+            "buys": 12,
+            "sells": 4,
+            "fees": 4.0,
+            "realized_pnl": -188.0,
+            "net_after_all_fees": -192.0,
+            "wins": 3,
+            "losses": 1,
+            "avg_win": 4.0,
+            "avg_loss": 200.0,
+            "loss_streak": 0,
+            "loss_streak_max": 1,
+            "win_streak": 0,
+            "win_streak_max": 2,
+            "flat_closes": 0,
+            "exit_tp": 3,
+            "exit_sl": 1,
+            "exit_rot": 0,
+            "exit_trim": 0,
+            "exit_pnl_tp": 12.0,
+            "exit_pnl_sl": -200.0,
+            "exit_pnl_rot": 0.0,
+            "exit_pnl_trim": 0.0,
+        },
+    )
+    assert g["window_a_closes_exit_euro_gap_bit"] == "€ gap hot · 16.7× vs tp"
+    assert g["window_a_closes_exit_euro_conc"] == "sl"
+    assert g["window_a_closes_exit_euro_conc_pct"] == 94.3
+    assert g["window_a_closes_exit_euro_conc_hot"] is True
+    assert g["window_a_closes_exit_euro_conc_bit"] == "€ conc hot · sl · 94.3%"
+    assert g["tone"] == "warn"
+    assert "€ conc" not in without["line"]
+    assert "€ gap hot · 16.7× vs tp" not in g["line"]  # gap stays in fields
+    assert "€ conc hot · sl · 94.3%" in g["line"]
+    assert len(g["line"]) <= 96
+
+
+def test_calm_streak_glance_promote_off_paused_closes_exit_euro_conc_quiet() -> None:
+    """Quiet € concentration speaks without escalating from conc alone."""
+    as_of = date(2026, 8, 18)
+    runtime = {
+        "calm_streak_days": 0,
+        "calm_required_days": 30,
+        "calm_ready": False,
+        "calm_detail": "promote filter off — streak paused",
+    }
+    g = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats={
+            "trades": 14,
+            "buys": 7,
+            "sells": 4,
+            "fees": 4.0,
+            "realized_pnl": -1.0,
+            "net_after_all_fees": -5.0,
+            "wins": 2,
+            "losses": 2,
+            "avg_win": 30.0,
+            "avg_loss": 26.5,
+            "loss_streak": 0,
+            "loss_streak_max": 1,
+            "win_streak": 0,
+            "win_streak_max": 1,
+            "flat_closes": 0,
+            "exit_tp": 1,
+            "exit_sl": 1,
+            "exit_rot": 1,
+            "exit_trim": 1,
+            "exit_pnl_tp": 30.0,
+            "exit_pnl_sl": -28.0,
+            "exit_pnl_rot": -25.0,
+            "exit_pnl_trim": 22.0,
+        },
+    )
+    # |tp| 30 / 105 ≈ 28.6% → quiet; no lead/offset/gap (near-tie movers).
+    assert g["window_a_closes_exit_euro_conc"] == "tp"
+    assert g["window_a_closes_exit_euro_conc_pct"] == 28.6
+    assert g["window_a_closes_exit_euro_conc_hot"] is False
+    assert g["window_a_closes_exit_euro_conc_bit"] == (
+        "€ conc quiet · tp · 28.6%"
+    )
+    assert "€ conc quiet · tp · 28.6%" in g["line"]
     assert len(g["line"]) <= 96
 
 
