@@ -97,11 +97,18 @@ def last_ops_action(
 
 
 def format_last_ops_action_bit(row: dict[str, Any] | None) -> str:
-    """Compact Ops honesty line: ``last config · accepted · …Z``."""
+    """Compact Ops honesty line: ``last config · accepted · …Z``.
+
+    A hanging ``requested`` row (no accepted/error yet) speaks ``pending`` so
+    friends see an incomplete audit instead of a quiet mid-flight stamp
+    (xang1234 #613/#628 outcome pairing honesty).
+    """
     if not isinstance(row, dict):
         return ""
     kind = str(row.get("kind") or "").strip() or "?"
     outcome = str(row.get("outcome") or "").strip() or "?"
+    if outcome == "requested":
+        outcome = "pending"
     at = str(row.get("at") or "").strip()
     if at:
         return f"last {kind} · {outcome} · {at}"

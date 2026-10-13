@@ -128,3 +128,23 @@ def test_malformed_ops_actions_file_fail_open(tmp_path: Path):
     assert load_ops_actions(tmp_path) == []
     path.write_text('{"events": null}\n', encoding="utf-8")
     assert load_ops_actions(tmp_path) == []
+
+
+def test_format_last_ops_action_bit_pending_for_hanging_requested():
+    bit = format_last_ops_action_bit(
+        {
+            "kind": "config",
+            "outcome": "requested",
+            "at": "2026-10-13T20:00:00Z",
+        }
+    )
+    assert bit == "last config · pending · 2026-10-13T20:00:00Z"
+    assert "requested" not in bit
+    accepted = format_last_ops_action_bit(
+        {
+            "kind": "config",
+            "outcome": "accepted",
+            "at": "2026-10-13T20:00:01Z",
+        }
+    )
+    assert accepted == "last config · accepted · 2026-10-13T20:00:01Z"

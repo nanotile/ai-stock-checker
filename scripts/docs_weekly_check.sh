@@ -91,6 +91,40 @@ for f in USAGE.md PAPER_TRADING.md MONITORING.md plan.md; do
   fi
 done
 
+# Docs-gate (tradermonty #555): refuse advertised scripts/… paths that are missing
+# Same scan as tests/test_docs_script_paths.py (host python; no network).
+if python3 - <<'PY'
+from pathlib import Path
+import re, sys
+ROOT = Path(".")
+DOCS = [
+    "README.md", "FRIENDS.md", "AGENTS.md", "AUTOPILOT.md",
+    "DOCS_MAINTENANCE.md", "OPENBB.md", "GIT.md", "RELEASES.md",
+    "DESIGN.md", "GITHUB_WATCH.md", "docs/LAYA.md", "docs/PROMOTE_AB.md",
+]
+pat = re.compile(r"(?:^|[\s`'\"(])/?(?:\.\/)?(scripts/[A-Za-z0-9_./-]+\.(?:py|sh))\b")
+missing = []
+for rel in DOCS:
+    p = ROOT / rel
+    if not p.is_file():
+        continue
+    for m in pat.finditer(p.read_text(encoding="utf-8")):
+        script = m.group(1)
+        if not (ROOT / script).is_file():
+            missing.append(f"{script} (in {rel})")
+if missing:
+    print("MISSING scripts cited in docs:")
+    for row in sorted(set(missing)):
+        print(f"  {row}")
+    sys.exit(1)
+print("ok: documented scripts/… paths exist (docs-gate)")
+PY
+then
+  :
+else
+  fail=1
+fi
+
 echo "=== building + offline tests ==="
 docker build -t ai-stock-checker . >/tmp/docs_weekly_build.log 2>&1
 docker run --rm ai-stock-checker pytest -q -m "not network" >/tmp/docs_weekly_pytest.log 2>&1 || {
