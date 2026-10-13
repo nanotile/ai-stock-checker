@@ -2600,6 +2600,10 @@ def build_calm_streak_glance(
         "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_bit": "",
         "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size": None,
         "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_warn": False,
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_bit": "",
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_louder": None,
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_quieter": None,
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_warn": False,
         "window_a_closes_exit_tp": None,
         "window_a_closes_exit_sl": None,
         "window_a_closes_exit_rot": None,
@@ -3024,6 +3028,18 @@ def build_calm_streak_glance(
         str | None
     ) = None
     window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_warn = (
+        False
+    )
+    window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_bit = (
+        ""
+    )
+    window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_louder: (
+        float | None
+    ) = None
+    window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_quieter: (
+        float | None
+    ) = None
+    window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_warn = (
         False
     )
     window_a_closes_exit_tp: int | None = None
@@ -13416,7 +13432,7 @@ def build_calm_streak_glance(
                 # Nested lead names × or %; nested lead size is
                 # louder÷quieter floor-units (≥2× margin). Compact after
                 # lead so the 96-char clip keeps N×. Near-equal / clash
-                # silent. worse warns only. Lead size sides nest deferred.
+                # silent. worse warns only. Lead size sides nest follows.
                 raw_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size = str(
                     sample.get(
                         "closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_bit"
@@ -13592,6 +13608,203 @@ def build_calm_streak_glance(
                         f"{status} · "
                         f"{window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_bit}"
                     )
+                # Nested lead size is the margin; nested sides name both
+                # floor-units so friends do not reverse-divide. Compact
+                # after lead size so the 96-char clip keeps louder · quieter
+                # beside A Nd/Td. worse warns only. Lead size sides Δ nest
+                # deferred.
+                raw_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides = str(
+                    sample.get(
+                        "closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_bit"
+                    )
+                    or ""
+                ).strip()
+                if raw_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides:
+                    window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_bit = (
+                        raw_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides.replace(
+                            "A exits € size clash keep fees vs drag gap dir sides share vs Δ "
+                            "align lead size sides share vs Δ align lead size sides",
+                            # Compact: drop nest prefix so louder · quieter
+                            # fit beside A Nd/Td on the 96-char calm line.
+                            "lead size sides",
+                            1,
+                        ).strip()
+                    )
+                    window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_warn = (
+                        bool(
+                            sample.get(
+                                "closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_warn"
+                            )
+                        )
+                    )
+                    nested_sides_louder = sample.get(
+                        "closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_louder"
+                    )
+                    if (
+                        isinstance(nested_sides_louder, (int, float))
+                        and nested_sides_louder == nested_sides_louder
+                    ):
+                        window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_louder = (
+                            float(nested_sides_louder)
+                        )
+                    nested_sides_quieter = sample.get(
+                        "closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_quieter"
+                    )
+                    if (
+                        isinstance(nested_sides_quieter, (int, float))
+                        and nested_sides_quieter == nested_sides_quieter
+                    ):
+                        window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_quieter = (
+                            float(nested_sides_quieter)
+                        )
+                    # Drop nested lead size (or nested lead / earlier) so
+                    # sides own the clip. Lead size stays in fields. Also
+                    # drop fee-mood · compact € when present.
+                    if window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_size_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_size_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_delta_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_delta_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_delta_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_delta_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_size_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_size_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_delta_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_delta_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_delta_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_delta_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_exit_euro_size_sign_clash_keep_fees_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_euro_size_sign_clash_keep_fees_bit}",
+                            "",
+                            1,
+                        )
+                    elif window_a_closes_exit_euro_size_sign_clash_keep_bit:
+                        status = status.replace(
+                            f" · {window_a_closes_exit_euro_size_sign_clash_keep_bit}",
+                            "",
+                            1,
+                        )
+                    if window_a_fee_mood_bit:
+                        status = status.replace(
+                            f" · {window_a_fee_mood_bit}",
+                            "",
+                            1,
+                        )
+                    if window_a_fee_net_bit:
+                        status = status.replace(
+                            f" · {window_a_fee_net_bit}",
+                            "",
+                            1,
+                        )
+                    status = status.replace(
+                        "streak paused", "paused", 1
+                    )
+                    status = (
+                        f"{status} · "
+                        f"{window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_bit}"
+                    )
             # Fill meters stay in fields; omit from the line when mood spoke
             # so the 96-char clip keeps severity over N/M counts.
             if not window_a_fee_mood_bit:
@@ -13761,6 +13974,7 @@ def build_calm_streak_glance(
                     or window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_size_warn
                     or window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_warn
                     or window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_warn
+                    or window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_warn
                 ):
                     tone = "warn"
     elif streak <= 0:
@@ -14539,6 +14753,18 @@ def build_calm_streak_glance(
         ),
         "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_warn": (
             window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_warn
+        ),
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_bit": (
+            window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_bit
+        ),
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_louder": (
+            window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_louder
+        ),
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_quieter": (
+            window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_quieter
+        ),
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_warn": (
+            window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_warn
         ),
         "window_a_closes_exit_tp": window_a_closes_exit_tp,
         "window_a_closes_exit_sl": window_a_closes_exit_sl,
