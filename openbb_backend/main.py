@@ -221,10 +221,15 @@ def paper_desk_api():
 @app.get("/desk/api/config")
 def desk_config_get():
     """Editable trader knobs (no secrets)."""
+    from stock_checker.ops_audit import (
+        format_last_ops_action_bit,
+        last_ops_action,
+    )
     from stock_checker.trader_config import config_precedence_status, load_trader_config
 
     cfg = load_trader_config(DATA_DIR)
     prec = config_precedence_status(DATA_DIR)
+    last_save = last_ops_action(DATA_DIR, kind="config")
     return {
         **cfg,
         "source": str(prec.get("source") or "env"),
@@ -248,16 +253,26 @@ def desk_config_get():
         "overrides": list(prec.get("overrides") or []),
         "confirms": list(prec.get("confirms") or []),
         "env_fallbacks": list(prec.get("env_fallbacks") or []),
+        "last_ops_action": format_last_ops_action_bit(last_save),
+        "last_ops_action_id": str((last_save or {}).get("action_id") or ""),
+        "last_ops_outcome": str((last_save or {}).get("outcome") or ""),
         "note": (
             "Saved Ops row wins over compose/env for keys present in "
-            "data/trader_config.json; intelligent-trader hot-reloads each loop."
+            "data/trader_config.json; intelligent-trader hot-reloads each loop. "
+            "Config saves audit-before-act (requested row before write)."
         ),
     }
 
 
 @app.put("/desk/api/config")
 async def desk_config_put(request: Request):
-    """Update trader knobs from Ops. Never accepts API keys."""
+    """Update trader knobs from Ops. Never accepts API keys.
+
+    xang1234 #613/#628: audit ``requested`` before the file write; block
+    the mutation when that audit commit fails so a silent change cannot
+    land without a record of intent.
+    """
+    from stock_checker.ops_audit import audited_ops_action
     from stock_checker.trader_config import ALLOWED_AI_MODES, save_trader_config
 
     try:
@@ -286,11 +301,24 @@ async def desk_config_put(request: Request):
             detail=f"ai_mode must be one of: {', '.join(sorted(ALLOWED_AI_MODES))}",
         )
 
-    saved = save_trader_config(DATA_DIR, body)
+    saved, audit = audited_ops_action(
+        DATA_DIR,
+        kind="config",
+        detail={k: body.get(k) for k in sorted(body)[:16]},
+        act=lambda: save_trader_config(DATA_DIR, body),
+    )
+    if audit.get("blocked") or saved is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Ops audit unavailable — config not saved",
+        )
     return {
         **saved,
         "source": "file",
         "ok": True,
+        "action_id": audit.get("action_id") or "",
+        "audit_outcome": audit.get("outcome") or "accepted",
+        "audit_outcome_recorded": bool(audit.get("outcome_recorded")),
         "note": "Saved. Trader applies on the next loop iteration (~trade interval).",
     }
 

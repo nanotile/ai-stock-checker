@@ -349,10 +349,14 @@ def test_desk_config_api_put(tmp_path: Path, monkeypatch):
     assert ok.json().get("rs_gate") is True
     assert ok.json().get("breadth_gate") is True
     assert abs(ok.json()["commission_rate"] - 0.0025) < 1e-9
+    assert ok.json().get("audit_outcome") == "accepted"
+    assert ok.json().get("action_id")
     assert (tmp_path / "trader_config.json").exists()
+    assert (tmp_path / "ops_actions.json").exists()
     got = client.get("/desk/api/config")
     assert got.status_code == 200
     assert got.json()["ai_mode"] == "validate"
+    assert "last config · accepted" in str(got.json().get("last_ops_action") or "")
 
 
 def test_desk_ops_has_config_form(tmp_path: Path, monkeypatch):

@@ -77,9 +77,16 @@
             setStatus(String(detail), "is-err");
             return;
           }
+          var auditBit =
+            result.data.audit_outcome === "accepted"
+              ? " · audited"
+              : result.data.action_id
+                ? " · audit " + String(result.data.audit_outcome || "?")
+                : "";
           setStatus(
             "Saved · AI " +
               result.data.ai_mode +
+              auditBit +
               " · applies on next trader loop",
             "is-ok"
           );

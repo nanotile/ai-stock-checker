@@ -1,0 +1,195 @@
+"""Ops mutating-action audit (xang1234 #613 / #628 pattern).
+
+Write a ``requested`` row *before* the side effect. If that commit fails,
+do not act. After the action, write an outcome row (``accepted`` / ``error``).
+Outcome write failure must not disguise a successful change — return the
+real result and keep the request row so friends see intent without a
+silent mutation.
+"""
+
+from __future__ import annotations
+
+import json
+import logging
+import uuid
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Callable, TypeVar
+
+logger = logging.getLogger(__name__)
+
+OPS_ACTIONS_FILE = "ops_actions.json"
+OPS_ACTIONS_CAP = 40
+
+T = TypeVar("T")
+
+
+def ops_actions_path(data_dir: Path | str) -> Path:
+    return Path(data_dir) / OPS_ACTIONS_FILE
+
+
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def load_ops_actions(data_dir: Path | str) -> list[dict[str, Any]]:
+    """Newest-first ring of Ops audit rows (empty on missing/junk)."""
+    path = ops_actions_path(data_dir)
+    if not path.is_file():
+        return []
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return []
+    if isinstance(raw, list):
+        events = raw
+    elif isinstance(raw, dict):
+        events = raw.get("events")
+    else:
+        return []
+    if not isinstance(events, list):
+        return []
+    out: list[dict[str, Any]] = []
+    for row in events:
+        if isinstance(row, dict):
+            out.append(row)
+    return out
+
+
+def append_ops_action(
+    data_dir: Path | str,
+    row: dict[str, Any],
+    *,
+    cap: int = OPS_ACTIONS_CAP,
+) -> bool:
+    """Append one audit row. Returns False if the write failed."""
+    path = ops_actions_path(data_dir)
+    try:
+        events = load_ops_actions(data_dir)
+        events.append(dict(row))
+        keep = max(1, int(cap))
+        events = events[-keep:]
+        path.parent.mkdir(parents=True, exist_ok=True)
+        stamp = str(events[-1].get("at") or _now_iso())
+        path.write_text(
+            json.dumps({"updated_at": stamp, "events": events}, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        return True
+    except OSError as exc:
+        logger.warning("ops audit write failed: %s", exc)
+        return False
+
+
+def last_ops_action(
+    data_dir: Path | str,
+    *,
+    kind: str | None = None,
+) -> dict[str, Any] | None:
+    """Newest audit row (optionally filtered by kind). Newest-last on disk."""
+    events = load_ops_actions(data_dir)
+    want = (kind or "").strip()
+    for row in reversed(events):
+        if want and str(row.get("kind") or "") != want:
+            continue
+        return row
+    return None
+
+
+def format_last_ops_action_bit(row: dict[str, Any] | None) -> str:
+    """Compact Ops honesty line: ``last config · accepted · …Z``."""
+    if not isinstance(row, dict):
+        return ""
+    kind = str(row.get("kind") or "").strip() or "?"
+    outcome = str(row.get("outcome") or "").strip() or "?"
+    at = str(row.get("at") or "").strip()
+    if at:
+        return f"last {kind} · {outcome} · {at}"
+    return f"last {kind} · {outcome}"
+
+
+def audited_ops_action(
+    data_dir: Path | str,
+    *,
+    kind: str,
+    detail: dict[str, Any] | None,
+    act: Callable[[], T],
+) -> tuple[T | None, dict[str, Any]]:
+    """Run ``act`` only after a durable ``requested`` audit row.
+
+    Returns ``(result, meta)``. When blocked (request write failed),
+    ``result`` is ``None`` and ``meta["blocked"]`` is True. When ``act``
+    raises, an ``error`` outcome is recorded (best effort) and the
+    exception is re-raised.
+    """
+    action_id = str(uuid.uuid4())
+    kind_s = str(kind or "").strip() or "ops"
+    detail_safe = _safe_detail(detail)
+    requested = {
+        "id": str(uuid.uuid4()),
+        "action_id": action_id,
+        "at": _now_iso(),
+        "kind": kind_s,
+        "outcome": "requested",
+        "detail": detail_safe,
+    }
+    if not append_ops_action(data_dir, requested):
+        return None, {
+            "blocked": True,
+            "action_id": action_id,
+            "outcome": "blocked",
+            "reason": "audit_request_failed",
+        }
+
+    try:
+        result = act()
+    except Exception:
+        append_ops_action(
+            data_dir,
+            {
+                "id": str(uuid.uuid4()),
+                "action_id": action_id,
+                "at": _now_iso(),
+                "kind": kind_s,
+                "outcome": "error",
+                "detail": detail_safe,
+            },
+        )
+        raise
+
+    accepted = {
+        "id": str(uuid.uuid4()),
+        "action_id": action_id,
+        "at": _now_iso(),
+        "kind": kind_s,
+        "outcome": "accepted",
+        "detail": detail_safe,
+    }
+    outcome_ok = append_ops_action(data_dir, accepted)
+    return result, {
+        "blocked": False,
+        "action_id": action_id,
+        "outcome": "accepted",
+        "outcome_recorded": outcome_ok,
+    }
+
+
+def _safe_detail(detail: dict[str, Any] | None) -> dict[str, Any]:
+    """Keep a small non-secret summary of what Ops asked to change."""
+    if not isinstance(detail, dict):
+        return {}
+    out: dict[str, Any] = {}
+    for key, val in list(detail.items())[:24]:
+        k = str(key)
+        kl = k.lower()
+        if any(s in kl for s in ("key", "token", "secret", "password")):
+            continue
+        if isinstance(val, (bool, int, float)):
+            out[k] = val
+        elif isinstance(val, str):
+            out[k] = val[:80]
+        elif val is None:
+            out[k] = None
+        else:
+            out[k] = type(val).__name__
+    return out

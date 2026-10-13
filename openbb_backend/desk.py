@@ -21433,12 +21433,17 @@ def build_postmortem_glance(
 def _trader_runtime_view() -> dict[str, Any]:
     """Read-only + editable trader/desk knobs for Ops — never include API keys."""
     from stock_checker import __version__
+    from stock_checker.ops_audit import (
+        format_last_ops_action_bit,
+        last_ops_action,
+    )
     from stock_checker.runtime_pin import runtime_pin_status
     from stock_checker.trader_config import config_precedence_status, load_trader_config
 
     data_dir = Path(os.getenv("DATA_DIR", "/data"))
     cfg = load_trader_config(data_dir)
     cfg_prec = config_precedence_status(data_dir)
+    last_config_audit = last_ops_action(data_dir, kind="config")
     py_pin = runtime_pin_status()
 
     ai_mode = str(cfg.get("ai_mode") or "off")
@@ -21558,6 +21563,9 @@ def _trader_runtime_view() -> dict[str, Any]:
         "config_override_n": int(cfg_prec.get("override_n") or 0),
         "config_confirm_n": int(cfg_prec.get("confirm_n") or 0),
         "config_env_fallback_n": int(cfg_prec.get("env_fallback_n") or 0),
+        # xang1234 #613/#628: last audited config save (requested before write).
+        "last_ops_action": format_last_ops_action_bit(last_config_audit),
+        "last_ops_outcome": str((last_config_audit or {}).get("outcome") or ""),
         "ollama_host": (os.getenv("OLLAMA_HOST") or "").strip() or "—",
     }
 
