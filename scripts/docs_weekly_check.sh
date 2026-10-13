@@ -91,33 +91,42 @@ for f in USAGE.md PAPER_TRADING.md MONITORING.md plan.md; do
   fi
 done
 
-# Docs-gate (tradermonty #555): refuse advertised scripts/… paths that are missing
+# Docs-gate (tradermonty #555): refuse missing scripts/… paths + wrong --flags
 # Same scan as tests/test_docs_script_paths.py (host python; no network).
 if python3 - <<'PY'
+import sys
 from pathlib import Path
-import re, sys
+
+# Import helpers from the offline unit test (no pytest required).
+sys.path.insert(0, "tests")
+from test_docs_script_paths import (  # type: ignore
+    accepted_flags,
+    documented_script_flags,
+    documented_script_paths,
+)
+
 ROOT = Path(".")
-DOCS = [
-    "README.md", "FRIENDS.md", "AGENTS.md", "AUTOPILOT.md",
-    "DOCS_MAINTENANCE.md", "OPENBB.md", "GIT.md", "RELEASES.md",
-    "DESIGN.md", "GITHUB_WATCH.md", "docs/LAYA.md", "docs/PROMOTE_AB.md",
-]
-pat = re.compile(r"(?:^|[\s`'\"(])/?(?:\.\/)?(scripts/[A-Za-z0-9_./-]+\.(?:py|sh))\b")
-missing = []
-for rel in DOCS:
-    p = ROOT / rel
-    if not p.is_file():
-        continue
-    for m in pat.finditer(p.read_text(encoding="utf-8")):
-        script = m.group(1)
-        if not (ROOT / script).is_file():
-            missing.append(f"{script} (in {rel})")
+cited = documented_script_paths()
+missing = sorted(s for s in cited if not (ROOT / s).is_file())
 if missing:
     print("MISSING scripts cited in docs:")
-    for row in sorted(set(missing)):
-        print(f"  {row}")
+    for s in missing:
+        print(f"  {s} (in {', '.join(sorted(cited[s]))})")
     sys.exit(1)
 print("ok: documented scripts/… paths exist (docs-gate)")
+
+flag_bad = []
+for (script, flag), docs in sorted(documented_script_flags().items()):
+    if flag not in accepted_flags(script):
+        flag_bad.append(
+            f"{script} {flag} (in {', '.join(sorted(docs))})"
+        )
+if flag_bad:
+    print("WRONG flags cited in docs:")
+    for row in flag_bad:
+        print(f"  {row}")
+    sys.exit(1)
+print("ok: documented scripts/… --flags are accepted (docs-gate)")
 PY
 then
   :

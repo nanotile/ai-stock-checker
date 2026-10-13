@@ -5,7 +5,7 @@ Keep docs honest for humans and agents. Prefer short truth over marketing.
 ## Weekly checklist (agents)
 
 1. Diff code vs docs: compose services, CLI flags, AI defaults, ports.
-2. **Docs-gate:** every `scripts/…` path cited in active docs must exist (`tests/test_docs_script_paths.py` + `./scripts/docs_weekly_check.sh`) — refuse dead advertised commands (tradermonty docs-gate pattern).
+2. **Docs-gate:** every `scripts/…` path cited in active docs must exist, and every `--flag` after that path must be accepted by the script (or its `"$@"` Python target) — `tests/test_docs_script_paths.py` + `./scripts/docs_weekly_check.sh` (tradermonty docs-gate paths + wrong-flag check).
 3. Update [README.md](README.md) and [FRIENDS.md](FRIENDS.md) if the happy path changed. Refresh `docs/screenshots/*.jpg` when the desk UI changed (`./scripts/capture_desk_screenshots.sh`).
 4. Consider a tagged release per [RELEASES.md](RELEASES.md) if enough user-visible work landed since the last tag.
 5. Sync [IMPROVEMENT.md](IMPROVEMENT.md) Done / Next from recent commits.
