@@ -10459,6 +10459,101 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_
     assert len(clash_only["line"]) <= 96
 
 
+def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead() -> None:
+    """Nested align lead names louder ×|% on the calm line after nested size."""
+    as_of = date(2026, 8, 18)
+    runtime = {
+        "calm_streak_days": 0,
+        "calm_required_days": 30,
+        "calm_ready": False,
+        "calm_detail": "promote filter off — streak paused",
+    }
+    base = {
+        "trades": 12,
+        "buys": 4,
+        "sells": 8,
+        "wins": 6,
+        "losses": 2,
+        "avg_win": 16.67,
+        "avg_loss": 2.5,
+        "loss_streak": 0,
+        "loss_streak_max": 1,
+        "win_streak": 2,
+        "win_streak_max": 3,
+        "flat_closes": 0,
+        "exit_tp": 6,
+        "exit_sl": 2,
+        "exit_rot": 0,
+        "exit_trim": 0,
+        "exit_pnl_tp": 100.0,
+        "exit_pnl_sl": -5.0,
+        "exit_pnl_rot": 0.0,
+        "exit_pnl_trim": 0.0,
+    }
+
+    # × ≥2× louder than % — nested lead owns the clip; size stays in fields.
+    lead_x = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats={**base, "fees": 55.0, "realized_pnl": 850.0},
+    )
+    # Same lead with worse leftover fee mood — warn tone.
+    lead_warn = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats={**base, "fees": 10.0, "realized_pnl": 10.0},
+    )
+    # Nested size spoke but loudness near-equal — lead silent; size stays.
+    size_only = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats={**base, "fees": 60.0, "realized_pnl": 500.0},
+    )
+
+    assert lead_x[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead"
+    ] == "×"
+    assert lead_x[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_bit"
+    ] == "align lead · ×"
+    assert lead_x[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_warn"
+    ] is False
+    assert lead_x[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_size"
+    ] == "size"
+    assert "align lead · ×" in lead_x["line"]
+    assert "align size · +3× · +59.2pp" not in lead_x["line"]
+    assert "lead size % vs Δ align · wide" not in lead_x["line"]
+    assert lead_x["tone"] == "warn"
+
+    assert lead_warn[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead"
+    ] == "×"
+    assert lead_warn[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_bit"
+    ] == "align lead · ×"
+    assert lead_warn[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_warn"
+    ] is True
+    assert "align lead · ×" in lead_warn["line"]
+    assert "align size · +2.2× · +38.6pp" not in lead_warn["line"]
+    assert lead_warn["tone"] == "warn"
+
+    assert size_only[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_bit"
+    ] == ""
+    assert size_only[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_size_bit"
+    ] == "align size · +2.4× · +53.8pp"
+    assert "align size · +2.4× · +53.8pp" in size_only["line"]
+    assert "align lead ·" not in size_only["line"]
+
+    assert len(lead_x["line"]) <= 96
+    assert len(lead_warn["line"]) <= 96
+    assert len(size_only["line"]) <= 96
+
+
 def test_calm_streak_glance_progress() -> None:
     g = build_calm_streak_glance(
         {
