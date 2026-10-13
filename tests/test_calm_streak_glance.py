@@ -10491,7 +10491,7 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_
         "exit_pnl_trim": 0.0,
     }
 
-    # × ≥2× louder — nested lead + lead size + sides + Δ; Δ owns the clip.
+    # × ≥2× louder — nested lead + lead size + sides + Δ + share; share owns the clip.
     lead_x = build_calm_streak_glance(
         runtime,
         as_of=as_of,
@@ -10528,11 +10528,15 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_
     assert lead_x[
         "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_bit"
     ] == "lead size sides · louder 6× · quieter 3×"
-    # Nested sides Δ owns the clip after sides (sides stay in fields).
+    # Nested share owns the clip after Δ (Δ/sides stay in fields).
     assert lead_x[
         "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_delta_bit"
     ] == "lead size sides Δ wide · +3.1×"
-    assert "lead size sides Δ wide · +3.1×" in lead_x["line"]
+    assert lead_x[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_share_bit"
+    ] == "lead size % · louder 67.1% · quieter 32.9%"
+    assert "lead size % · louder 67.1% · quieter 32.9%" in lead_x["line"]
+    assert "lead size sides Δ wide · +3.1×" not in lead_x["line"]
     assert "lead size sides · louder 6× · quieter 3×" not in lead_x["line"]
     assert "align lead size · 2×" not in lead_x["line"]
     assert "align lead · ×" not in lead_x["line"]
@@ -10557,7 +10561,11 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_
     assert lead_warn[
         "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_delta_bit"
     ] == "lead size sides Δ wide · +2.5×"
-    assert "lead size sides Δ wide · +2.5×" in lead_warn["line"]
+    assert lead_warn[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_share_bit"
+    ] == "lead size % · louder 69.8% · quieter 30.2%"
+    assert "lead size % · louder 69.8% · quieter 30.2%" in lead_warn["line"]
+    assert "lead size sides Δ wide · +2.5×" not in lead_warn["line"]
     assert "lead size sides · louder 4.5× · quieter 1.9×" not in lead_warn["line"]
     assert "align lead size · 2.3×" not in lead_warn["line"]
     assert "align lead · ×" not in lead_warn["line"]
@@ -10655,15 +10663,19 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_
     assert lead_size_x[
         "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead"
     ] == "×"
-    # Nested sides Δ owns the clip when sides already spoke; sides + lead
-    # size stay in fields.
+    # Nested share owns the clip when sides/Δ already spoke; Δ + sides +
+    # lead size stay in fields.
     assert lead_size_x[
         "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_bit"
     ] == "lead size sides · louder 6× · quieter 3×"
     assert lead_size_x[
         "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_delta_bit"
     ] == "lead size sides Δ wide · +3.1×"
-    assert "lead size sides Δ wide · +3.1×" in lead_size_x["line"]
+    assert lead_size_x[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_share_bit"
+    ] == "lead size % · louder 67.1% · quieter 32.9%"
+    assert "lead size % · louder 67.1% · quieter 32.9%" in lead_size_x["line"]
+    assert "lead size sides Δ wide · +3.1×" not in lead_size_x["line"]
     assert "lead size sides · louder 6× · quieter 3×" not in lead_size_x["line"]
     assert "align lead size · 2×" not in lead_size_x["line"]
     assert "align lead · ×" not in lead_size_x["line"]
@@ -10685,7 +10697,11 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_
     assert lead_size_warn[
         "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_delta_bit"
     ] == "lead size sides Δ wide · +2.5×"
-    assert "lead size sides Δ wide · +2.5×" in lead_size_warn["line"]
+    assert lead_size_warn[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_share_bit"
+    ] == "lead size % · louder 69.8% · quieter 30.2%"
+    assert "lead size % · louder 69.8% · quieter 30.2%" in lead_size_warn["line"]
+    assert "lead size sides Δ wide · +2.5×" not in lead_size_warn["line"]
     assert "lead size sides · louder 4.5× · quieter 1.9×" not in lead_size_warn["line"]
     assert "align lead size · 2.3×" not in lead_size_warn["line"]
     assert lead_size_warn["tone"] == "warn"
@@ -10733,7 +10749,7 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_
         as_of=as_of,
         window_stats={**base, "fees": 60.0, "realized_pnl": 500.0},
     )
-    # × louder — nested sides Δ owns the clip; sides stay in fields.
+    # × louder — nested share owns the clip; Δ/sides stay in fields.
     sides_x = build_calm_streak_glance(
         runtime,
         as_of=as_of,
@@ -10754,6 +10770,9 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_
     ] is None
     assert size_only[
         "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_delta_bit"
+    ] == ""
+    assert size_only[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_share_bit"
     ] == ""
     assert "align size · +2.4× · +53.8pp" in size_only["line"]
     assert "lead size sides" not in size_only["line"]
@@ -10776,14 +10795,18 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_
     assert sides_x[
         "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_bit"
     ] == "align lead size · 2×"
-    # Nested sides Δ owns the clip after sides (sides stay in fields).
+    # Nested share owns the clip after Δ (Δ/sides stay in fields).
     assert sides_x[
         "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_delta"
     ] == "wide"
     assert sides_x[
         "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_delta_bit"
     ] == "lead size sides Δ wide · +3.1×"
-    assert "lead size sides Δ wide · +3.1×" in sides_x["line"]
+    assert sides_x[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_share_bit"
+    ] == "lead size % · louder 67.1% · quieter 32.9%"
+    assert "lead size % · louder 67.1% · quieter 32.9%" in sides_x["line"]
+    assert "lead size sides Δ wide · +3.1×" not in sides_x["line"]
     assert "lead size sides · louder 6× · quieter 3×" not in sides_x["line"]
     assert "align lead size · 2×" not in sides_x["line"]
     assert sides_x["tone"] == "warn"
@@ -10800,7 +10823,11 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_
     assert sides_warn[
         "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_delta_warn"
     ] is True
-    assert "lead size sides Δ wide · +2.5×" in sides_warn["line"]
+    assert sides_warn[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_share_bit"
+    ] == "lead size % · louder 69.8% · quieter 30.2%"
+    assert "lead size % · louder 69.8% · quieter 30.2%" in sides_warn["line"]
+    assert "lead size sides Δ wide · +2.5×" not in sides_warn["line"]
     assert "lead size sides · louder 4.5× · quieter 1.9×" not in sides_warn["line"]
     assert sides_warn["tone"] == "warn"
 
@@ -10847,13 +10874,13 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_
         as_of=as_of,
         window_stats={**base, "fees": 60.0, "realized_pnl": 500.0},
     )
-    # Wide Δ — Δ owns the clip; sides stay in fields.
+    # Wide Δ — share owns the clip; Δ/sides stay in fields.
     delta_wide = build_calm_streak_glance(
         runtime,
         as_of=as_of,
         window_stats={**base, "fees": 55.0, "realized_pnl": 850.0},
     )
-    # Worse leftover fee mood — Δ warns.
+    # Worse leftover fee mood — Δ/share warn.
     delta_warn = build_calm_streak_glance(
         runtime,
         as_of=as_of,
@@ -10882,9 +10909,13 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_
     assert delta_wide[
         "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_delta_warn"
     ] is False
-    assert "lead size sides Δ wide · +3.1×" in delta_wide["line"]
+    # Nested share owns the clip; Δ/sides stay in fields.
+    assert delta_wide[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_share_bit"
+    ] == "lead size % · louder 67.1% · quieter 32.9%"
+    assert "lead size % · louder 67.1% · quieter 32.9%" in delta_wide["line"]
+    assert "lead size sides Δ wide · +3.1×" not in delta_wide["line"]
     assert "lead size sides · louder 6× · quieter 3×" not in delta_wide["line"]
-    # Sides stay in fields when Δ owns the clip.
     assert delta_wide[
         "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_bit"
     ] == "lead size sides · louder 6× · quieter 3×"
@@ -10902,13 +10933,119 @@ def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_
     assert delta_warn[
         "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_delta_warn"
     ] is True
-    assert "lead size sides Δ wide · +2.5×" in delta_warn["line"]
+    assert delta_warn[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_share_bit"
+    ] == "lead size % · louder 69.8% · quieter 30.2%"
+    assert "lead size % · louder 69.8% · quieter 30.2%" in delta_warn["line"]
+    assert "lead size sides Δ wide · +2.5×" not in delta_warn["line"]
     assert "lead size sides · louder" not in delta_warn["line"]
     assert delta_warn["tone"] == "warn"
 
     assert len(size_only["line"]) <= 96
     assert len(delta_wide["line"]) <= 96
     assert len(delta_warn["line"]) <= 96
+
+
+def test_calm_streak_glance_promote_off_paused_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_share() -> None:
+    """Nested align lead size sides share puts ownership % on the calm line after Δ/sides."""
+    as_of = date(2026, 8, 18)
+    runtime = {
+        "calm_streak_days": 0,
+        "calm_required_days": 30,
+        "calm_ready": False,
+        "calm_detail": "promote filter off — streak paused",
+    }
+    base = {
+        "trades": 12,
+        "buys": 4,
+        "sells": 8,
+        "wins": 6,
+        "losses": 2,
+        "avg_win": 16.67,
+        "avg_loss": 2.5,
+        "loss_streak": 0,
+        "loss_streak_max": 1,
+        "win_streak": 2,
+        "win_streak_max": 3,
+        "flat_closes": 0,
+        "exit_tp": 6,
+        "exit_sl": 2,
+        "exit_rot": 0,
+        "exit_trim": 0,
+        "exit_pnl_tp": 100.0,
+        "exit_pnl_sl": -5.0,
+        "exit_pnl_rot": 0.0,
+        "exit_pnl_trim": 0.0,
+    }
+
+    # Near-equal — no nested sides → share silent; align size stays.
+    size_only = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats={**base, "fees": 60.0, "realized_pnl": 500.0},
+    )
+    # Wide Δ — share owns the clip; Δ/sides stay in fields.
+    share_after_delta = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats={**base, "fees": 55.0, "realized_pnl": 850.0},
+    )
+    # Worse leftover fee mood — share warns.
+    share_warn = build_calm_streak_glance(
+        runtime,
+        as_of=as_of,
+        window_stats={**base, "fees": 10.0, "realized_pnl": 10.0},
+    )
+
+    assert size_only[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_share_bit"
+    ] == ""
+    assert size_only[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_share_louder_pct"
+    ] is None
+    assert "align size · +2.4× · +53.8pp" in size_only["line"]
+    assert "lead size %" not in size_only["line"]
+
+    assert share_after_delta[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_share_louder_pct"
+    ] == 67.1
+    assert share_after_delta[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_share_quieter_pct"
+    ] == 32.9
+    assert share_after_delta[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_share_bit"
+    ] == "lead size % · louder 67.1% · quieter 32.9%"
+    # vs=better → share speaks and does not warn (other bits may still warn).
+    assert share_after_delta[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_share_warn"
+    ] is False
+    assert "lead size % · louder 67.1% · quieter 32.9%" in share_after_delta["line"]
+    assert "lead size sides Δ wide · +3.1×" not in share_after_delta["line"]
+    assert "lead size sides · louder 6× · quieter 3×" not in share_after_delta["line"]
+    assert share_after_delta[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_delta_bit"
+    ] == "lead size sides Δ wide · +3.1×"
+    assert share_after_delta[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_bit"
+    ] == "lead size sides · louder 6× · quieter 3×"
+    assert share_after_delta["tone"] == "warn"
+
+    assert share_warn[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_share_louder_pct"
+    ] == 69.8
+    assert share_warn[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_share_bit"
+    ] == "lead size % · louder 69.8% · quieter 30.2%"
+    assert share_warn[
+        "window_a_closes_exit_euro_size_sign_clash_keep_fees_vs_gap_dir_sides_share_vs_delta_align_lead_size_sides_share_vs_delta_align_lead_size_sides_share_warn"
+    ] is True
+    assert "lead size % · louder 69.8% · quieter 30.2%" in share_warn["line"]
+    assert "lead size sides Δ wide · +2.5×" not in share_warn["line"]
+    assert share_warn["tone"] == "warn"
+
+    assert len(size_only["line"]) <= 96
+    assert len(share_after_delta["line"]) <= 96
+    assert len(share_warn["line"]) <= 96
 
 
 def test_calm_streak_glance_progress() -> None:
