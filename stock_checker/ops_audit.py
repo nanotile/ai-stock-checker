@@ -22,7 +22,8 @@ OPS_ACTIONS_FILE = "ops_actions.json"
 OPS_ACTIONS_CAP = 40
 # Refuse a second same-kind mutation while a fresh ``requested`` row is still
 # hanging (xang1234 #606/#613 double-click / in-flight refuse). Older hangings
-# stay visible as ``pending`` but do not brick Ops forever after a crash.
+# fail-open for Save but the glance speaks ``stale pending`` (crash leftover ≠
+# in-flight) so friends do not treat an aged hang as a live refuse window.
 OPS_PENDING_REFUSE_SECONDS = 120
 
 T = TypeVar("T")
@@ -61,23 +62,48 @@ def pending_ops_in_flight(
     """Newest same-kind ``requested`` row when still inside the refuse window.
 
     Unparseable / aged-out hangings return ``None`` (fail-open) so Ops can save
-    again after a crashed mid-flight; the glance still speaks ``pending``.
+    again after a crashed mid-flight; the glance speaks ``stale pending`` for
+    aged hangings (see ``format_last_ops_action_bit``).
     """
     last = last_ops_action(data_dir, kind=kind)
     if not isinstance(last, dict):
         return None
-    if str(last.get("outcome") or "") != "requested":
+    band = ops_pending_freshness_band(
+        last, now=now, refuse_seconds=refuse_seconds
+    )
+    if band != "fresh":
         return None
-    stamp = _parse_ops_at(last.get("at"))
+    return last
+
+
+def ops_pending_freshness_band(
+    row: dict[str, Any] | None,
+    *,
+    now: datetime | None = None,
+    refuse_seconds: int = OPS_PENDING_REFUSE_SECONDS,
+) -> str | None:
+    """``fresh`` / ``stale`` for a hanging ``requested`` row; else ``None``.
+
+    Fresh = still inside the refuse window (in-flight). Stale = aged past it
+    (crash leftover / abandoned). Unparseable stamps stay ``None`` (fail-open
+    label: plain ``pending``).
+    """
+    if not isinstance(row, dict):
+        return None
+    if str(row.get("outcome") or "") != "requested":
+        return None
+    stamp = _parse_ops_at(row.get("at"))
     if stamp is None:
         return None
     clock = now or datetime.now(timezone.utc)
     if clock.tzinfo is None:
         clock = clock.replace(tzinfo=timezone.utc)
     age = (clock.astimezone(timezone.utc) - stamp).total_seconds()
-    if age < 0 or age >= max(1, int(refuse_seconds)):
+    if age < 0:
         return None
-    return last
+    if age < max(1, int(refuse_seconds)):
+        return "fresh"
+    return "stale"
 
 
 def load_ops_actions(data_dir: Path | str) -> list[dict[str, Any]]:
@@ -144,19 +170,28 @@ def last_ops_action(
     return None
 
 
-def format_last_ops_action_bit(row: dict[str, Any] | None) -> str:
+def format_last_ops_action_bit(
+    row: dict[str, Any] | None,
+    *,
+    now: datetime | None = None,
+    refuse_seconds: int = OPS_PENDING_REFUSE_SECONDS,
+) -> str:
     """Compact Ops honesty line: ``last config · accepted · …Z``.
 
-    A hanging ``requested`` row (no accepted/error yet) speaks ``pending`` so
-    friends see an incomplete audit instead of a quiet mid-flight stamp
-    (xang1234 #613/#628 outcome pairing honesty).
+    A hanging ``requested`` row (no accepted/error yet) speaks ``pending`` when
+    still inside the refuse window, or ``stale pending`` when aged out — so a
+    crash leftover is not read as a live in-flight Save (xang1234 #613/#628
+    outcome pairing + RyanJHamby/xang1234 fresh|stale age triad).
     """
     if not isinstance(row, dict):
         return ""
     kind = str(row.get("kind") or "").strip() or "?"
     outcome = str(row.get("outcome") or "").strip() or "?"
     if outcome == "requested":
-        outcome = "pending"
+        band = ops_pending_freshness_band(
+            row, now=now, refuse_seconds=refuse_seconds
+        )
+        outcome = "stale pending" if band == "stale" else "pending"
     at = str(row.get("at") or "").strip()
     if at:
         return f"last {kind} · {outcome} · {at}"

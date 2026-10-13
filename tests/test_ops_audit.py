@@ -17,6 +17,7 @@ from stock_checker.ops_audit import (
     last_ops_action,
     load_ops_actions,
     ops_actions_path,
+    ops_pending_freshness_band,
     pending_ops_in_flight,
 )
 
@@ -135,23 +136,52 @@ def test_malformed_ops_actions_file_fail_open(tmp_path: Path):
 
 
 def test_format_last_ops_action_bit_pending_for_hanging_requested():
+    now = datetime(2026, 10, 13, 20, 0, 30, tzinfo=timezone.utc)
     bit = format_last_ops_action_bit(
         {
             "kind": "config",
             "outcome": "requested",
             "at": "2026-10-13T20:00:00Z",
-        }
+        },
+        now=now,
     )
     assert bit == "last config · pending · 2026-10-13T20:00:00Z"
     assert "requested" not in bit
+    assert "stale" not in bit
     accepted = format_last_ops_action_bit(
         {
             "kind": "config",
             "outcome": "accepted",
             "at": "2026-10-13T20:00:01Z",
-        }
+        },
+        now=now,
     )
     assert accepted == "last config · accepted · 2026-10-13T20:00:01Z"
+
+
+def test_format_last_ops_action_bit_stale_pending_for_aged_hanging():
+    """Aged crash leftover ≠ in-flight pending (xang1234 + RyanJHamby age triad)."""
+    now = datetime(2026, 10, 13, 21, 5, 0, tzinfo=timezone.utc)
+    stamp = now - timedelta(seconds=OPS_PENDING_REFUSE_SECONDS + 5)
+    row = {
+        "kind": "config",
+        "outcome": "requested",
+        "at": stamp.strftime("%Y-%m-%dT%H:%M:%SZ"),
+    }
+    assert ops_pending_freshness_band(row, now=now) == "stale"
+    bit = format_last_ops_action_bit(row, now=now)
+    assert bit == f"last config · stale pending · {row['at']}"
+    assert "requested" not in bit
+    # Unparseable stamp stays plain pending (fail-open; do not invent stale).
+    plain = format_last_ops_action_bit(
+        {"kind": "config", "outcome": "requested", "at": "not-a-time"},
+        now=now,
+    )
+    assert plain == "last config · pending · not-a-time"
+    assert ops_pending_freshness_band(
+        {"kind": "config", "outcome": "requested", "at": "not-a-time"},
+        now=now,
+    ) is None
 
 
 def test_audited_refuses_fresh_pending_in_flight(tmp_path: Path):
