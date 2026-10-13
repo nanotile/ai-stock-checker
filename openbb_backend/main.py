@@ -308,6 +308,14 @@ async def desk_config_put(request: Request):
         act=lambda: save_trader_config(DATA_DIR, body),
     )
     if audit.get("blocked") or saved is None:
+        if audit.get("reason") == "pending_in_flight":
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    "Ops config save already in flight — wait for the pending "
+                    "audit outcome, then retry"
+                ),
+            )
         raise HTTPException(
             status_code=503,
             detail="Ops audit unavailable — config not saved",

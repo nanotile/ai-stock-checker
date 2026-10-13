@@ -2,6 +2,7 @@
 """Offline tests for OpenBB backend (no httpx required)."""
 
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 from openbb_backend import main as backend
@@ -357,6 +358,41 @@ def test_desk_config_api_put(tmp_path: Path, monkeypatch):
     assert got.status_code == 200
     assert got.json()["ai_mode"] == "validate"
     assert "last config · accepted" in str(got.json().get("last_ops_action") or "")
+
+
+def test_desk_config_api_put_refuses_pending_in_flight(tmp_path: Path, monkeypatch):
+    """Fresh hanging requested → 409; does not rewrite trader_config."""
+    _seed_portfolio(tmp_path)
+    monkeypatch.setattr(backend, "DATA_DIR", tmp_path)
+    monkeypatch.setenv("DESK_LIVE_MARKS", "0")
+    from stock_checker.ops_audit import append_ops_action
+    from stock_checker.trader_config import save_trader_config
+    from starlette.testclient import TestClient
+
+    save_trader_config(tmp_path, {"ai_mode": "off"})
+    append_ops_action(
+        tmp_path,
+        {
+            "id": "hang",
+            "action_id": "act-hang",
+            "at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "kind": "config",
+            "outcome": "requested",
+            "detail": {},
+        },
+    )
+    client = TestClient(backend.app)
+    refused = client.put(
+        "/desk/api/config",
+        json={"ai_mode": "validate", "fee_preset": "revolut_standard"},
+    )
+    assert refused.status_code == 409
+    detail = str(refused.json().get("detail") or "")
+    assert "in flight" in detail.lower()
+    # Prior saved row must remain (no silent overwrite).
+    from stock_checker.trader_config import load_trader_config
+
+    assert load_trader_config(tmp_path).get("ai_mode") == "off"
 
 
 def test_desk_ops_has_config_form(tmp_path: Path, monkeypatch):

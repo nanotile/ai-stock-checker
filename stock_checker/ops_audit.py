@@ -20,6 +20,10 @@ logger = logging.getLogger(__name__)
 
 OPS_ACTIONS_FILE = "ops_actions.json"
 OPS_ACTIONS_CAP = 40
+# Refuse a second same-kind mutation while a fresh ``requested`` row is still
+# hanging (xang1234 #606/#613 double-click / in-flight refuse). Older hangings
+# stay visible as ``pending`` but do not brick Ops forever after a crash.
+OPS_PENDING_REFUSE_SECONDS = 120
 
 T = TypeVar("T")
 
@@ -30,6 +34,50 @@ def ops_actions_path(data_dir: Path | str) -> Path:
 
 def _now_iso() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _parse_ops_at(raw: Any) -> datetime | None:
+    s = str(raw or "").strip()
+    if not s:
+        return None
+    try:
+        if s.endswith("Z"):
+            s = s[:-1] + "+00:00"
+        dt = datetime.fromisoformat(s)
+    except ValueError:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
+def pending_ops_in_flight(
+    data_dir: Path | str,
+    *,
+    kind: str,
+    now: datetime | None = None,
+    refuse_seconds: int = OPS_PENDING_REFUSE_SECONDS,
+) -> dict[str, Any] | None:
+    """Newest same-kind ``requested`` row when still inside the refuse window.
+
+    Unparseable / aged-out hangings return ``None`` (fail-open) so Ops can save
+    again after a crashed mid-flight; the glance still speaks ``pending``.
+    """
+    last = last_ops_action(data_dir, kind=kind)
+    if not isinstance(last, dict):
+        return None
+    if str(last.get("outcome") or "") != "requested":
+        return None
+    stamp = _parse_ops_at(last.get("at"))
+    if stamp is None:
+        return None
+    clock = now or datetime.now(timezone.utc)
+    if clock.tzinfo is None:
+        clock = clock.replace(tzinfo=timezone.utc)
+    age = (clock.astimezone(timezone.utc) - stamp).total_seconds()
+    if age < 0 or age >= max(1, int(refuse_seconds)):
+        return None
+    return last
 
 
 def load_ops_actions(data_dir: Path | str) -> list[dict[str, Any]]:
@@ -132,6 +180,15 @@ def audited_ops_action(
     action_id = str(uuid.uuid4())
     kind_s = str(kind or "").strip() or "ops"
     detail_safe = _safe_detail(detail)
+    in_flight = pending_ops_in_flight(data_dir, kind=kind_s)
+    if in_flight is not None:
+        return None, {
+            "blocked": True,
+            "action_id": str(in_flight.get("action_id") or ""),
+            "outcome": "blocked",
+            "reason": "pending_in_flight",
+            "pending_at": str(in_flight.get("at") or ""),
+        }
     requested = {
         "id": str(uuid.uuid4()),
         "action_id": action_id,

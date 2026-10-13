@@ -7,13 +7,17 @@ from unittest.mock import patch
 
 import pytest
 
+from datetime import datetime, timedelta, timezone
+
 from stock_checker.ops_audit import (
+    OPS_PENDING_REFUSE_SECONDS,
     append_ops_action,
     audited_ops_action,
     format_last_ops_action_bit,
     last_ops_action,
     load_ops_actions,
     ops_actions_path,
+    pending_ops_in_flight,
 )
 
 
@@ -148,3 +152,76 @@ def test_format_last_ops_action_bit_pending_for_hanging_requested():
         }
     )
     assert accepted == "last config · accepted · 2026-10-13T20:00:01Z"
+
+
+def test_audited_refuses_fresh_pending_in_flight(tmp_path: Path):
+    """xang1234 #606/#613: double-click / overlapping Save while requested hangs."""
+    now = datetime(2026, 10, 13, 21, 0, 0, tzinfo=timezone.utc)
+    assert append_ops_action(
+        tmp_path,
+        {
+            "id": "hang-1",
+            "action_id": "act-hang",
+            "at": "2026-10-13T20:59:30Z",
+            "kind": "config",
+            "outcome": "requested",
+            "detail": {},
+        },
+    )
+    assert pending_ops_in_flight(tmp_path, kind="config", now=now) is not None
+    called = {"n": 0}
+
+    def act():
+        called["n"] += 1
+        return {"ok": True}
+
+    with patch(
+        "stock_checker.ops_audit.pending_ops_in_flight",
+        return_value={
+            "action_id": "act-hang",
+            "at": "2026-10-13T20:59:30Z",
+            "outcome": "requested",
+        },
+    ):
+        result, meta = audited_ops_action(
+            tmp_path,
+            kind="config",
+            detail={"ai_mode": "off"},
+            act=act,
+        )
+    assert result is None
+    assert meta["blocked"] is True
+    assert meta["reason"] == "pending_in_flight"
+    assert meta["action_id"] == "act-hang"
+    assert called["n"] == 0
+    # No new audit row from the refused call.
+    assert [e["id"] for e in load_ops_actions(tmp_path)] == ["hang-1"]
+
+
+def test_aged_pending_does_not_block_forever(tmp_path: Path):
+    now = datetime(2026, 10, 13, 21, 5, 0, tzinfo=timezone.utc)
+    stamp = now - timedelta(seconds=OPS_PENDING_REFUSE_SECONDS + 5)
+    assert append_ops_action(
+        tmp_path,
+        {
+            "id": "stale-hang",
+            "action_id": "act-old",
+            "at": stamp.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "kind": "config",
+            "outcome": "requested",
+            "detail": {},
+        },
+    )
+    assert pending_ops_in_flight(tmp_path, kind="config", now=now) is None
+    result, meta = audited_ops_action(
+        tmp_path,
+        kind="config",
+        detail={"ai_mode": "validate"},
+        act=lambda: {"saved": True},
+    )
+    assert result == {"saved": True}
+    assert meta["blocked"] is False
+    assert [e["outcome"] for e in load_ops_actions(tmp_path)][-2:] == [
+        "requested",
+        "accepted",
+    ]
