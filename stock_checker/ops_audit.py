@@ -374,13 +374,13 @@ def ops_outcome_vs_file_clash(
     config_mtime: datetime | None = None,
     now: datetime | None = None,
 ) -> str:
-    """``clash · file stale`` when terminal audit age ≠ Ops file freshness.
+    """``clash · file stale`` or ``agree · file fresh`` for audit vs Ops file.
 
-    Same band / missing clocks / hanging ``requested`` stay silent (pending
-    already has refuse-window + ``no outcome``). Age label alone hid that a
-    fresh accepted stamp can sit beside a stale (or hand-edited) Ops file —
-    FinRobot/xang1234 clock-clash + portfolio AI speak-both-sides after
-    outcome age.
+    Missing clocks / hanging ``requested`` stay silent (pending already has
+    refuse-window + ``no outcome``). Same band speaks ``agree`` — silent
+    match hid that stamp and mtime still line up (portfolio AI speak-both-
+    sides after clash-only). Disagree still speaks ``clash · file …`` —
+    FinRobot/xang1234 clock-clash after outcome age.
     """
     if not isinstance(row, dict):
         return ""
@@ -392,8 +392,13 @@ def ops_outcome_vs_file_clash(
     if not audit_band or not file_band:
         return ""
     if audit_band == file_band:
-        return ""
+        return f"agree · file {file_band}"
     return f"clash · file {file_band}"
+
+
+def ops_outcome_vs_file_warn(bit: str) -> bool:
+    """True when audit vs file relation is an adverse clash (not agree)."""
+    return bool(bit) and bit.startswith("clash · file")
 
 
 def ops_outcome_age_line(
@@ -459,10 +464,11 @@ def format_last_ops_action_bit(
     hid whether the last Save was recent). Unparseable stamps keep the raw
     ``at`` text (fail-open).
 
-    When a terminal outcome age band disagrees with Ops file freshness, also
-    speak ``clash · file stale`` (same band silent) — audit stamp ≠ file mtime
-    can hide a hand-edit or band-boundary drift (FinRobot/xang1234 clock
-    clash after outcome age).
+    When a terminal outcome age band is known beside Ops file freshness, also
+    speak ``agree · file fresh`` (same band) or ``clash · file stale``
+    (disagree) — silent match hid confirm; stamp ≠ mtime can hide a hand-edit
+    or band-boundary drift (FinRobot/xang1234 clock clash + portfolio AI
+    speak-both-sides after outcome age).
     """
     if not isinstance(row, dict):
         return ""
@@ -485,15 +491,15 @@ def format_last_ops_action_bit(
         if why:
             outcome = f"error · {why}"
     age = ops_outcome_age_line(row, now=now)
-    clash = ""
+    relation = ""
     if age and raw_outcome != "requested":
-        clash = ops_outcome_vs_file_clash(
+        relation = ops_outcome_vs_file_clash(
             row, config_mtime=config_mtime, now=now
         )
     if age:
         bit = f"last {kind} · {outcome} · {age}"
-        if clash:
-            return f"{bit} · {clash}"
+        if relation:
+            return f"{bit} · {relation}"
         return bit
     at = str(row.get("at") or "").strip()
     if at:

@@ -224,6 +224,8 @@ def desk_config_get():
     from stock_checker.ops_audit import (
         format_last_ops_action_bit,
         last_ops_action,
+        ops_outcome_vs_file_clash,
+        ops_outcome_vs_file_warn,
         trader_config_mtime_utc,
     )
     from stock_checker.trader_config import config_precedence_status, load_trader_config
@@ -231,6 +233,7 @@ def desk_config_get():
     cfg = load_trader_config(DATA_DIR)
     prec = config_precedence_status(DATA_DIR)
     last_save = last_ops_action(DATA_DIR, kind="config")
+    cfg_mtime = trader_config_mtime_utc(DATA_DIR)
     return {
         **cfg,
         "source": str(prec.get("source") or "env"),
@@ -255,10 +258,13 @@ def desk_config_get():
         "confirms": list(prec.get("confirms") or []),
         "env_fallbacks": list(prec.get("env_fallbacks") or []),
         "last_ops_action": format_last_ops_action_bit(
-            last_save, config_mtime=trader_config_mtime_utc(DATA_DIR)
+            last_save, config_mtime=cfg_mtime
         ),
         "last_ops_action_id": str((last_save or {}).get("action_id") or ""),
         "last_ops_outcome": str((last_save or {}).get("outcome") or ""),
+        "last_ops_file_clash_warn": ops_outcome_vs_file_warn(
+            ops_outcome_vs_file_clash(last_save, config_mtime=cfg_mtime)
+        ),
         "note": (
             "Saved Ops row wins over compose/env for keys present in "
             "data/trader_config.json; intelligent-trader hot-reloads each loop. "

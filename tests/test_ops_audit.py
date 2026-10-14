@@ -253,6 +253,8 @@ def test_ops_outcome_age_line_fresh_aging_stale():
 
 def test_ops_outcome_vs_file_clash_when_bands_disagree():
     """Audit age alone hid stamp ≠ Ops file mtime across freshness bands."""
+    from stock_checker.ops_audit import ops_outcome_vs_file_warn
+
     now = datetime(2026, 10, 14, 12, 0, 0, tzinfo=timezone.utc)
     accepted = {
         "kind": "config",
@@ -260,21 +262,26 @@ def test_ops_outcome_vs_file_clash_when_bands_disagree():
         "at": (now - timedelta(hours=3)).strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
     assert ops_outcome_age_band(accepted, now=now) == "fresh"
-    # Same band → silent.
+    # Same band → agree (speak-both-sides; silent match hid confirm).
     same = now - timedelta(hours=2)
     assert ops_file_freshness_band(same, now=now) == "fresh"
-    assert ops_outcome_vs_file_clash(accepted, config_mtime=same, now=now) == ""
+    assert (
+        ops_outcome_vs_file_clash(accepted, config_mtime=same, now=now)
+        == "agree · file fresh"
+    )
+    assert not ops_outcome_vs_file_warn("agree · file fresh")
     assert (
         format_last_ops_action_bit(accepted, now=now, config_mtime=same)
-        == "last config · accepted · 3h fresh"
+        == "last config · accepted · 3h fresh · agree · file fresh"
     )
-    # File stale while audit fresh → clash.
+    # File stale while audit fresh → clash + warn.
     stale_file = now - timedelta(hours=OPS_OUTCOME_AGING_HOURS + 24)
     assert ops_file_freshness_band(stale_file, now=now) == "stale"
     assert (
         ops_outcome_vs_file_clash(accepted, config_mtime=stale_file, now=now)
         == "clash · file stale"
     )
+    assert ops_outcome_vs_file_warn("clash · file stale")
     assert (
         format_last_ops_action_bit(accepted, now=now, config_mtime=stale_file)
         == "last config · accepted · 3h fresh · clash · file stale"

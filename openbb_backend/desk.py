@@ -22630,6 +22630,8 @@ def _trader_runtime_view() -> dict[str, Any]:
     from stock_checker.ops_audit import (
         format_last_ops_action_bit,
         last_ops_action,
+        ops_outcome_vs_file_clash,
+        ops_outcome_vs_file_warn,
         trader_config_mtime_utc,
     )
     from stock_checker.runtime_pin import runtime_pin_status
@@ -22761,10 +22763,16 @@ def _trader_runtime_view() -> dict[str, Any]:
         "config_env_fallback_n": int(cfg_prec.get("env_fallback_n") or 0),
         # xang1234 #613/#628: last audited config save (requested before write).
         # #630: hanging requested + newer Ops file → speak ``no outcome``.
+        # Audit vs file agree/clash: speak-both-sides; clash warns (not clay).
         "last_ops_action": format_last_ops_action_bit(
             last_config_audit, config_mtime=cfg_mtime
         ),
         "last_ops_outcome": str((last_config_audit or {}).get("outcome") or ""),
+        "last_ops_file_clash_warn": ops_outcome_vs_file_warn(
+            ops_outcome_vs_file_clash(
+                last_config_audit, config_mtime=cfg_mtime
+            )
+        ),
         "ollama_host": (os.getenv("OLLAMA_HOST") or "").strip() or "—",
     }
 
