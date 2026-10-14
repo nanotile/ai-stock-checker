@@ -378,7 +378,7 @@ def ops_outcome_vs_file_clash(
     config_mtime: datetime | None = None,
     now: datetime | None = None,
 ) -> str:
-    """``clash · audit fresh · file stale · audit newer`` or ``agree · file fresh``.
+    """``clash · audit fresh · file stale · audit newer · wide`` or ``agree · file fresh``.
 
     Missing clocks / hanging ``requested`` stay silent (pending already has
     refuse-window + ``no outcome``). Same band speaks ``agree`` — silent
@@ -389,7 +389,9 @@ def ops_outcome_vs_file_clash(
     dual-clock clash after outcome age). Dual clocks alone still hid
     direction: ``audit newer`` (file lag) vs ``file newer`` (possible
     hand-edit after last audited Save) — gap-dir / portfolio AI after
-    dual-clock clash.
+    dual-clock clash. Newer alone still hid span: ``wide`` when bands skip
+    a step (fresh↔stale); adjacent clash stays silent on span (xang1234
+    severity + portfolio AI after gap-dir alone hid mild drift vs jump).
     """
     if not isinstance(row, dict):
         return ""
@@ -407,7 +409,10 @@ def ops_outcome_vs_file_clash(
     if a_rank is None or f_rank is None:
         return f"clash · audit {audit_band} · file {file_band}"
     newer = "audit newer" if a_rank < f_rank else "file newer"
-    return f"clash · audit {audit_band} · file {file_band} · {newer}"
+    bit = f"clash · audit {audit_band} · file {file_band} · {newer}"
+    if abs(a_rank - f_rank) >= 2:
+        return f"{bit} · wide"
+    return bit
 
 
 def ops_outcome_vs_file_warn(bit: str) -> bool:
@@ -415,7 +420,8 @@ def ops_outcome_vs_file_warn(bit: str) -> bool:
 
     Fresh/aging agree stays calm; ``agree · file stale`` warns — dual-stale
     confirm ≠ quiet (portfolio AI after silent stale agree hid that both
-    clocks are old). Clash bits may append ``audit newer`` / ``file newer``.
+    clocks are old). Clash bits may append ``audit newer`` / ``file newer``
+    and ``wide`` when bands skip a step.
     """
     if not bit:
         return False
@@ -488,12 +494,14 @@ def format_last_ops_action_bit(
 
     When a terminal outcome age band is known beside Ops file freshness, also
     speak ``agree · file fresh`` (same band) or
-    ``clash · audit fresh · file stale · audit newer`` (disagree: both clocks
-    + which is newer) — silent match hid confirm; stamp ≠ mtime can hide a
-    hand-edit or band-boundary drift; file-only clash hid the audit side once
-    age clipped; dual clocks alone hid file lag vs hand-edit
-    (FinRobot/xang1234 dual-clock + gap-dir + portfolio AI speak-both-sides
-    after outcome age). Agree on stale warns (dual-stale ≠ quiet confirm).
+    ``clash · audit fresh · file stale · audit newer · wide`` (disagree: both
+    clocks + which is newer + ``wide`` when bands skip a step) — silent match
+    hid confirm; stamp ≠ mtime can hide a hand-edit or band-boundary drift;
+    file-only clash hid the audit side once age clipped; dual clocks alone
+    hid file lag vs hand-edit; newer alone hid adjacent drift vs fresh↔stale
+    jump (FinRobot/xang1234 dual-clock + gap-dir + severity + portfolio AI
+    speak-both-sides after outcome age). Agree on stale warns (dual-stale ≠
+    quiet confirm).
     """
     if not isinstance(row, dict):
         return ""

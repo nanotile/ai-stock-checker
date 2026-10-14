@@ -274,28 +274,28 @@ def test_ops_outcome_vs_file_clash_when_bands_disagree():
         format_last_ops_action_bit(accepted, now=now, config_mtime=same)
         == "last config · accepted · 3h fresh · agree · file fresh"
     )
-    # File stale while audit fresh → dual-clock clash + newer side + warn.
+    # File stale while audit fresh → dual-clock clash + newer + wide + warn.
     stale_file = now - timedelta(hours=OPS_OUTCOME_AGING_HOURS + 24)
     assert ops_file_freshness_band(stale_file, now=now) == "stale"
     assert (
         ops_outcome_vs_file_clash(accepted, config_mtime=stale_file, now=now)
-        == "clash · audit fresh · file stale · audit newer"
+        == "clash · audit fresh · file stale · audit newer · wide"
     )
     assert ops_outcome_vs_file_warn(
-        "clash · audit fresh · file stale · audit newer"
+        "clash · audit fresh · file stale · audit newer · wide"
     )
     assert (
         format_last_ops_action_bit(accepted, now=now, config_mtime=stale_file)
-        == "last config · accepted · 3h fresh · clash · audit fresh · file stale · audit newer"
+        == "last config · accepted · 3h fresh · clash · audit fresh · file stale · audit newer · wide"
     )
-    # Aging file vs fresh audit — both clocks + audit newer.
+    # Aging file vs fresh audit — adjacent span stays silent (not wide).
     aging_file = now - timedelta(hours=OPS_OUTCOME_FRESH_HOURS + 2)
     assert ops_file_freshness_band(aging_file, now=now) == "aging"
     assert (
         format_last_ops_action_bit(accepted, now=now, config_mtime=aging_file)
         == "last config · accepted · 3h fresh · clash · audit fresh · file aging · audit newer"
     )
-    # File fresh while audit stale → file newer (possible hand-edit).
+    # File fresh while audit stale → file newer · wide (possible hand-edit).
     stale_stamp_early = now - timedelta(hours=OPS_OUTCOME_AGING_HOURS + 24)
     stale_vs_fresh = {
         "kind": "config",
@@ -309,10 +309,10 @@ def test_ops_outcome_vs_file_clash_when_bands_disagree():
         ops_outcome_vs_file_clash(
             stale_vs_fresh, config_mtime=fresh_file, now=now
         )
-        == "clash · audit stale · file fresh · file newer"
+        == "clash · audit stale · file fresh · file newer · wide"
     )
     assert ops_outcome_vs_file_warn(
-        "clash · audit stale · file fresh · file newer"
+        "clash · audit stale · file fresh · file newer · wide"
     )
     # Dual-stale agree warns (stale confirm ≠ quiet); aging agree stays calm.
     stale_stamp = now - timedelta(hours=OPS_OUTCOME_AGING_HOURS + 24)
