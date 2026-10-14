@@ -454,16 +454,63 @@ def _ops_vs_file_clash_sides_share_delta(
     return f"sides share Δ {lean} · {sign}{delta_pp}pp"
 
 
+def _ops_vs_file_age_delta_lean(audit_age: float, file_age: float) -> str:
+    """``wide`` / ``thin`` / ``mid`` for |auditAge−fileAge| (sides Δ floors)."""
+    hours = abs(float(audit_age) - float(file_age)) / 3600.0
+    if hours >= float(OPS_OUTCOME_AGING_HOURS):
+        return "wide"
+    if hours < float(OPS_OUTCOME_FRESH_HOURS):
+        return "thin"
+    return "mid"
+
+
+def _ops_vs_file_share_delta_lean(audit_age: float, file_age: float) -> str:
+    """``wide`` / ``thin`` / ``mid`` for |audit%−file%| (share Δ floors)."""
+    pcts = _ops_vs_file_clash_sides_share_pcts(audit_age, file_age)
+    if pcts is None:
+        return "mid"
+    abs_pp = abs(pcts[0] - pcts[1])
+    if abs_pp >= _OPS_VS_FILE_SHARE_DELTA_WIDE_PP:
+        return "wide"
+    if abs_pp < _OPS_VS_FILE_SHARE_DELTA_THIN_PP:
+        return "thin"
+    return "mid"
+
+
+def _ops_vs_file_clash_sides_share_vs_delta(
+    audit_age: float, file_age: float
+) -> str:
+    """Age-Δ lean vs ownership-Δ lean after sides share / share Δ.
+
+    ``sides share vs Δ align · wide|thin`` when both leanish match;
+    ``sides share vs Δ clash · × mid|thin|wide · % mid|thin|wide`` when
+    exactly one lean spoke (the other mid). Both mid / both spoke with
+    different leans stay silent — age gap lean ≠ ownership lean was hidden
+    by share Δ alone (portfolio AI + xang1234 + config-precedence share vs Δ
+    after sides share Δ).
+    """
+    age = _ops_vs_file_age_delta_lean(audit_age, file_age)
+    share = _ops_vs_file_share_delta_lean(audit_age, file_age)
+    if age == "mid" and share == "mid":
+        return ""
+    if age == share:
+        return f"sides share vs Δ align · {age}"
+    if age == "mid" or share == "mid":
+        return f"sides share vs Δ clash · × {age} · % {share}"
+    return ""
+
+
 def _ops_vs_file_clash_sides(
     row: dict[str, Any],
     *,
     config_mtime: datetime,
     now: datetime | None = None,
 ) -> str:
-    """``sides · 3h · 8d`` (+ optional Δ + ownership % + share Δ); else ``\"\"``.
+    """``sides · 3h · 8d`` (+ optional Δ + ownership % + share Δ + share vs Δ).
 
     Unparseable / future clocks stay empty (fail-open). Mid age-|Δ| stays on
     sides + share (no age-Δ label). Mid share-|Δ| stays on share (no share-Δ).
+    Share vs Δ still speaks when exactly one lean is mid.
     """
     stamp = _parse_ops_at(row.get("at"))
     if stamp is None:
@@ -491,7 +538,10 @@ def _ops_vs_file_clash_sides(
     bit = f"{bit} · {share_bit}"
     share_delta = _ops_vs_file_clash_sides_share_delta(audit_age, file_age)
     if share_delta:
-        return f"{bit} · {share_delta}"
+        bit = f"{bit} · {share_delta}"
+    vs_delta = _ops_vs_file_clash_sides_share_vs_delta(audit_age, file_age)
+    if vs_delta:
+        return f"{bit} · {vs_delta}"
     return bit
 
 
@@ -501,7 +551,7 @@ def ops_outcome_vs_file_clash(
     config_mtime: datetime | None = None,
     now: datetime | None = None,
 ) -> str:
-    """``clash · audit fresh · file stale · audit newer · wide · sides · 3h · 8d · sides Δ wide · 7d · audit 2% · file 98% · sides share Δ wide · -96pp``.
+    """``clash · audit fresh · file stale · … · sides share Δ wide · -96pp · sides share vs Δ align · wide``.
 
     Missing clocks / hanging ``requested`` stay silent (pending already has
     refuse-window + ``no outcome``). Same band speaks ``agree`` — silent
@@ -531,7 +581,11 @@ def ops_outcome_vs_file_clash(
     ``sides share Δ wide|thin · ±Npp`` when |audit%−file%| is extreme
     (wide ≥20pp · thin <10pp · mid silent) so near-even ownership stays
     quiet while a lopsided pair speaks (portfolio AI + xang1234 gap-dir
-    sides share Δ after share).
+    sides share Δ after share). Share Δ alone still hid age-gap lean vs
+    ownership lean: append ``sides share vs Δ align · wide|thin`` when both
+    match, or ``sides share vs Δ clash · × mid|… · % …`` when exactly one
+    lean spoke (both mid / crossed leans silent) — portfolio AI + xang1234
+    + config-precedence share vs Δ after sides share Δ.
     """
     if not isinstance(row, dict):
         return ""
@@ -572,7 +626,9 @@ def ops_outcome_vs_file_warn(bit: str) -> bool:
     clocks are old). Clash bits may append ``audit newer`` / ``file newer``,
     ``wide`` / ``thin`` span, ``sides · … · …`` wall ages,
     ``sides Δ wide|thin · …`` age spread, ``audit N% · file M%`` ownership
-    of the age pair, and ``sides share Δ wide|thin · ±Npp`` pp spread.
+    of the age pair, ``sides share Δ wide|thin · ±Npp`` pp spread, and
+    ``sides share vs Δ align|clash · …`` when age-Δ lean vs ownership lean
+    agree or exactly one spoke.
     """
     if not bit:
         return False
