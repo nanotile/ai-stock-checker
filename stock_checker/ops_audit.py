@@ -25,6 +25,10 @@ OPS_ACTIONS_CAP = 40
 # fail-open for Save but the glance speaks ``stale pending`` (crash leftover ≠
 # in-flight) so friends do not treat an aged hang as a live refuse window.
 OPS_PENDING_REFUSE_SECONDS = 120
+# Terminal + hanging outcome age bands (display only) — same floors as Ops
+# saved-row ``file_freshness`` so audit age and config mtime speak one scale.
+OPS_OUTCOME_FRESH_HOURS = 24
+OPS_OUTCOME_AGING_HOURS = 168
 
 T = TypeVar("T")
 
@@ -288,6 +292,52 @@ def ops_error_reason_label(row: dict[str, Any] | None) -> str:
     return ""
 
 
+def _ops_age_short(age_sec: float) -> str:
+    """Compact wall age (``now`` / ``45s`` / ``6m`` / ``3h`` / ``2d``)."""
+    sec = max(0, int(age_sec))
+    if sec < 60:
+        return "now" if sec < 5 else f"{sec}s"
+    if sec < 3600:
+        return f"{sec // 60}m"
+    if sec < 36 * 3600:
+        return f"{sec // 3600}h"
+    return f"{sec // 86400}d"
+
+
+def ops_outcome_age_line(
+    row: dict[str, Any] | None,
+    *,
+    now: datetime | None = None,
+    fresh_hours: float = OPS_OUTCOME_FRESH_HOURS,
+    aging_hours: float = OPS_OUTCOME_AGING_HOURS,
+) -> str:
+    """Compact ``3h fresh`` / ``2d aging`` / ``10d stale`` for an audit stamp.
+
+    Bare ISO hid whether the last Save was recent (RyanJHamby/xang1234
+    fresh|aging|stale + Ops saved-row age parity). Unparseable stays empty
+    so the glance can still show the raw stamp.
+    """
+    if not isinstance(row, dict):
+        return ""
+    stamp = _parse_ops_at(row.get("at"))
+    if stamp is None:
+        return ""
+    clock = now or datetime.now(timezone.utc)
+    if clock.tzinfo is None:
+        clock = clock.replace(tzinfo=timezone.utc)
+    age_sec = (clock.astimezone(timezone.utc) - stamp).total_seconds()
+    if age_sec < 0:
+        return ""
+    hours = age_sec / 3600.0
+    if hours < max(0.0, float(fresh_hours)):
+        band = "fresh"
+    elif hours < max(0.0, float(aging_hours)):
+        band = "aging"
+    else:
+        band = "stale"
+    return f"{_ops_age_short(age_sec)} {band}"
+
+
 def format_last_ops_action_bit(
     row: dict[str, Any] | None,
     *,
@@ -295,7 +345,7 @@ def format_last_ops_action_bit(
     refuse_seconds: int = OPS_PENDING_REFUSE_SECONDS,
     config_mtime: datetime | None = None,
 ) -> str:
-    """Compact Ops honesty line: ``last config · accepted · …Z``.
+    """Compact Ops honesty line: ``last config · accepted · 3h fresh``.
 
     A hanging ``requested`` row (no accepted/error yet) speaks ``pending`` when
     still inside the refuse window, or ``stale pending`` when aged out — so a
@@ -313,6 +363,11 @@ def format_last_ops_action_bit(
     An ``error`` row speaks ``error · write-fail`` (or another compact reason)
     when recorded — bare ``error`` hid why Save failed after reload
     (xang1234 #621 show jobs request failures adapted).
+
+    Parseable stamps speak compact relative age + freshness band instead of
+    raw ISO (RyanJHamby/xang1234 + Ops saved-row age parity — bare ``…Z``
+    hid whether the last Save was recent). Unparseable stamps keep the raw
+    ``at`` text (fail-open).
     """
     if not isinstance(row, dict):
         return ""
@@ -333,6 +388,9 @@ def format_last_ops_action_bit(
         why = ops_error_reason_label(row)
         if why:
             outcome = f"error · {why}"
+    age = ops_outcome_age_line(row, now=now)
+    if age:
+        return f"last {kind} · {outcome} · {age}"
     at = str(row.get("at") or "").strip()
     if at:
         return f"last {kind} · {outcome} · {at}"

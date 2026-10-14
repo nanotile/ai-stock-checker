@@ -11,6 +11,8 @@ from unittest.mock import patch
 import pytest
 
 from stock_checker.ops_audit import (
+    OPS_OUTCOME_AGING_HOURS,
+    OPS_OUTCOME_FRESH_HOURS,
     OPS_PENDING_REFUSE_SECONDS,
     append_ops_action,
     audited_ops_action,
@@ -20,6 +22,7 @@ from stock_checker.ops_audit import (
     ops_actions_path,
     ops_error_reason_from_exc,
     ops_error_reason_label,
+    ops_outcome_age_line,
     ops_pending_freshness_band,
     ops_pending_no_outcome,
     ops_skip_reason_label,
@@ -61,7 +64,9 @@ def test_append_and_load_roundtrip(tmp_path: Path):
     assert last is not None
     assert last["outcome"] == "accepted"
     bit = format_last_ops_action_bit(last)
-    assert "last config · accepted ·" in bit
+    assert bit.startswith("last config · accepted ·")
+    assert "fresh" in bit or "aging" in bit or "stale" in bit
+    assert "T" not in bit.split(" · ")[-1]  # age band, not raw ISO
 
 
 def test_audited_blocks_when_request_write_fails(tmp_path: Path):
@@ -121,7 +126,8 @@ def test_audited_records_error_and_reraises(tmp_path: Path):
     assert events[1].get("reason") == "act-fail"
     assert "disk" not in json.dumps(events[1])
     bit = format_last_ops_action_bit(events[1])
-    assert "last config · error · act-fail ·" in bit
+    assert bit.startswith("last config · error · act-fail ·")
+    assert "fresh" in bit or "aging" in bit or "stale" in bit
 
 
 def test_ops_error_reason_from_exc_families():
@@ -135,15 +141,17 @@ def test_ops_error_reason_from_exc_families():
 
 def test_format_last_ops_action_bit_error_says_why():
     """xang1234 #621: bare error hid write-fail vs act-fail after reload."""
+    now = datetime(2026, 10, 14, 5, 0, 0, tzinfo=timezone.utc)
     bit = format_last_ops_action_bit(
         {
             "kind": "config",
             "outcome": "error",
             "reason": "write_fail",
             "at": "2026-10-14T04:00:00Z",
-        }
+        },
+        now=now,
     )
-    assert bit == "last config · error · write-fail · 2026-10-14T04:00:00Z"
+    assert bit == "last config · error · write-fail · 1h fresh"
     assert ops_error_reason_label(
         {"outcome": "error", "reason": "write_fail"}
     ) == "write-fail"
@@ -153,9 +161,10 @@ def test_format_last_ops_action_bit_error_says_why():
             "kind": "config",
             "outcome": "error",
             "at": "2026-10-14T04:00:00Z",
-        }
+        },
+        now=now,
     )
-    assert bare == "last config · error · 2026-10-14T04:00:00Z"
+    assert bare == "last config · error · 1h fresh"
     assert "write-fail" not in bare
     assert ops_error_reason_label({"outcome": "accepted", "reason": "act-fail"}) == ""
 
@@ -193,7 +202,7 @@ def test_format_last_ops_action_bit_pending_for_hanging_requested():
         },
         now=now,
     )
-    assert bit == "last config · pending · 2026-10-13T20:00:00Z"
+    assert bit == "last config · pending · 30s fresh"
     assert "requested" not in bit
     assert "stale" not in bit
     accepted = format_last_ops_action_bit(
@@ -204,7 +213,39 @@ def test_format_last_ops_action_bit_pending_for_hanging_requested():
         },
         now=now,
     )
-    assert accepted == "last config · accepted · 2026-10-13T20:00:01Z"
+    assert accepted == "last config · accepted · 29s fresh"
+
+
+def test_ops_outcome_age_line_fresh_aging_stale():
+    """RyanJHamby/xang1234 + saved-row parity: ISO alone hid Save recency."""
+    now = datetime(2026, 10, 14, 12, 0, 0, tzinfo=timezone.utc)
+    assert ops_outcome_age_line(
+        {"at": (now - timedelta(hours=3)).strftime("%Y-%m-%dT%H:%M:%SZ")},
+        now=now,
+    ) == "3h fresh"
+    assert OPS_OUTCOME_FRESH_HOURS == 24
+    aging_stamp = now - timedelta(hours=OPS_OUTCOME_FRESH_HOURS + 2)
+    assert ops_outcome_age_line(
+        {"at": aging_stamp.strftime("%Y-%m-%dT%H:%M:%SZ")},
+        now=now,
+    ) == "26h aging"
+    stale_stamp = now - timedelta(hours=OPS_OUTCOME_AGING_HOURS + 24)
+    assert ops_outcome_age_line(
+        {"at": stale_stamp.strftime("%Y-%m-%dT%H:%M:%SZ")},
+        now=now,
+    ) == "8d stale"
+    assert ops_outcome_age_line({"at": "not-a-time"}, now=now) == ""
+    assert (
+        format_last_ops_action_bit(
+            {
+                "kind": "config",
+                "outcome": "accepted",
+                "at": stale_stamp.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            },
+            now=now,
+        )
+        == "last config · accepted · 8d stale"
+    )
 
 
 def test_format_last_ops_action_bit_stale_pending_for_aged_hanging():
@@ -218,7 +259,8 @@ def test_format_last_ops_action_bit_stale_pending_for_aged_hanging():
     }
     assert ops_pending_freshness_band(row, now=now) == "stale"
     bit = format_last_ops_action_bit(row, now=now)
-    assert bit == f"last config · stale pending · {row['at']}"
+    # Refuse-window stale ≠ wall-clock stale (2m is still fresh on the 24h scale).
+    assert bit == "last config · stale pending · 2m fresh"
     assert "requested" not in bit
     # Unparseable stamp stays plain pending (fail-open; do not invent stale).
     plain = format_last_ops_action_bit(
@@ -287,7 +329,8 @@ def test_record_ops_skipped_speaks_on_glance(tmp_path: Path):
     assert last.get("reason") == "no-op"
     assert ops_skip_reason_label(last) == "no-op"
     bit = format_last_ops_action_bit(last)
-    assert "last config · skipped · no-op ·" in bit
+    assert bit.startswith("last config · skipped · no-op ·")
+    assert "fresh" in bit or "aging" in bit or "stale" in bit
     events = load_ops_actions(tmp_path)
     assert len(events) == 1
     assert events[0]["outcome"] == "skipped"
@@ -295,24 +338,27 @@ def test_record_ops_skipped_speaks_on_glance(tmp_path: Path):
 
 def test_format_last_ops_action_bit_skipped_says_why():
     """xang1234 #599/#623: bare skipped hid intentional no-op vs other preflight."""
+    now = datetime(2026, 10, 14, 2, 0, 0, tzinfo=timezone.utc)
     bit = format_last_ops_action_bit(
         {
             "kind": "config",
             "outcome": "skipped",
             "reason": "no_change",
             "at": "2026-10-14T01:00:00Z",
-        }
+        },
+        now=now,
     )
-    assert bit == "last config · skipped · no-op · 2026-10-14T01:00:00Z"
+    assert bit == "last config · skipped · no-op · 1h fresh"
     # Legacy rows without reason stay bare skipped (fail-open; do not invent why).
     bare = format_last_ops_action_bit(
         {
             "kind": "config",
             "outcome": "skipped",
             "at": "2026-10-14T01:00:00Z",
-        }
+        },
+        now=now,
     )
-    assert bare == "last config · skipped · 2026-10-14T01:00:00Z"
+    assert bare == "last config · skipped · 1h fresh"
     assert "no-op" not in bare
     assert ops_skip_reason_label({"outcome": "accepted", "reason": "no-op"}) == ""
 
@@ -335,10 +381,11 @@ def test_format_last_ops_action_bit_pending_no_outcome_when_file_newer():
     # Fractional mtime in the same second must not count as newer.
     assert ops_pending_no_outcome(row, config_mtime=same_second) is False
     bit = format_last_ops_action_bit(row, now=now, config_mtime=newer)
-    assert bit == f"last config · stale pending · no outcome · {row['at']}"
+    # 150s → 2m wall age; refuse-window stale; no outcome when file newer.
+    assert bit == "last config · stale pending · no outcome · 2m fresh"
     # Older / missing file stays bare stale pending (fail-open; do not invent orphan).
     bare = format_last_ops_action_bit(row, now=now, config_mtime=older)
-    assert bare == f"last config · stale pending · {row['at']}"
+    assert bare == "last config · stale pending · 2m fresh"
     assert "no outcome" not in bare
     # Fresh in-flight with file already newer still speaks (outcome writer dead mid-flight).
     fresh_stamp = now - timedelta(seconds=30)
@@ -350,9 +397,7 @@ def test_format_last_ops_action_bit_pending_no_outcome_when_file_newer():
     fresh_bit = format_last_ops_action_bit(
         fresh_row, now=now, config_mtime=fresh_stamp + timedelta(seconds=1)
     )
-    assert fresh_bit == (
-        f"last config · pending · no outcome · {fresh_row['at']}"
-    )
+    assert fresh_bit == "last config · pending · no outcome · 30s fresh"
 
 
 def test_trader_config_mtime_utc_roundtrip(tmp_path: Path):
