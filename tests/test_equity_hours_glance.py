@@ -19,6 +19,7 @@ def test_equity_hours_glance_both_open_us_morning() -> None:
     assert g["us_open"] is True
     assert g["xetra_open"] is True
     assert g["line"] == "active · US · Xetra · crypto"
+    assert g["attention_line"] == ""
     assert g["inactive_line"] == ""
     assert g["inactive_count"] == 0
     assert g["active_markets"] == ["US", "Xetra", "crypto"]
@@ -32,7 +33,9 @@ def test_equity_hours_glance_both_closed_weekend() -> None:
     assert g["tone"] == "closed"
     assert g["us_open"] is False
     assert g["xetra_open"] is False
-    assert g["line"] == "active · crypto"
+    # Active alone hid cash closed; attention names what needs a look (#633).
+    assert g["line"] == "active · crypto · attention · US · Xetra"
+    assert g["attention_line"] == "attention · US · Xetra"
     assert g["inactive_line"] == "Inactive markets (2): US · Xetra"
     assert g["inactive_count"] == 2
     assert g["active_markets"] == ["crypto"]
@@ -47,7 +50,8 @@ def test_equity_hours_glance_split_xetra_only() -> None:
     assert g["tone"] == "split"
     assert g["xetra_open"] is True
     assert g["us_open"] is False
-    assert g["line"] == "active · Xetra · crypto"
+    assert g["line"] == "active · Xetra · crypto · attention · US"
+    assert g["attention_line"] == "attention · US"
     assert g["inactive_line"] == "Inactive markets (1): US"
     assert g["inactive_count"] == 1
     assert g["active_markets"] == ["Xetra", "crypto"]

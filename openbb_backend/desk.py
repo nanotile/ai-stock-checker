@@ -19367,6 +19367,10 @@ def build_equity_hours_glance(
     Active venues lead the primary line; closed cash sleeves sit behind an
     Ops/Charts disclosure (xang1234 #631 active-markets-first / inactive
     disclosure — we have three desks venues, not a 12-market Celery roster).
+    Closed cash also speaks compact ``attention · US · Xetra`` on the primary
+    line so friends need not open the fold to see what is missing (xang1234
+    #633 coverage-panel "summary names markets that need attention" —
+    no Celery workers/Beat here; session closed ≠ missing worker).
     """
     from stock_checker.market_hours import (
         is_us_cash_session_closed,
@@ -19394,8 +19398,11 @@ def build_equity_hours_glance(
     else:
         tone = "split"
     line = "active · " + " · ".join(active)
+    attention_line = ""
     inactive_line = ""
     if inactive:
+        attention_line = "attention · " + " · ".join(inactive)
+        line = f"{line} · {attention_line}"
         inactive_line = (
             f"Inactive markets ({len(inactive)}): " + " · ".join(inactive)
         )
@@ -19407,6 +19414,7 @@ def build_equity_hours_glance(
         "ready": True,
         "tone": tone,
         "line": line,
+        "attention_line": attention_line,
         "inactive_line": inactive_line,
         "inactive_count": len(inactive),
         "active_markets": active,
