@@ -64,6 +64,11 @@ def pending_ops_in_flight(
     Unparseable / aged-out hangings return ``None`` (fail-open) so Ops can save
     again after a crashed mid-flight; the glance speaks ``stale pending`` for
     aged hangings (see ``format_last_ops_action_bit``).
+
+    Fresh hangings whose Ops file is already newer than the request also
+    return ``None`` (xang1234 #630 no-worker-for-queue: do not keep Run/Save
+    blocked waiting for an accepted stamp that will not arrive — glance still
+    speaks ``pending · no outcome``).
     """
     last = last_ops_action(data_dir, kind=kind)
     if not isinstance(last, dict):
@@ -72,6 +77,10 @@ def pending_ops_in_flight(
         last, now=now, refuse_seconds=refuse_seconds
     )
     if band != "fresh":
+        return None
+    if ops_pending_no_outcome(
+        last, config_mtime=trader_config_mtime_utc(data_dir)
+    ):
         return None
     return last
 
@@ -146,7 +155,10 @@ def ops_pending_no_outcome(
         mtime = mtime.replace(tzinfo=timezone.utc)
     else:
         mtime = mtime.astimezone(timezone.utc)
-    return mtime > stamp
+    # Audit stamps are second-precision ISO-Z; fractional file mtime in the
+    # same second must not look "newer" (would false-open a live in-flight
+    # Save). Floor both sides so only a clearly later second counts.
+    return mtime.replace(microsecond=0) > stamp.replace(microsecond=0)
 
 
 def load_ops_actions(data_dir: Path | str) -> list[dict[str, Any]]:

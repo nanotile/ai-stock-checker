@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
+import os
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-
-from datetime import datetime, timedelta, timezone
 
 from stock_checker.ops_audit import (
     OPS_PENDING_REFUSE_SECONDS,
@@ -284,9 +284,12 @@ def test_format_last_ops_action_bit_pending_no_outcome_when_file_newer():
     }
     newer = stamp + timedelta(seconds=5)
     older = stamp - timedelta(seconds=5)
+    same_second = stamp + timedelta(milliseconds=800)
     assert ops_pending_no_outcome(row, config_mtime=newer) is True
     assert ops_pending_no_outcome(row, config_mtime=older) is False
     assert ops_pending_no_outcome(row, config_mtime=None) is False
+    # Fractional mtime in the same second must not count as newer.
+    assert ops_pending_no_outcome(row, config_mtime=same_second) is False
     bit = format_last_ops_action_bit(row, now=now, config_mtime=newer)
     assert bit == f"last config · stale pending · no outcome · {row['at']}"
     # Older / missing file stays bare stale pending (fail-open; do not invent orphan).
@@ -332,6 +335,53 @@ def test_aged_pending_does_not_block_forever(tmp_path: Path):
             "outcome": "requested",
             "detail": {},
         },
+    )
+    assert pending_ops_in_flight(tmp_path, kind="config", now=now) is None
+    result, meta = audited_ops_action(
+        tmp_path,
+        kind="config",
+        detail={"ai_mode": "validate"},
+        act=lambda: {"saved": True},
+    )
+    assert result == {"saved": True}
+    assert meta["blocked"] is False
+    assert [e["outcome"] for e in load_ops_actions(tmp_path)][-2:] == [
+        "requested",
+        "accepted",
+    ]
+
+
+def test_fresh_pending_no_outcome_does_not_block_save(tmp_path: Path):
+    """xang1234 #630: hanging request + newer Ops file must not brick Save.
+
+    Speak still shows pending · no outcome; refuse window fail-opens so friends
+    can retry without waiting for an accepted stamp that will not arrive.
+    """
+    from stock_checker.trader_config import config_path
+
+    now = datetime(2026, 10, 14, 4, 0, 0, tzinfo=timezone.utc)
+    stamp = now - timedelta(seconds=30)
+    assert append_ops_action(
+        tmp_path,
+        {
+            "id": "orphan-1",
+            "action_id": "act-orphan",
+            "at": stamp.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "kind": "config",
+            "outcome": "requested",
+            "detail": {},
+        },
+    )
+    path = config_path(tmp_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text('{"ai_mode": "off"}\n', encoding="utf-8")
+    # File mtime must be at least one full second after the hanging request
+    # (second-precision compare in ops_pending_no_outcome).
+    newer = stamp.timestamp() + 2
+    os.utime(path, (newer, newer))
+    assert ops_pending_no_outcome(
+        last_ops_action(tmp_path, kind="config"),
+        config_mtime=trader_config_mtime_utc(tmp_path),
     )
     assert pending_ops_in_flight(tmp_path, kind="config", now=now) is None
     result, meta = audited_ops_action(
