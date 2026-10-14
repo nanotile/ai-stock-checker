@@ -372,13 +372,36 @@ def ops_file_freshness_band(
 _OPS_BAND_AGE_RANK = {"fresh": 0, "aging": 1, "stale": 2}
 
 
+def _ops_vs_file_clash_sides_delta(audit_age: float, file_age: float) -> str:
+    """``sides Δ wide|thin · Nd`` when |age spread| is extreme; mid silent.
+
+    Sides name both wall ages; Δ is the additive spread so a thin band span
+    on nearly equal clocks (or a wide band span on close ages) does not look
+    like a huge clock gap — FinRobot/xang1234 gap-dir sides Δ + portfolio AI
+    after sides alone. Wide ≥ aging floor (7d); thin < fresh floor (24h).
+    """
+    delta = abs(float(audit_age) - float(file_age))
+    hours = delta / 3600.0
+    if hours >= float(OPS_OUTCOME_AGING_HOURS):
+        lean = "wide"
+    elif hours < float(OPS_OUTCOME_FRESH_HOURS):
+        lean = "thin"
+    else:
+        return ""
+    return f"sides Δ {lean} · {_ops_age_short(delta)}"
+
+
 def _ops_vs_file_clash_sides(
     row: dict[str, Any],
     *,
     config_mtime: datetime,
     now: datetime | None = None,
 ) -> str:
-    """``sides · 3h · 8d`` when both wall ages parse; else ``\"\"`` (fail-open)."""
+    """``sides · 3h · 8d`` (+ optional ``sides Δ wide|thin · Nd``); else ``\"\"``.
+
+    Unparseable / future clocks stay empty (fail-open). Mid |Δ| stays on
+    sides only (no Δ label).
+    """
     stamp = _parse_ops_at(row.get("at"))
     if stamp is None:
         return ""
@@ -395,7 +418,11 @@ def _ops_vs_file_clash_sides(
     file_age = (clock - mtime).total_seconds()
     if audit_age < 0 or file_age < 0:
         return ""
-    return f"sides · {_ops_age_short(audit_age)} · {_ops_age_short(file_age)}"
+    bit = f"sides · {_ops_age_short(audit_age)} · {_ops_age_short(file_age)}"
+    delta_bit = _ops_vs_file_clash_sides_delta(audit_age, file_age)
+    if delta_bit:
+        return f"{bit} · {delta_bit}"
+    return bit
 
 
 def ops_outcome_vs_file_clash(
@@ -404,7 +431,7 @@ def ops_outcome_vs_file_clash(
     config_mtime: datetime | None = None,
     now: datetime | None = None,
 ) -> str:
-    """``clash · audit fresh · file stale · audit newer · wide · sides · 3h · 8d``.
+    """``clash · audit fresh · file stale · audit newer · wide · sides · 3h · 8d · sides Δ wide · 7d``.
 
     Missing clocks / hanging ``requested`` stay silent (pending already has
     refuse-window + ``no outcome``). Same band speaks ``agree`` — silent
@@ -422,7 +449,11 @@ def ops_outcome_vs_file_clash(
     Span alone still hid wall ages: thin/wide is band distance, not how far
     the clocks sit — append ``sides · auditAge · fileAge`` when both parse
     (FinRobot/xang1234 gap-dir sides + portfolio AI speak-both-sides after
-    span).
+    span). Sides alone still hid additive spread: append
+    ``sides Δ wide|thin · Nd`` when |age gap| is extreme (wide ≥7d · thin
+    <24h · mid silent) so a huge band jump on close ages (or a thin band
+    span on nearly equal clocks) does not look like a huge clock gap
+    (FinRobot/xang1234 gap-dir sides Δ after sides).
     """
     if not isinstance(row, dict):
         return ""
@@ -461,7 +492,8 @@ def ops_outcome_vs_file_warn(bit: str) -> bool:
     Fresh/aging agree stays calm; ``agree · file stale`` warns — dual-stale
     confirm ≠ quiet (portfolio AI after silent stale agree hid that both
     clocks are old). Clash bits may append ``audit newer`` / ``file newer``,
-    ``wide`` / ``thin`` span, and ``sides · … · …`` wall ages.
+    ``wide`` / ``thin`` span, ``sides · … · …`` wall ages, and
+    ``sides Δ wide|thin · …`` age spread.
     """
     if not bit:
         return False
