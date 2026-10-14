@@ -372,13 +372,39 @@ def ops_file_freshness_band(
 _OPS_BAND_AGE_RANK = {"fresh": 0, "aging": 1, "stale": 2}
 
 
+def _ops_vs_file_clash_sides(
+    row: dict[str, Any],
+    *,
+    config_mtime: datetime,
+    now: datetime | None = None,
+) -> str:
+    """``sides · 3h · 8d`` when both wall ages parse; else ``\"\"`` (fail-open)."""
+    stamp = _parse_ops_at(row.get("at"))
+    if stamp is None:
+        return ""
+    clock = now or datetime.now(timezone.utc)
+    if clock.tzinfo is None:
+        clock = clock.replace(tzinfo=timezone.utc)
+    clock = clock.astimezone(timezone.utc)
+    mtime = config_mtime
+    if mtime.tzinfo is None:
+        mtime = mtime.replace(tzinfo=timezone.utc)
+    else:
+        mtime = mtime.astimezone(timezone.utc)
+    audit_age = (clock - stamp).total_seconds()
+    file_age = (clock - mtime).total_seconds()
+    if audit_age < 0 or file_age < 0:
+        return ""
+    return f"sides · {_ops_age_short(audit_age)} · {_ops_age_short(file_age)}"
+
+
 def ops_outcome_vs_file_clash(
     row: dict[str, Any] | None,
     *,
     config_mtime: datetime | None = None,
     now: datetime | None = None,
 ) -> str:
-    """``clash · audit fresh · file stale · audit newer · wide`` or ``agree · file fresh``.
+    """``clash · audit fresh · file stale · audit newer · wide · sides · 3h · 8d``.
 
     Missing clocks / hanging ``requested`` stay silent (pending already has
     refuse-window + ``no outcome``). Same band speaks ``agree`` — silent
@@ -393,6 +419,10 @@ def ops_outcome_vs_file_clash(
     a step (fresh↔stale); ``thin`` when adjacent (fresh↔aging /
     aging↔stale) — wide-only hid that mild drift was intentional
     (xang1234 severity + portfolio AI speak-both-sides after gap-dir).
+    Span alone still hid wall ages: thin/wide is band distance, not how far
+    the clocks sit — append ``sides · auditAge · fileAge`` when both parse
+    (FinRobot/xang1234 gap-dir sides + portfolio AI speak-both-sides after
+    span).
     """
     if not isinstance(row, dict):
         return ""
@@ -413,9 +443,15 @@ def ops_outcome_vs_file_clash(
     bit = f"clash · audit {audit_band} · file {file_band} · {newer}"
     span = abs(a_rank - f_rank)
     if span >= 2:
-        return f"{bit} · wide"
-    if span == 1:
-        return f"{bit} · thin"
+        bit = f"{bit} · wide"
+    elif span == 1:
+        bit = f"{bit} · thin"
+    if config_mtime is not None:
+        sides = _ops_vs_file_clash_sides(
+            row, config_mtime=config_mtime, now=now
+        )
+        if sides:
+            return f"{bit} · {sides}"
     return bit
 
 
@@ -424,8 +460,8 @@ def ops_outcome_vs_file_warn(bit: str) -> bool:
 
     Fresh/aging agree stays calm; ``agree · file stale`` warns — dual-stale
     confirm ≠ quiet (portfolio AI after silent stale agree hid that both
-    clocks are old). Clash bits may append ``audit newer`` / ``file newer``
-    and ``wide`` / ``thin`` span (skip vs adjacent band).
+    clocks are old). Clash bits may append ``audit newer`` / ``file newer``,
+    ``wide`` / ``thin`` span, and ``sides · … · …`` wall ages.
     """
     if not bit:
         return False
@@ -498,14 +534,15 @@ def format_last_ops_action_bit(
 
     When a terminal outcome age band is known beside Ops file freshness, also
     speak ``agree · file fresh`` (same band) or
-    ``clash · audit fresh · file stale · audit newer · wide`` (disagree: both
-    clocks + which is newer + ``wide`` skip / ``thin`` adjacent) — silent match
-    hid confirm; stamp ≠ mtime can hide a hand-edit or band-boundary drift;
-    file-only clash hid the audit side once age clipped; dual clocks alone
-    hid file lag vs hand-edit; newer + wide-only hid that adjacent was mild
-    (FinRobot/xang1234 dual-clock + gap-dir + severity + portfolio AI
-    speak-both-sides after outcome age). Agree on stale warns (dual-stale ≠
-    quiet confirm).
+    ``clash · audit fresh · file stale · audit newer · wide · sides · 3h · 8d``
+    (disagree: both clocks + which is newer + ``wide`` skip / ``thin``
+    adjacent + both wall ages) — silent match hid confirm; stamp ≠ mtime can
+    hide a hand-edit or band-boundary drift; file-only clash hid the audit
+    side once age clipped; dual clocks alone hid file lag vs hand-edit;
+    newer + wide-only hid that adjacent was mild; span alone hid how far the
+    clocks sit in wall time (FinRobot/xang1234 dual-clock + gap-dir sides +
+    severity + portfolio AI speak-both-sides after outcome age). Agree on
+    stale warns (dual-stale ≠ quiet confirm).
     """
     if not isinstance(row, dict):
         return ""
