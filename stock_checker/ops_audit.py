@@ -368,13 +368,17 @@ def ops_file_freshness_band(
     return "stale"
 
 
+# fresher → older so clash can name which clock is newer (hand-edit vs lag).
+_OPS_BAND_AGE_RANK = {"fresh": 0, "aging": 1, "stale": 2}
+
+
 def ops_outcome_vs_file_clash(
     row: dict[str, Any] | None,
     *,
     config_mtime: datetime | None = None,
     now: datetime | None = None,
 ) -> str:
-    """``clash · audit fresh · file stale`` or ``agree · file fresh``.
+    """``clash · audit fresh · file stale · audit newer`` or ``agree · file fresh``.
 
     Missing clocks / hanging ``requested`` stay silent (pending already has
     refuse-window + ``no outcome``). Same band speaks ``agree`` — silent
@@ -382,7 +386,10 @@ def ops_outcome_vs_file_clash(
     sides after clash-only). Disagree names **both** clocks
     ``clash · audit … · file …`` — file-only hid which audit band disagreed
     once the age clip dropped (FinRobot/xang1234 soft↔cash / LAYA↔cash
-    dual-clock clash after outcome age).
+    dual-clock clash after outcome age). Dual clocks alone still hid
+    direction: ``audit newer`` (file lag) vs ``file newer`` (possible
+    hand-edit after last audited Save) — gap-dir / portfolio AI after
+    dual-clock clash.
     """
     if not isinstance(row, dict):
         return ""
@@ -395,7 +402,12 @@ def ops_outcome_vs_file_clash(
         return ""
     if audit_band == file_band:
         return f"agree · file {file_band}"
-    return f"clash · audit {audit_band} · file {file_band}"
+    a_rank = _OPS_BAND_AGE_RANK.get(audit_band)
+    f_rank = _OPS_BAND_AGE_RANK.get(file_band)
+    if a_rank is None or f_rank is None:
+        return f"clash · audit {audit_band} · file {file_band}"
+    newer = "audit newer" if a_rank < f_rank else "file newer"
+    return f"clash · audit {audit_band} · file {file_band} · {newer}"
 
 
 def ops_outcome_vs_file_warn(bit: str) -> bool:
@@ -403,7 +415,7 @@ def ops_outcome_vs_file_warn(bit: str) -> bool:
 
     Fresh/aging agree stays calm; ``agree · file stale`` warns — dual-stale
     confirm ≠ quiet (portfolio AI after silent stale agree hid that both
-    clocks are old).
+    clocks are old). Clash bits may append ``audit newer`` / ``file newer``.
     """
     if not bit:
         return False
@@ -476,11 +488,12 @@ def format_last_ops_action_bit(
 
     When a terminal outcome age band is known beside Ops file freshness, also
     speak ``agree · file fresh`` (same band) or
-    ``clash · audit fresh · file stale`` (disagree, both clocks) — silent
-    match hid confirm; stamp ≠ mtime can hide a hand-edit or band-boundary
-    drift; file-only clash hid the audit side once age clipped
-    (FinRobot/xang1234 dual-clock + portfolio AI speak-both-sides after
-    outcome age). Agree on stale warns (dual-stale ≠ quiet confirm).
+    ``clash · audit fresh · file stale · audit newer`` (disagree: both clocks
+    + which is newer) — silent match hid confirm; stamp ≠ mtime can hide a
+    hand-edit or band-boundary drift; file-only clash hid the audit side once
+    age clipped; dual clocks alone hid file lag vs hand-edit
+    (FinRobot/xang1234 dual-clock + gap-dir + portfolio AI speak-both-sides
+    after outcome age). Agree on stale warns (dual-stale ≠ quiet confirm).
     """
     if not isinstance(row, dict):
         return ""
