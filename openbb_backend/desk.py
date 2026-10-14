@@ -19381,6 +19381,12 @@ def build_equity_hours_glance(
     remaining open cash sleeves ``vs N open · [thin|strong ·] P%``
     (soft-allow gap vs other / Screener junk vs ok sides parity; strong
     ≥75% · thin <50% · mid % only; all-cash → ``vs 0 open · thin · 0%``).
+    Sides alone hid lean agreement: when attention cash share + open
+    share both lean (extremes), speak ``attn vs open align · hot|thin`` /
+    ``clash · attention hot · open strong`` (soft-allow gap vs other lean
+    / Screener junk vs ok lean parity; attention hot ≥75% · quiet ≤25%;
+    half-cash mid stays silent so the Hours line is not cluttered; clash
+    warns when attention hot or open thin).
     """
     from stock_checker.market_hours import (
         is_us_cash_session_closed,
@@ -19391,6 +19397,9 @@ def build_equity_hours_glance(
     # Open-cash share severity (soft-allow / Screener junk vs ok parity).
     open_strong_pct = 75
     open_thin_pct = 50
+    # Attention cash-dark share extremes (half = mid; all-cash = hot).
+    attention_hot_pct = 75
+    attention_quiet_pct = 25
     us_closed = bool(is_us_cash_session_closed(now=now))
     xetra_closed = bool(is_xetra_session_closed(now=now))
     active: list[str] = []
@@ -19418,19 +19427,30 @@ def build_equity_hours_glance(
     attention_half_cash = False
     cash_open = False
     attention_cash_share_pct: int | None = None
+    attention_cash_share_severity = ""
     attention_open_count: int | None = None
     attention_open_share_pct: int | None = None
     attention_open_share_severity = ""
+    attention_vs_open = ""
+    attention_vs_open_warn = False
     if inactive:
         n_closed = len(inactive)
         n_open = cash_venues - n_closed
         attention_cash_share_pct = int(round(100.0 * n_closed / cash_venues))
+        if attention_cash_share_pct >= attention_hot_pct:
+            attention_cash_share_severity = "hot"
+        elif attention_cash_share_pct <= attention_quiet_pct:
+            attention_cash_share_severity = "quiet"
+        else:
+            attention_cash_share_severity = "ok"
         attention_open_count = n_open
         attention_open_share_pct = int(round(100.0 * n_open / cash_venues))
         if attention_open_share_pct >= open_strong_pct:
             attention_open_share_severity = "strong"
         elif attention_open_share_pct < open_thin_pct:
             attention_open_share_severity = "thin"
+        else:
+            attention_open_share_severity = "ok"
         attention_all_cash = n_closed >= cash_venues
         attention_half_cash = n_closed == 1
         attention_line = "attention · " + " · ".join(inactive)
@@ -19440,14 +19460,51 @@ def build_equity_hours_glance(
             attention_line = f"{attention_line} · half cash"
         # Closed share alone hid usable cash (speak-both-sides).
         vs_open = f"vs {n_open} open"
-        if attention_open_share_severity:
+        if attention_open_share_severity in {"strong", "thin"}:
             vs_open = (
                 f"{vs_open} · {attention_open_share_severity} · "
                 f"{attention_open_share_pct}%"
             )
         else:
             vs_open = f"{vs_open} · {attention_open_share_pct}%"
-        attention_line = f"{attention_line} · {vs_open}"
+        # Sides alone hid lean agreement (junk_vs_ok / gap vs other lean).
+        attn_lean = attention_cash_share_severity in {"hot", "quiet"}
+        open_lean = attention_open_share_severity in {"strong", "thin"}
+        if attn_lean and open_lean:
+            matched = (
+                attention_cash_share_severity == "hot"
+                and attention_open_share_severity == "thin"
+            ) or (
+                attention_cash_share_severity == "quiet"
+                and attention_open_share_severity == "strong"
+            )
+            if matched:
+                attention_vs_open = (
+                    f"align · {attention_cash_share_severity}|"
+                    f"{attention_open_share_severity}"
+                )
+            else:
+                attention_vs_open = (
+                    f"clash · attention {attention_cash_share_severity} · "
+                    f"open {attention_open_share_severity}"
+                )
+                attention_vs_open_warn = True
+        elif attn_lean != open_lean:
+            attention_vs_open = (
+                f"clash · attention {attention_cash_share_severity} · "
+                f"open {attention_open_share_severity}"
+            )
+            attention_vs_open_warn = (
+                attention_cash_share_severity == "hot"
+                or attention_open_share_severity == "thin"
+            )
+        # Lean owns the relationship on the clip; vs-open % stays in fields.
+        if attention_vs_open:
+            attention_line = (
+                f"{attention_line} · attn vs open {attention_vs_open}"
+            )
+        else:
+            attention_line = f"{attention_line} · {vs_open}"
         line = f"{line} · {attention_line}"
         inactive_line = (
             f"Inactive markets ({n_closed}): " + " · ".join(inactive)
@@ -19467,9 +19524,12 @@ def build_equity_hours_glance(
         "attention_all_cash": attention_all_cash,
         "attention_half_cash": attention_half_cash,
         "attention_cash_share_pct": attention_cash_share_pct,
+        "attention_cash_share_severity": attention_cash_share_severity,
         "attention_open_count": attention_open_count,
         "attention_open_share_pct": attention_open_share_pct,
         "attention_open_share_severity": attention_open_share_severity,
+        "attention_vs_open": attention_vs_open,
+        "attention_vs_open_warn": attention_vs_open_warn,
         "cash_open": cash_open,
         "inactive_line": inactive_line,
         "inactive_count": len(inactive),
