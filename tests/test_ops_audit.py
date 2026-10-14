@@ -18,9 +18,11 @@ from stock_checker.ops_audit import (
     load_ops_actions,
     ops_actions_path,
     ops_pending_freshness_band,
+    ops_pending_no_outcome,
     ops_skip_reason_label,
     pending_ops_in_flight,
     record_ops_skipped,
+    trader_config_mtime_utc,
 )
 
 
@@ -269,6 +271,52 @@ def test_format_last_ops_action_bit_skipped_says_why():
     assert bare == "last config · skipped · 2026-10-14T01:00:00Z"
     assert "no-op" not in bare
     assert ops_skip_reason_label({"outcome": "accepted", "reason": "no-op"}) == ""
+
+
+def test_format_last_ops_action_bit_pending_no_outcome_when_file_newer():
+    """xang1234 #630: hanging request + newer Ops file ≠ wait forever for accepted."""
+    now = datetime(2026, 10, 14, 3, 0, 0, tzinfo=timezone.utc)
+    stamp = now - timedelta(seconds=OPS_PENDING_REFUSE_SECONDS + 30)
+    row = {
+        "kind": "config",
+        "outcome": "requested",
+        "at": stamp.strftime("%Y-%m-%dT%H:%M:%SZ"),
+    }
+    newer = stamp + timedelta(seconds=5)
+    older = stamp - timedelta(seconds=5)
+    assert ops_pending_no_outcome(row, config_mtime=newer) is True
+    assert ops_pending_no_outcome(row, config_mtime=older) is False
+    assert ops_pending_no_outcome(row, config_mtime=None) is False
+    bit = format_last_ops_action_bit(row, now=now, config_mtime=newer)
+    assert bit == f"last config · stale pending · no outcome · {row['at']}"
+    # Older / missing file stays bare stale pending (fail-open; do not invent orphan).
+    bare = format_last_ops_action_bit(row, now=now, config_mtime=older)
+    assert bare == f"last config · stale pending · {row['at']}"
+    assert "no outcome" not in bare
+    # Fresh in-flight with file already newer still speaks (outcome writer dead mid-flight).
+    fresh_stamp = now - timedelta(seconds=30)
+    fresh_row = {
+        "kind": "config",
+        "outcome": "requested",
+        "at": fresh_stamp.strftime("%Y-%m-%dT%H:%M:%SZ"),
+    }
+    fresh_bit = format_last_ops_action_bit(
+        fresh_row, now=now, config_mtime=fresh_stamp + timedelta(seconds=1)
+    )
+    assert fresh_bit == (
+        f"last config · pending · no outcome · {fresh_row['at']}"
+    )
+
+
+def test_trader_config_mtime_utc_roundtrip(tmp_path: Path):
+    from stock_checker.trader_config import config_path
+
+    assert trader_config_mtime_utc(tmp_path) is None
+    path = config_path(tmp_path)
+    path.write_text('{"ai_mode": "off"}\n', encoding="utf-8")
+    mtime = trader_config_mtime_utc(tmp_path)
+    assert mtime is not None
+    assert mtime.tzinfo is not None
 
 
 def test_aged_pending_does_not_block_forever(tmp_path: Path):

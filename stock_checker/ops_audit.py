@@ -106,6 +106,49 @@ def ops_pending_freshness_band(
     return "stale"
 
 
+def trader_config_mtime_utc(data_dir: Path | str) -> datetime | None:
+    """``trader_config.json`` mtime as UTC, or ``None`` when missing/unreadable."""
+    from stock_checker.trader_config import config_path
+
+    path = config_path(data_dir)
+    try:
+        if not path.is_file():
+            return None
+        return datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc)
+    except OSError:
+        return None
+
+
+def ops_pending_no_outcome(
+    row: dict[str, Any] | None,
+    *,
+    config_mtime: datetime | None = None,
+) -> bool:
+    """True when hanging ``requested`` and Ops file is strictly newer.
+
+    xang1234 #630: a queued job with no responding worker looks live forever.
+    Here a hanging request whose outcome writer never answered while
+    ``trader_config.json`` already moved looks forever-pending — speak
+    ``no outcome`` so friends do not wait for an accepted stamp that will
+    not arrive. Missing / unparseable clocks fail-open (False).
+    """
+    if not isinstance(row, dict):
+        return False
+    if str(row.get("outcome") or "") != "requested":
+        return False
+    if config_mtime is None:
+        return False
+    stamp = _parse_ops_at(row.get("at"))
+    if stamp is None:
+        return False
+    mtime = config_mtime
+    if mtime.tzinfo is None:
+        mtime = mtime.replace(tzinfo=timezone.utc)
+    else:
+        mtime = mtime.astimezone(timezone.utc)
+    return mtime > stamp
+
+
 def load_ops_actions(data_dir: Path | str) -> list[dict[str, Any]]:
     """Newest-first ring of Ops audit rows (empty on missing/junk)."""
     path = ops_actions_path(data_dir)
@@ -198,6 +241,7 @@ def format_last_ops_action_bit(
     *,
     now: datetime | None = None,
     refuse_seconds: int = OPS_PENDING_REFUSE_SECONDS,
+    config_mtime: datetime | None = None,
 ) -> str:
     """Compact Ops honesty line: ``last config · accepted · …Z``.
 
@@ -205,6 +249,10 @@ def format_last_ops_action_bit(
     still inside the refuse window, or ``stale pending`` when aged out — so a
     crash leftover is not read as a live in-flight Save (xang1234 #613/#628
     outcome pairing + RyanJHamby/xang1234 fresh|stale age triad).
+
+    When the Ops file is newer than that hanging request, also speak
+    ``no outcome`` (xang1234 #630 no-worker-for-queue adapted) — the save
+    likely landed without an accepted stamp, so waiting forever is wrong.
 
     A ``skipped`` row speaks ``skipped · no-op`` (or another compact reason)
     when the refuse recorded why — bare ``skipped`` hid intentional no-op
@@ -219,6 +267,8 @@ def format_last_ops_action_bit(
             row, now=now, refuse_seconds=refuse_seconds
         )
         outcome = "stale pending" if band == "stale" else "pending"
+        if ops_pending_no_outcome(row, config_mtime=config_mtime):
+            outcome = f"{outcome} · no outcome"
     elif outcome == "skipped":
         why = ops_skip_reason_label(row)
         if why:

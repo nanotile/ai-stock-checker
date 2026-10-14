@@ -224,6 +224,7 @@ def desk_config_get():
     from stock_checker.ops_audit import (
         format_last_ops_action_bit,
         last_ops_action,
+        trader_config_mtime_utc,
     )
     from stock_checker.trader_config import config_precedence_status, load_trader_config
 
@@ -253,7 +254,9 @@ def desk_config_get():
         "overrides": list(prec.get("overrides") or []),
         "confirms": list(prec.get("confirms") or []),
         "env_fallbacks": list(prec.get("env_fallbacks") or []),
-        "last_ops_action": format_last_ops_action_bit(last_save),
+        "last_ops_action": format_last_ops_action_bit(
+            last_save, config_mtime=trader_config_mtime_utc(DATA_DIR)
+        ),
         "last_ops_action_id": str((last_save or {}).get("action_id") or ""),
         "last_ops_outcome": str((last_save or {}).get("outcome") or ""),
         "note": (
