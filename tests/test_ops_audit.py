@@ -274,42 +274,45 @@ def test_ops_outcome_vs_file_clash_when_bands_disagree():
         format_last_ops_action_bit(accepted, now=now, config_mtime=same)
         == "last config · accepted · 3h fresh · agree · file fresh"
     )
-    # File stale while audit fresh → dual-clock clash + newer + wide + sides + Δ.
+    # File stale while audit fresh → dual-clock clash + newer + wide + sides + Δ + share.
     stale_file = now - timedelta(hours=OPS_OUTCOME_AGING_HOURS + 24)
     assert ops_file_freshness_band(stale_file, now=now) == "stale"
+    # 3h vs 8d → audit ~2% · file ~98% (absolute ages ≠ ownership).
     assert (
         ops_outcome_vs_file_clash(accepted, config_mtime=stale_file, now=now)
-        == "clash · audit fresh · file stale · audit newer · wide · sides · 3h · 8d · sides Δ wide · 7d"
+        == "clash · audit fresh · file stale · audit newer · wide · sides · 3h · 8d · sides Δ wide · 7d · audit 2% · file 98%"
     )
     assert ops_outcome_vs_file_warn(
-        "clash · audit fresh · file stale · audit newer · wide · sides · 3h · 8d · sides Δ wide · 7d"
+        "clash · audit fresh · file stale · audit newer · wide · sides · 3h · 8d · sides Δ wide · 7d · audit 2% · file 98%"
     )
     assert (
         format_last_ops_action_bit(accepted, now=now, config_mtime=stale_file)
-        == "last config · accepted · 3h fresh · clash · audit fresh · file stale · audit newer · wide · sides · 3h · 8d · sides Δ wide · 7d"
+        == "last config · accepted · 3h fresh · clash · audit fresh · file stale · audit newer · wide · sides · 3h · 8d · sides Δ wide · 7d · audit 2% · file 98%"
     )
-    # Aging file vs fresh audit — adjacent span speaks thin + both wall ages + thin Δ.
+    # Aging file vs fresh audit — adjacent span speaks thin + both wall ages + thin Δ + share.
     aging_file = now - timedelta(hours=OPS_OUTCOME_FRESH_HOURS + 2)
     assert ops_file_freshness_band(aging_file, now=now) == "aging"
+    # 3h vs 26h → audit ~10% · file ~90%.
     assert (
         ops_outcome_vs_file_clash(accepted, config_mtime=aging_file, now=now)
-        == "clash · audit fresh · file aging · audit newer · thin · sides · 3h · 26h · sides Δ thin · 23h"
+        == "clash · audit fresh · file aging · audit newer · thin · sides · 3h · 26h · sides Δ thin · 23h · audit 10% · file 90%"
     )
     assert ops_outcome_vs_file_warn(
-        "clash · audit fresh · file aging · audit newer · thin · sides · 3h · 26h · sides Δ thin · 23h"
+        "clash · audit fresh · file aging · audit newer · thin · sides · 3h · 26h · sides Δ thin · 23h · audit 10% · file 90%"
     )
     assert (
         format_last_ops_action_bit(accepted, now=now, config_mtime=aging_file)
-        == "last config · accepted · 3h fresh · clash · audit fresh · file aging · audit newer · thin · sides · 3h · 26h · sides Δ thin · 23h"
+        == "last config · accepted · 3h fresh · clash · audit fresh · file aging · audit newer · thin · sides · 3h · 26h · sides Δ thin · 23h · audit 10% · file 90%"
     )
-    # Mid |Δ| (24h..7d) keeps sides only — no sides Δ label.
+    # Mid |Δ| (24h..7d) keeps sides + share — no sides Δ label.
     mid_file = now - timedelta(hours=OPS_OUTCOME_FRESH_HOURS + 48)
     assert ops_file_freshness_band(mid_file, now=now) == "aging"
+    # 3h vs 3d (72h) → audit 4% · file 96%.
     assert (
         ops_outcome_vs_file_clash(accepted, config_mtime=mid_file, now=now)
-        == "clash · audit fresh · file aging · audit newer · thin · sides · 3h · 3d"
+        == "clash · audit fresh · file aging · audit newer · thin · sides · 3h · 3d · audit 4% · file 96%"
     )
-    # File fresh while audit stale → file newer · wide + sides + Δ (hand-edit).
+    # File fresh while audit stale → file newer · wide + sides + Δ + share (hand-edit).
     stale_stamp_early = now - timedelta(hours=OPS_OUTCOME_AGING_HOURS + 24)
     stale_vs_fresh = {
         "kind": "config",
@@ -323,10 +326,10 @@ def test_ops_outcome_vs_file_clash_when_bands_disagree():
         ops_outcome_vs_file_clash(
             stale_vs_fresh, config_mtime=fresh_file, now=now
         )
-        == "clash · audit stale · file fresh · file newer · wide · sides · 8d · 2h · sides Δ wide · 7d"
+        == "clash · audit stale · file fresh · file newer · wide · sides · 8d · 2h · sides Δ wide · 7d · audit 99% · file 1%"
     )
     assert ops_outcome_vs_file_warn(
-        "clash · audit stale · file fresh · file newer · wide · sides · 8d · 2h · sides Δ wide · 7d"
+        "clash · audit stale · file fresh · file newer · wide · sides · 8d · 2h · sides Δ wide · 7d · audit 99% · file 1%"
     )
     # Dual-stale agree warns (stale confirm ≠ quiet); aging agree stays calm.
     stale_stamp = now - timedelta(hours=OPS_OUTCOME_AGING_HOURS + 24)
