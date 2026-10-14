@@ -170,6 +170,29 @@ def last_ops_action(
     return None
 
 
+def ops_skip_reason_label(row: dict[str, Any] | None) -> str:
+    """Compact why for a ``skipped`` row (xang1234 #599/#623 skip-says-why).
+
+    Bare ``skipped`` hid whether Ops refused a no-op Save vs some other
+    preflight. Unknown / empty reasons stay silent so the glance does not
+    invent a cause.
+    """
+    if not isinstance(row, dict):
+        return ""
+    if str(row.get("outcome") or "") != "skipped":
+        return ""
+    raw = str(row.get("reason") or "").strip().lower().replace("_", "-")
+    if not raw:
+        detail = row.get("detail")
+        if isinstance(detail, dict):
+            raw = str(detail.get("reason") or "").strip().lower().replace("_", "-")
+    if raw in ("no-op", "noop", "no-change", "nochange"):
+        return "no-op"
+    if raw and len(raw) <= 24 and all(c.isalnum() or c in "-." for c in raw):
+        return raw
+    return ""
+
+
 def format_last_ops_action_bit(
     row: dict[str, Any] | None,
     *,
@@ -182,6 +205,10 @@ def format_last_ops_action_bit(
     still inside the refuse window, or ``stale pending`` when aged out — so a
     crash leftover is not read as a live in-flight Save (xang1234 #613/#628
     outcome pairing + RyanJHamby/xang1234 fresh|stale age triad).
+
+    A ``skipped`` row speaks ``skipped · no-op`` (or another compact reason)
+    when the refuse recorded why — bare ``skipped`` hid intentional no-op
+    vs other preflight (xang1234 #599/#623 skip-says-why).
     """
     if not isinstance(row, dict):
         return ""
@@ -192,6 +219,10 @@ def format_last_ops_action_bit(
             row, now=now, refuse_seconds=refuse_seconds
         )
         outcome = "stale pending" if band == "stale" else "pending"
+    elif outcome == "skipped":
+        why = ops_skip_reason_label(row)
+        if why:
+            outcome = f"skipped · {why}"
     at = str(row.get("at") or "").strip()
     if at:
         return f"last {kind} · {outcome} · {at}"
@@ -202,15 +233,18 @@ def record_ops_skipped(
     data_dir: Path | str,
     *,
     kind: str,
+    reason: str = "no-op",
     detail: dict[str, Any] | None = None,
 ) -> bool:
     """Append a single ``skipped`` outcome (no requested/act dance).
 
     Used when Ops refuses a mutation that would only no-op (xang1234 #623
     refuse-before-queue when the run would only skip). Glance speaks
-    ``last … · skipped`` so friends see the refuse was intentional.
+    ``last … · skipped · no-op`` so friends see the refuse was intentional
+    and why (xang1234 #599/#623 skip-says-why).
     """
     kind_s = str(kind or "").strip() or "ops"
+    reason_s = str(reason or "").strip() or "no-op"
     return append_ops_action(
         data_dir,
         {
@@ -219,6 +253,7 @@ def record_ops_skipped(
             "at": _now_iso(),
             "kind": kind_s,
             "outcome": "skipped",
+            "reason": reason_s,
             "detail": _safe_detail(detail),
         },
     )

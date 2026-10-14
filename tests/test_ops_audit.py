@@ -18,6 +18,7 @@ from stock_checker.ops_audit import (
     load_ops_actions,
     ops_actions_path,
     ops_pending_freshness_band,
+    ops_skip_reason_label,
     pending_ops_in_flight,
     record_ops_skipped,
 )
@@ -232,16 +233,42 @@ def test_audited_refuses_fresh_pending_in_flight(tmp_path: Path):
 def test_record_ops_skipped_speaks_on_glance(tmp_path: Path):
     """No-op refuse leaves a skipped row (not requested/accepted)."""
     assert record_ops_skipped(
-        tmp_path, kind="config", detail={"ai_mode": "validate"}
+        tmp_path, kind="config", reason="no-op", detail={"ai_mode": "validate"}
     )
     last = last_ops_action(tmp_path, kind="config")
     assert last is not None
     assert last["outcome"] == "skipped"
+    assert last.get("reason") == "no-op"
+    assert ops_skip_reason_label(last) == "no-op"
     bit = format_last_ops_action_bit(last)
-    assert "last config · skipped ·" in bit
+    assert "last config · skipped · no-op ·" in bit
     events = load_ops_actions(tmp_path)
     assert len(events) == 1
     assert events[0]["outcome"] == "skipped"
+
+
+def test_format_last_ops_action_bit_skipped_says_why():
+    """xang1234 #599/#623: bare skipped hid intentional no-op vs other preflight."""
+    bit = format_last_ops_action_bit(
+        {
+            "kind": "config",
+            "outcome": "skipped",
+            "reason": "no_change",
+            "at": "2026-10-14T01:00:00Z",
+        }
+    )
+    assert bit == "last config · skipped · no-op · 2026-10-14T01:00:00Z"
+    # Legacy rows without reason stay bare skipped (fail-open; do not invent why).
+    bare = format_last_ops_action_bit(
+        {
+            "kind": "config",
+            "outcome": "skipped",
+            "at": "2026-10-14T01:00:00Z",
+        }
+    )
+    assert bare == "last config · skipped · 2026-10-14T01:00:00Z"
+    assert "no-op" not in bare
+    assert ops_skip_reason_label({"outcome": "accepted", "reason": "no-op"}) == ""
 
 
 def test_aged_pending_does_not_block_forever(tmp_path: Path):

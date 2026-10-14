@@ -437,8 +437,12 @@ def test_desk_config_api_put_refuses_noop(tmp_path: Path, monkeypatch):
     last = last_ops_action(tmp_path, kind="config")
     assert last is not None
     assert last["outcome"] == "skipped"
+    assert last.get("reason") == "no-op"
     # No requested/accepted pair for a refused no-op.
     assert [e["outcome"] for e in load_ops_actions(tmp_path)] == ["skipped"]
+    from stock_checker.ops_audit import format_last_ops_action_bit
+
+    assert "skipped · no-op" in format_last_ops_action_bit(last)
 
 
 def test_desk_ops_has_config_form(tmp_path: Path, monkeypatch):

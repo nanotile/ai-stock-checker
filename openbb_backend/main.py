@@ -305,11 +305,13 @@ async def desk_config_put(request: Request):
             detail=f"ai_mode must be one of: {', '.join(sorted(ALLOWED_AI_MODES))}",
         )
 
-    # xang1234 #623: refuse before audit/write when Save would only skip.
+    # xang1234 #623: refuse before audit/write when Save would only skip;
+    # record why so glance speaks ``skipped · no-op`` (#599 skip-says-why).
     if not trader_config_would_change(DATA_DIR, body):
         record_ops_skipped(
             DATA_DIR,
             kind="config",
+            reason="no-op",
             detail={k: body.get(k) for k in sorted(body)[:16]},
         )
         raise HTTPException(
