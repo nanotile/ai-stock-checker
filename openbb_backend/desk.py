@@ -19371,12 +19371,17 @@ def build_equity_hours_glance(
     line so friends need not open the fold to see what is missing (xang1234
     #633 coverage-panel "summary names markets that need attention" —
     no Celery workers/Beat here; session closed ≠ missing worker).
+    Venue names alone hid partial vs total cash dark — when both cash
+    sleeves need attention speak ``· all cash``; when neither does speak
+    ``· cash open`` (portfolio AI speak-both-sides / count≠share; crypto
+    stays out of the cash denom).
     """
     from stock_checker.market_hours import (
         is_us_cash_session_closed,
         is_xetra_session_closed,
     )
 
+    cash_venues = 2  # US + Xetra; crypto is 24/7 and never "attention"
     us_closed = bool(is_us_cash_session_closed(now=now))
     xetra_closed = bool(is_xetra_session_closed(now=now))
     active: list[str] = []
@@ -19400,12 +19405,23 @@ def build_equity_hours_glance(
     line = "active · " + " · ".join(active)
     attention_line = ""
     inactive_line = ""
+    attention_all_cash = False
+    cash_open = False
+    attention_cash_share_pct: int | None = None
     if inactive:
+        n_closed = len(inactive)
+        attention_cash_share_pct = int(round(100.0 * n_closed / cash_venues))
+        attention_all_cash = n_closed >= cash_venues
         attention_line = "attention · " + " · ".join(inactive)
+        if attention_all_cash:
+            attention_line = f"{attention_line} · all cash"
         line = f"{line} · {attention_line}"
         inactive_line = (
-            f"Inactive markets ({len(inactive)}): " + " · ".join(inactive)
+            f"Inactive markets ({n_closed}): " + " · ".join(inactive)
         )
+    else:
+        cash_open = True
+        line = f"{line} · cash open"
     if len(line) > 96:
         line = line[:95] + "…"
     if len(inactive_line) > 96:
@@ -19415,6 +19431,9 @@ def build_equity_hours_glance(
         "tone": tone,
         "line": line,
         "attention_line": attention_line,
+        "attention_all_cash": attention_all_cash,
+        "attention_cash_share_pct": attention_cash_share_pct,
+        "cash_open": cash_open,
         "inactive_line": inactive_line,
         "inactive_count": len(inactive),
         "active_markets": active,
