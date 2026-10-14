@@ -19373,8 +19373,10 @@ def build_equity_hours_glance(
     no Celery workers/Beat here; session closed ≠ missing worker).
     Venue names alone hid partial vs total cash dark — when both cash
     sleeves need attention speak ``· all cash``; when neither does speak
-    ``· cash open`` (portfolio AI speak-both-sides / count≠share; crypto
-    stays out of the cash denom).
+    ``· cash open``; when exactly one cash sleeve is dark speak
+    ``· half cash`` (portfolio AI speak-both-sides / count≠share; crypto
+    stays out of the cash denom). Bare ``attention · US`` hid the 50%
+    ownership already in ``attention_cash_share_pct``.
     """
     from stock_checker.market_hours import (
         is_us_cash_session_closed,
@@ -19406,15 +19408,19 @@ def build_equity_hours_glance(
     attention_line = ""
     inactive_line = ""
     attention_all_cash = False
+    attention_half_cash = False
     cash_open = False
     attention_cash_share_pct: int | None = None
     if inactive:
         n_closed = len(inactive)
         attention_cash_share_pct = int(round(100.0 * n_closed / cash_venues))
         attention_all_cash = n_closed >= cash_venues
+        attention_half_cash = n_closed == 1
         attention_line = "attention · " + " · ".join(inactive)
         if attention_all_cash:
             attention_line = f"{attention_line} · all cash"
+        elif attention_half_cash:
+            attention_line = f"{attention_line} · half cash"
         line = f"{line} · {attention_line}"
         inactive_line = (
             f"Inactive markets ({n_closed}): " + " · ".join(inactive)
@@ -19432,6 +19438,7 @@ def build_equity_hours_glance(
         "line": line,
         "attention_line": attention_line,
         "attention_all_cash": attention_all_cash,
+        "attention_half_cash": attention_half_cash,
         "attention_cash_share_pct": attention_cash_share_pct,
         "cash_open": cash_open,
         "inactive_line": inactive_line,

@@ -23,6 +23,7 @@ def test_equity_hours_glance_both_open_us_morning() -> None:
     assert g["cash_open"] is True
     assert g["attention_line"] == ""
     assert g["attention_all_cash"] is False
+    assert g["attention_half_cash"] is False
     assert g["attention_cash_share_pct"] is None
     assert g["inactive_line"] == ""
     assert g["inactive_count"] == 0
@@ -41,6 +42,7 @@ def test_equity_hours_glance_both_closed_weekend() -> None:
     assert g["line"] == "active · crypto · attention · US · Xetra · all cash"
     assert g["attention_line"] == "attention · US · Xetra · all cash"
     assert g["attention_all_cash"] is True
+    assert g["attention_half_cash"] is False
     assert g["attention_cash_share_pct"] == 100
     assert g["cash_open"] is False
     assert g["inactive_line"] == "Inactive markets (2): US · Xetra"
@@ -57,10 +59,11 @@ def test_equity_hours_glance_split_xetra_only() -> None:
     assert g["tone"] == "split"
     assert g["xetra_open"] is True
     assert g["us_open"] is False
-    # Partial attention stays bare (not all cash).
-    assert g["line"] == "active · Xetra · crypto · attention · US"
-    assert g["attention_line"] == "attention · US"
+    # Bare venue hid 50% cash dark; half cash owns the clip.
+    assert g["line"] == "active · Xetra · crypto · attention · US · half cash"
+    assert g["attention_line"] == "attention · US · half cash"
     assert g["attention_all_cash"] is False
+    assert g["attention_half_cash"] is True
     assert g["attention_cash_share_pct"] == 50
     assert g["cash_open"] is False
     assert g["inactive_line"] == "Inactive markets (1): US"
@@ -85,6 +88,7 @@ def test_equity_hours_glance_in_snapshot(tmp_path) -> None:
     assert "inactive_line" in g
     assert "inactive_count" in g
     assert "attention_all_cash" in g
+    assert "attention_half_cash" in g
     assert "cash_open" in g
 
 
@@ -102,4 +106,5 @@ def test_equity_hours_glance_in_chart_payload(tmp_path) -> None:
     assert "crypto" in g["line"]
     assert "inactive_line" in g
     assert "attention_all_cash" in g
+    assert "attention_half_cash" in g
     assert "cash_open" in g
