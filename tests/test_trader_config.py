@@ -10,6 +10,7 @@ from stock_checker.trader_config import (
     load_trader_config,
     normalize_config,
     save_trader_config,
+    trader_config_would_change,
 )
 
 
@@ -46,6 +47,17 @@ def test_rs_gate_roundtrip(tmp_path: Path):
     assert loaded["rs_gate"] is False
     saved2 = save_trader_config(tmp_path, {"rs_gate": True})
     assert saved2["rs_gate"] is True
+
+
+def test_trader_config_would_change_detects_noop(tmp_path: Path):
+    """xang1234 #623: equal payload vs existing Ops file is skip-only."""
+    save_trader_config(tmp_path, {"ai_mode": "validate", "rs_gate": False})
+    assert trader_config_would_change(tmp_path, {"ai_mode": "validate", "rs_gate": False}) is False
+    assert trader_config_would_change(tmp_path, {"ai_mode": "off"}) is True
+    # Missing file always acts (first write materializes Ops precedence).
+    empty = tmp_path / "empty_cfg"
+    empty.mkdir()
+    assert trader_config_would_change(empty, {"ai_mode": "off"}) is True
 
 
 def test_save_load_roundtrip(tmp_path: Path):

@@ -395,6 +395,52 @@ def test_desk_config_api_put_refuses_pending_in_flight(tmp_path: Path, monkeypat
     assert load_trader_config(tmp_path).get("ai_mode") == "off"
 
 
+def test_desk_config_api_put_refuses_noop(tmp_path: Path, monkeypatch):
+    """xang1234 #623: equal knobs → 409 skipped; no trader_config rewrite."""
+    _seed_portfolio(tmp_path)
+    monkeypatch.setattr(backend, "DATA_DIR", tmp_path)
+    monkeypatch.setenv("DESK_LIVE_MARKS", "0")
+    from stock_checker.ops_audit import last_ops_action, load_ops_actions
+    from stock_checker.trader_config import load_trader_config, save_trader_config
+    from starlette.testclient import TestClient
+
+    saved = save_trader_config(
+        tmp_path,
+        {
+            "ai_mode": "validate",
+            "ai_model": "gemma4:latest",
+            "ai_multi_role": True,
+            "regime_gate": True,
+            "rs_gate": True,
+            "breadth_gate": True,
+            "fee_preset": "revolut_standard",
+        },
+    )
+    mtime_before = (tmp_path / "trader_config.json").stat().st_mtime_ns
+    client = TestClient(backend.app)
+    refused = client.put(
+        "/desk/api/config",
+        json={
+            "ai_mode": saved["ai_mode"],
+            "ai_model": saved["ai_model"],
+            "ai_multi_role": saved["ai_multi_role"],
+            "regime_gate": saved["regime_gate"],
+            "rs_gate": saved["rs_gate"],
+            "breadth_gate": saved["breadth_gate"],
+            "fee_preset": saved["fee_preset"],
+        },
+    )
+    assert refused.status_code == 409
+    assert "skipped" in str(refused.json().get("detail") or "").lower()
+    assert (tmp_path / "trader_config.json").stat().st_mtime_ns == mtime_before
+    assert load_trader_config(tmp_path).get("ai_mode") == "validate"
+    last = last_ops_action(tmp_path, kind="config")
+    assert last is not None
+    assert last["outcome"] == "skipped"
+    # No requested/accepted pair for a refused no-op.
+    assert [e["outcome"] for e in load_ops_actions(tmp_path)] == ["skipped"]
+
+
 def test_desk_ops_has_config_form(tmp_path: Path, monkeypatch):
     _seed_portfolio(tmp_path)
     from stock_checker.gate_audit import record_soft_allow

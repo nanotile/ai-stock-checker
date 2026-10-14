@@ -198,6 +198,32 @@ def format_last_ops_action_bit(
     return f"last {kind} · {outcome}"
 
 
+def record_ops_skipped(
+    data_dir: Path | str,
+    *,
+    kind: str,
+    detail: dict[str, Any] | None = None,
+) -> bool:
+    """Append a single ``skipped`` outcome (no requested/act dance).
+
+    Used when Ops refuses a mutation that would only no-op (xang1234 #623
+    refuse-before-queue when the run would only skip). Glance speaks
+    ``last … · skipped`` so friends see the refuse was intentional.
+    """
+    kind_s = str(kind or "").strip() or "ops"
+    return append_ops_action(
+        data_dir,
+        {
+            "id": str(uuid.uuid4()),
+            "action_id": str(uuid.uuid4()),
+            "at": _now_iso(),
+            "kind": kind_s,
+            "outcome": "skipped",
+            "detail": _safe_detail(detail),
+        },
+    )
+
+
 def audited_ops_action(
     data_dir: Path | str,
     *,

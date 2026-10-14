@@ -809,31 +809,59 @@ def config_precedence_status(
     }
 
 
+def disk_config_payload(cfg: dict[str, Any]) -> dict[str, Any]:
+    """Canonical on-disk shape for ``trader_config.json`` (no secrets)."""
+    fee_preset = str(cfg.get("fee_preset") or DEFAULT_FEE_PRESET)
+    return {
+        "ai_mode": cfg["ai_mode"],
+        "ai_model": cfg["ai_model"],
+        "ai_multi_role": bool(cfg["ai_multi_role"]),
+        "regime_gate": bool(cfg["regime_gate"]),
+        "rs_gate": bool(cfg.get("rs_gate", True)),
+        "breadth_gate": bool(cfg.get("breadth_gate", True)),
+        "fee_preset": fee_preset,
+        "commission_rate": float(cfg["commission_rate"]),
+        "commission_min_eur": float(cfg["commission_min_eur"]),
+        "free_legs_per_month": int(
+            cfg.get("free_legs_per_month") or free_legs_for_preset(fee_preset)
+        ),
+        "max_positions": int(cfg["max_positions"]),
+        "min_hold_hours": float(cfg["min_hold_hours"]),
+        "promote_experiment_strategy": bool(
+            cfg.get("promote_experiment_strategy", False)
+        ),
+    }
+
+
+def trader_config_would_change(
+    data_dir: Path | str, updates: dict[str, Any] | None
+) -> bool:
+    """True when a Save would rewrite knobs (xang1234 #623 refuse-skip-only).
+
+    Missing Ops file always counts as a change (first write materializes the
+    saved-row precedence story). Equal payload vs current effective config is
+    a no-op — refuse before audit / disk write.
+    """
+    current = load_trader_config(data_dir)
+    merged = normalize_config(
+        updates if isinstance(updates, dict) else {}, base=current
+    )
+    new_payload = disk_config_payload(merged)
+    if not config_path(data_dir).is_file():
+        return True
+    old_payload = disk_config_payload(current)
+    for key, val in new_payload.items():
+        if _values_differ(val, old_payload.get(key)):
+            return True
+    return False
+
+
 def save_trader_config(data_dir: Path | str, updates: dict[str, Any]) -> dict[str, Any]:
     """Validate, merge with current, write JSON. Returns the saved config."""
     current = load_trader_config(data_dir)
     merged = normalize_config(updates, base=current)
     path = config_path(data_dir)
     path.parent.mkdir(parents=True, exist_ok=True)
-    payload = {
-        "ai_mode": merged["ai_mode"],
-        "ai_model": merged["ai_model"],
-        "ai_multi_role": bool(merged["ai_multi_role"]),
-        "regime_gate": bool(merged["regime_gate"]),
-        "rs_gate": bool(merged.get("rs_gate", True)),
-        "breadth_gate": bool(merged.get("breadth_gate", True)),
-        "fee_preset": merged["fee_preset"],
-        "commission_rate": float(merged["commission_rate"]),
-        "commission_min_eur": float(merged["commission_min_eur"]),
-        "free_legs_per_month": int(
-            merged.get("free_legs_per_month")
-            or free_legs_for_preset(str(merged.get("fee_preset") or DEFAULT_FEE_PRESET))
-        ),
-        "max_positions": int(merged["max_positions"]),
-        "min_hold_hours": float(merged["min_hold_hours"]),
-        "promote_experiment_strategy": bool(
-            merged.get("promote_experiment_strategy", False)
-        ),
-    }
+    payload = disk_config_payload(merged)
     path.write_text(json.dumps(payload, indent=2) + "\n")
     return payload

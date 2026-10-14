@@ -19,6 +19,7 @@ from stock_checker.ops_audit import (
     ops_actions_path,
     ops_pending_freshness_band,
     pending_ops_in_flight,
+    record_ops_skipped,
 )
 
 
@@ -226,6 +227,21 @@ def test_audited_refuses_fresh_pending_in_flight(tmp_path: Path):
     assert called["n"] == 0
     # No new audit row from the refused call.
     assert [e["id"] for e in load_ops_actions(tmp_path)] == ["hang-1"]
+
+
+def test_record_ops_skipped_speaks_on_glance(tmp_path: Path):
+    """No-op refuse leaves a skipped row (not requested/accepted)."""
+    assert record_ops_skipped(
+        tmp_path, kind="config", detail={"ai_mode": "validate"}
+    )
+    last = last_ops_action(tmp_path, kind="config")
+    assert last is not None
+    assert last["outcome"] == "skipped"
+    bit = format_last_ops_action_bit(last)
+    assert "last config · skipped ·" in bit
+    events = load_ops_actions(tmp_path)
+    assert len(events) == 1
+    assert events[0]["outcome"] == "skipped"
 
 
 def test_aged_pending_does_not_block_forever(tmp_path: Path):

@@ -507,7 +507,7 @@
     {% if snap.runtime.last_ops_action %}
     <div>
       <dt>Last config audit</dt>
-      <dd class="ops-mono{% if snap.runtime.last_ops_outcome in ('error', 'blocked', 'requested') %} warn{% endif %}" title="xang1234 audit-before-act: requested row is committed before trader_config.json is written; accepted/error follows. A pending (requested-only) row means the write may have landed without an outcome stamp — warn, not quiet. Fresh pending (inside ~2m) also refuses a second Save (409); stale pending is an aged crash leftover that no longer blocks Save.">{{ snap.runtime.last_ops_action }}</dd>
+      <dd class="ops-mono{% if snap.runtime.last_ops_outcome in ('error', 'blocked', 'requested') %} warn{% endif %}" title="xang1234 audit-before-act: requested row is committed before trader_config.json is written; accepted/error follows. A pending (requested-only) row means the write may have landed without an outcome stamp — warn, not quiet. Fresh pending (inside ~2m) also refuses a second Save (409); stale pending is an aged crash leftover that no longer blocks Save. A no-op Save (no knob change) is refused with skipped (409) before audit/write — xang1234 refuse-skip-only.">{{ snap.runtime.last_ops_action }}</dd>
     </div>
     {% endif %}
     <div>

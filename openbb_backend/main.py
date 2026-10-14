@@ -272,8 +272,12 @@ async def desk_config_put(request: Request):
     the mutation when that audit commit fails so a silent change cannot
     land without a record of intent.
     """
-    from stock_checker.ops_audit import audited_ops_action
-    from stock_checker.trader_config import ALLOWED_AI_MODES, save_trader_config
+    from stock_checker.ops_audit import audited_ops_action, record_ops_skipped
+    from stock_checker.trader_config import (
+        ALLOWED_AI_MODES,
+        save_trader_config,
+        trader_config_would_change,
+    )
 
     try:
         body = await request.json()
@@ -299,6 +303,18 @@ async def desk_config_put(request: Request):
         raise HTTPException(
             status_code=400,
             detail=f"ai_mode must be one of: {', '.join(sorted(ALLOWED_AI_MODES))}",
+        )
+
+    # xang1234 #623: refuse before audit/write when Save would only skip.
+    if not trader_config_would_change(DATA_DIR, body):
+        record_ops_skipped(
+            DATA_DIR,
+            kind="config",
+            detail={k: body.get(k) for k in sorted(body)[:16]},
+        )
+        raise HTTPException(
+            status_code=409,
+            detail="No config changes — save skipped",
         )
 
     saved, audit = audited_ops_action(
