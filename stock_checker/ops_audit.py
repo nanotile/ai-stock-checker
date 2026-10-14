@@ -391,6 +391,29 @@ def _ops_vs_file_clash_sides_delta(audit_age: float, file_age: float) -> str:
     return f"sides Δ {lean} · {_ops_age_short(delta)}"
 
 
+def _ops_vs_file_clash_sides_share_pcts(
+    audit_age: float, file_age: float
+) -> tuple[int, int] | None:
+    """``(audit_pct, file_pct)`` of auditAge+fileAge; ``None`` when empty."""
+    a = max(0.0, float(audit_age))
+    f = max(0.0, float(file_age))
+    total = a + f
+    if total <= 0.0:
+        return None
+    audit_pct = int(round(100.0 * a / total))
+    if audit_pct < 0:
+        audit_pct = 0
+    if audit_pct > 100:
+        audit_pct = 100
+    return audit_pct, 100 - audit_pct
+
+
+# Share Δ lean floors (pp): wide ≥20 · thin <10 · mid silent — Window A /
+# soft-allow / config precedence share Δ parity after ownership %.
+_OPS_VS_FILE_SHARE_DELTA_WIDE_PP = 20
+_OPS_VS_FILE_SHARE_DELTA_THIN_PP = 10
+
+
 def _ops_vs_file_clash_sides_share(audit_age: float, file_age: float) -> str:
     """``audit N% · file M%`` ownership of auditAge+fileAge; else ``\"\"``.
 
@@ -399,18 +422,36 @@ def _ops_vs_file_clash_sides_share(audit_age: float, file_age: float) -> str:
     one-sided (portfolio AI count≠share + xang1234 gap-dir sides share after
     sides / sides Δ). Near-zero total stays empty (fail-open).
     """
-    a = max(0.0, float(audit_age))
-    f = max(0.0, float(file_age))
-    total = a + f
-    if total <= 0.0:
+    pcts = _ops_vs_file_clash_sides_share_pcts(audit_age, file_age)
+    if pcts is None:
         return ""
-    audit_pct = int(round(100.0 * a / total))
-    if audit_pct < 0:
-        audit_pct = 0
-    if audit_pct > 100:
-        audit_pct = 100
-    file_pct = 100 - audit_pct
+    audit_pct, file_pct = pcts
     return f"audit {audit_pct}% · file {file_pct}%"
+
+
+def _ops_vs_file_clash_sides_share_delta(
+    audit_age: float, file_age: float
+) -> str:
+    """``sides share Δ wide|thin · ±Npp`` when |audit%−file%| is extreme.
+
+    Share names both %; Δ is the pp spread so near-even ownership stays quiet
+    while a lopsided pair speaks (portfolio AI + xang1234 gap-dir sides share
+    Δ after share). Wide |Δ| ≥20pp · thin <10pp · mid silent.
+    """
+    pcts = _ops_vs_file_clash_sides_share_pcts(audit_age, file_age)
+    if pcts is None:
+        return ""
+    audit_pct, file_pct = pcts
+    delta_pp = audit_pct - file_pct
+    abs_pp = abs(delta_pp)
+    if abs_pp >= _OPS_VS_FILE_SHARE_DELTA_WIDE_PP:
+        lean = "wide"
+    elif abs_pp < _OPS_VS_FILE_SHARE_DELTA_THIN_PP:
+        lean = "thin"
+    else:
+        return ""
+    sign = "+" if delta_pp > 0 else ""
+    return f"sides share Δ {lean} · {sign}{delta_pp}pp"
 
 
 def _ops_vs_file_clash_sides(
@@ -419,10 +460,10 @@ def _ops_vs_file_clash_sides(
     config_mtime: datetime,
     now: datetime | None = None,
 ) -> str:
-    """``sides · 3h · 8d`` (+ optional Δ + ownership %); else ``\"\"``.
+    """``sides · 3h · 8d`` (+ optional Δ + ownership % + share Δ); else ``\"\"``.
 
-    Unparseable / future clocks stay empty (fail-open). Mid |Δ| stays on
-    sides + share (no Δ label).
+    Unparseable / future clocks stay empty (fail-open). Mid age-|Δ| stays on
+    sides + share (no age-Δ label). Mid share-|Δ| stays on share (no share-Δ).
     """
     stamp = _parse_ops_at(row.get("at"))
     if stamp is None:
@@ -445,8 +486,12 @@ def _ops_vs_file_clash_sides(
     if delta_bit:
         bit = f"{bit} · {delta_bit}"
     share_bit = _ops_vs_file_clash_sides_share(audit_age, file_age)
-    if share_bit:
-        return f"{bit} · {share_bit}"
+    if not share_bit:
+        return bit
+    bit = f"{bit} · {share_bit}"
+    share_delta = _ops_vs_file_clash_sides_share_delta(audit_age, file_age)
+    if share_delta:
+        return f"{bit} · {share_delta}"
     return bit
 
 
@@ -456,7 +501,7 @@ def ops_outcome_vs_file_clash(
     config_mtime: datetime | None = None,
     now: datetime | None = None,
 ) -> str:
-    """``clash · audit fresh · file stale · audit newer · wide · sides · 3h · 8d · sides Δ wide · 7d · audit 2% · file 98%``.
+    """``clash · audit fresh · file stale · audit newer · wide · sides · 3h · 8d · sides Δ wide · 7d · audit 2% · file 98% · sides share Δ wide · -96pp``.
 
     Missing clocks / hanging ``requested`` stay silent (pending already has
     refuse-window + ``no outcome``). Same band speaks ``agree`` — silent
@@ -482,6 +527,11 @@ def ops_outcome_vs_file_clash(
     hid ownership: append ``audit N% · file M%`` of the age pair so a thin
     Δ on near-equal clocks stays ~50/50 while a wide Δ reads one-sided
     (portfolio AI count≠share + xang1234 gap-dir sides share after sides Δ).
+    Share alone still hid the pp spread: append
+    ``sides share Δ wide|thin · ±Npp`` when |audit%−file%| is extreme
+    (wide ≥20pp · thin <10pp · mid silent) so near-even ownership stays
+    quiet while a lopsided pair speaks (portfolio AI + xang1234 gap-dir
+    sides share Δ after share).
     """
     if not isinstance(row, dict):
         return ""
@@ -521,8 +571,8 @@ def ops_outcome_vs_file_warn(bit: str) -> bool:
     confirm ≠ quiet (portfolio AI after silent stale agree hid that both
     clocks are old). Clash bits may append ``audit newer`` / ``file newer``,
     ``wide`` / ``thin`` span, ``sides · … · …`` wall ages,
-    ``sides Δ wide|thin · …`` age spread, and ``audit N% · file M%``
-    ownership of the age pair.
+    ``sides Δ wide|thin · …`` age spread, ``audit N% · file M%`` ownership
+    of the age pair, and ``sides share Δ wide|thin · ±Npp`` pp spread.
     """
     if not bit:
         return False
