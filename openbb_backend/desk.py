@@ -19376,7 +19376,11 @@ def build_equity_hours_glance(
     ``· cash open``; when exactly one cash sleeve is dark speak
     ``· half cash`` (portfolio AI speak-both-sides / count≠share; crypto
     stays out of the cash denom). Bare ``attention · US`` hid the 50%
-    ownership already in ``attention_cash_share_pct``.
+    ownership already in ``attention_cash_share_pct``. Closed share alone
+    still hid usable cash: when attention already spoke, also speak
+    remaining open cash sleeves ``vs N open · [thin|strong ·] P%``
+    (soft-allow gap vs other / Screener junk vs ok sides parity; strong
+    ≥75% · thin <50% · mid % only; all-cash → ``vs 0 open · thin · 0%``).
     """
     from stock_checker.market_hours import (
         is_us_cash_session_closed,
@@ -19384,6 +19388,9 @@ def build_equity_hours_glance(
     )
 
     cash_venues = 2  # US + Xetra; crypto is 24/7 and never "attention"
+    # Open-cash share severity (soft-allow / Screener junk vs ok parity).
+    open_strong_pct = 75
+    open_thin_pct = 50
     us_closed = bool(is_us_cash_session_closed(now=now))
     xetra_closed = bool(is_xetra_session_closed(now=now))
     active: list[str] = []
@@ -19411,9 +19418,19 @@ def build_equity_hours_glance(
     attention_half_cash = False
     cash_open = False
     attention_cash_share_pct: int | None = None
+    attention_open_count: int | None = None
+    attention_open_share_pct: int | None = None
+    attention_open_share_severity = ""
     if inactive:
         n_closed = len(inactive)
+        n_open = cash_venues - n_closed
         attention_cash_share_pct = int(round(100.0 * n_closed / cash_venues))
+        attention_open_count = n_open
+        attention_open_share_pct = int(round(100.0 * n_open / cash_venues))
+        if attention_open_share_pct >= open_strong_pct:
+            attention_open_share_severity = "strong"
+        elif attention_open_share_pct < open_thin_pct:
+            attention_open_share_severity = "thin"
         attention_all_cash = n_closed >= cash_venues
         attention_half_cash = n_closed == 1
         attention_line = "attention · " + " · ".join(inactive)
@@ -19421,6 +19438,16 @@ def build_equity_hours_glance(
             attention_line = f"{attention_line} · all cash"
         elif attention_half_cash:
             attention_line = f"{attention_line} · half cash"
+        # Closed share alone hid usable cash (speak-both-sides).
+        vs_open = f"vs {n_open} open"
+        if attention_open_share_severity:
+            vs_open = (
+                f"{vs_open} · {attention_open_share_severity} · "
+                f"{attention_open_share_pct}%"
+            )
+        else:
+            vs_open = f"{vs_open} · {attention_open_share_pct}%"
+        attention_line = f"{attention_line} · {vs_open}"
         line = f"{line} · {attention_line}"
         inactive_line = (
             f"Inactive markets ({n_closed}): " + " · ".join(inactive)
@@ -19440,6 +19467,9 @@ def build_equity_hours_glance(
         "attention_all_cash": attention_all_cash,
         "attention_half_cash": attention_half_cash,
         "attention_cash_share_pct": attention_cash_share_pct,
+        "attention_open_count": attention_open_count,
+        "attention_open_share_pct": attention_open_share_pct,
+        "attention_open_share_severity": attention_open_share_severity,
         "cash_open": cash_open,
         "inactive_line": inactive_line,
         "inactive_count": len(inactive),

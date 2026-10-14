@@ -25,6 +25,9 @@ def test_equity_hours_glance_both_open_us_morning() -> None:
     assert g["attention_all_cash"] is False
     assert g["attention_half_cash"] is False
     assert g["attention_cash_share_pct"] is None
+    assert g["attention_open_count"] is None
+    assert g["attention_open_share_pct"] is None
+    assert g["attention_open_share_severity"] == ""
     assert g["inactive_line"] == ""
     assert g["inactive_count"] == 0
     assert g["active_markets"] == ["US", "Xetra", "crypto"]
@@ -38,12 +41,20 @@ def test_equity_hours_glance_both_closed_weekend() -> None:
     assert g["tone"] == "closed"
     assert g["us_open"] is False
     assert g["xetra_open"] is False
-    # Venue names alone hid total cash dark; all cash owns the clip.
-    assert g["line"] == "active · crypto · attention · US · Xetra · all cash"
-    assert g["attention_line"] == "attention · US · Xetra · all cash"
+    # Closed share alone hid usable cash; vs 0 open · thin owns the clip.
+    assert g["line"] == (
+        "active · crypto · attention · US · Xetra · all cash · "
+        "vs 0 open · thin · 0%"
+    )
+    assert g["attention_line"] == (
+        "attention · US · Xetra · all cash · vs 0 open · thin · 0%"
+    )
     assert g["attention_all_cash"] is True
     assert g["attention_half_cash"] is False
     assert g["attention_cash_share_pct"] == 100
+    assert g["attention_open_count"] == 0
+    assert g["attention_open_share_pct"] == 0
+    assert g["attention_open_share_severity"] == "thin"
     assert g["cash_open"] is False
     assert g["inactive_line"] == "Inactive markets (2): US · Xetra"
     assert g["inactive_count"] == 2
@@ -59,12 +70,20 @@ def test_equity_hours_glance_split_xetra_only() -> None:
     assert g["tone"] == "split"
     assert g["xetra_open"] is True
     assert g["us_open"] is False
-    # Bare venue hid 50% cash dark; half cash owns the clip.
-    assert g["line"] == "active · Xetra · crypto · attention · US · half cash"
-    assert g["attention_line"] == "attention · US · half cash"
+    # Half cash alone hid usable open sleeve; vs 1 open · 50% (mid).
+    assert g["line"] == (
+        "active · Xetra · crypto · attention · US · half cash · "
+        "vs 1 open · 50%"
+    )
+    assert g["attention_line"] == (
+        "attention · US · half cash · vs 1 open · 50%"
+    )
     assert g["attention_all_cash"] is False
     assert g["attention_half_cash"] is True
     assert g["attention_cash_share_pct"] == 50
+    assert g["attention_open_count"] == 1
+    assert g["attention_open_share_pct"] == 50
+    assert g["attention_open_share_severity"] == ""
     assert g["cash_open"] is False
     assert g["inactive_line"] == "Inactive markets (1): US"
     assert g["inactive_count"] == 1
@@ -89,6 +108,9 @@ def test_equity_hours_glance_in_snapshot(tmp_path) -> None:
     assert "inactive_count" in g
     assert "attention_all_cash" in g
     assert "attention_half_cash" in g
+    assert "attention_open_count" in g
+    assert "attention_open_share_pct" in g
+    assert "attention_open_share_severity" in g
     assert "cash_open" in g
 
 
@@ -107,4 +129,7 @@ def test_equity_hours_glance_in_chart_payload(tmp_path) -> None:
     assert "inactive_line" in g
     assert "attention_all_cash" in g
     assert "attention_half_cash" in g
+    assert "attention_open_count" in g
+    assert "attention_open_share_pct" in g
+    assert "attention_open_share_severity" in g
     assert "cash_open" in g
