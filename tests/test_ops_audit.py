@@ -288,12 +288,19 @@ def test_ops_outcome_vs_file_clash_when_bands_disagree():
         format_last_ops_action_bit(accepted, now=now, config_mtime=stale_file)
         == "last config · accepted · 3h fresh · clash · audit fresh · file stale · audit newer · wide"
     )
-    # Aging file vs fresh audit — adjacent span stays silent (not wide).
+    # Aging file vs fresh audit — adjacent span speaks thin (not wide).
     aging_file = now - timedelta(hours=OPS_OUTCOME_FRESH_HOURS + 2)
     assert ops_file_freshness_band(aging_file, now=now) == "aging"
     assert (
+        ops_outcome_vs_file_clash(accepted, config_mtime=aging_file, now=now)
+        == "clash · audit fresh · file aging · audit newer · thin"
+    )
+    assert ops_outcome_vs_file_warn(
+        "clash · audit fresh · file aging · audit newer · thin"
+    )
+    assert (
         format_last_ops_action_bit(accepted, now=now, config_mtime=aging_file)
-        == "last config · accepted · 3h fresh · clash · audit fresh · file aging · audit newer"
+        == "last config · accepted · 3h fresh · clash · audit fresh · file aging · audit newer · thin"
     )
     # File fresh while audit stale → file newer · wide (possible hand-edit).
     stale_stamp_early = now - timedelta(hours=OPS_OUTCOME_AGING_HOURS + 24)

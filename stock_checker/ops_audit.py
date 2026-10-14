@@ -390,8 +390,9 @@ def ops_outcome_vs_file_clash(
     direction: ``audit newer`` (file lag) vs ``file newer`` (possible
     hand-edit after last audited Save) — gap-dir / portfolio AI after
     dual-clock clash. Newer alone still hid span: ``wide`` when bands skip
-    a step (fresh↔stale); adjacent clash stays silent on span (xang1234
-    severity + portfolio AI after gap-dir alone hid mild drift vs jump).
+    a step (fresh↔stale); ``thin`` when adjacent (fresh↔aging /
+    aging↔stale) — wide-only hid that mild drift was intentional
+    (xang1234 severity + portfolio AI speak-both-sides after gap-dir).
     """
     if not isinstance(row, dict):
         return ""
@@ -410,8 +411,11 @@ def ops_outcome_vs_file_clash(
         return f"clash · audit {audit_band} · file {file_band}"
     newer = "audit newer" if a_rank < f_rank else "file newer"
     bit = f"clash · audit {audit_band} · file {file_band} · {newer}"
-    if abs(a_rank - f_rank) >= 2:
+    span = abs(a_rank - f_rank)
+    if span >= 2:
         return f"{bit} · wide"
+    if span == 1:
+        return f"{bit} · thin"
     return bit
 
 
@@ -421,7 +425,7 @@ def ops_outcome_vs_file_warn(bit: str) -> bool:
     Fresh/aging agree stays calm; ``agree · file stale`` warns — dual-stale
     confirm ≠ quiet (portfolio AI after silent stale agree hid that both
     clocks are old). Clash bits may append ``audit newer`` / ``file newer``
-    and ``wide`` when bands skip a step.
+    and ``wide`` / ``thin`` span (skip vs adjacent band).
     """
     if not bit:
         return False
@@ -495,11 +499,11 @@ def format_last_ops_action_bit(
     When a terminal outcome age band is known beside Ops file freshness, also
     speak ``agree · file fresh`` (same band) or
     ``clash · audit fresh · file stale · audit newer · wide`` (disagree: both
-    clocks + which is newer + ``wide`` when bands skip a step) — silent match
+    clocks + which is newer + ``wide`` skip / ``thin`` adjacent) — silent match
     hid confirm; stamp ≠ mtime can hide a hand-edit or band-boundary drift;
     file-only clash hid the audit side once age clipped; dual clocks alone
-    hid file lag vs hand-edit; newer alone hid adjacent drift vs fresh↔stale
-    jump (FinRobot/xang1234 dual-clock + gap-dir + severity + portfolio AI
+    hid file lag vs hand-edit; newer + wide-only hid that adjacent was mild
+    (FinRobot/xang1234 dual-clock + gap-dir + severity + portfolio AI
     speak-both-sides after outcome age). Agree on stale warns (dual-stale ≠
     quiet confirm).
     """
