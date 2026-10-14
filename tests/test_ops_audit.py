@@ -22,7 +22,10 @@ from stock_checker.ops_audit import (
     ops_actions_path,
     ops_error_reason_from_exc,
     ops_error_reason_label,
+    ops_file_freshness_band,
+    ops_outcome_age_band,
     ops_outcome_age_line,
+    ops_outcome_vs_file_clash,
     ops_pending_freshness_band,
     ops_pending_no_outcome,
     ops_skip_reason_label,
@@ -246,6 +249,57 @@ def test_ops_outcome_age_line_fresh_aging_stale():
         )
         == "last config · accepted · 8d stale"
     )
+
+
+def test_ops_outcome_vs_file_clash_when_bands_disagree():
+    """Audit age alone hid stamp ≠ Ops file mtime across freshness bands."""
+    now = datetime(2026, 10, 14, 12, 0, 0, tzinfo=timezone.utc)
+    accepted = {
+        "kind": "config",
+        "outcome": "accepted",
+        "at": (now - timedelta(hours=3)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    }
+    assert ops_outcome_age_band(accepted, now=now) == "fresh"
+    # Same band → silent.
+    same = now - timedelta(hours=2)
+    assert ops_file_freshness_band(same, now=now) == "fresh"
+    assert ops_outcome_vs_file_clash(accepted, config_mtime=same, now=now) == ""
+    assert (
+        format_last_ops_action_bit(accepted, now=now, config_mtime=same)
+        == "last config · accepted · 3h fresh"
+    )
+    # File stale while audit fresh → clash.
+    stale_file = now - timedelta(hours=OPS_OUTCOME_AGING_HOURS + 24)
+    assert ops_file_freshness_band(stale_file, now=now) == "stale"
+    assert (
+        ops_outcome_vs_file_clash(accepted, config_mtime=stale_file, now=now)
+        == "clash · file stale"
+    )
+    assert (
+        format_last_ops_action_bit(accepted, now=now, config_mtime=stale_file)
+        == "last config · accepted · 3h fresh · clash · file stale"
+    )
+    # Aging file vs fresh audit.
+    aging_file = now - timedelta(hours=OPS_OUTCOME_FRESH_HOURS + 2)
+    assert ops_file_freshness_band(aging_file, now=now) == "aging"
+    assert (
+        format_last_ops_action_bit(accepted, now=now, config_mtime=aging_file)
+        == "last config · accepted · 3h fresh · clash · file aging"
+    )
+    # Hanging requested never speaks file clash (refuse / no-outcome cover it).
+    pending = {
+        "kind": "config",
+        "outcome": "requested",
+        "at": (now - timedelta(seconds=30)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    }
+    assert ops_outcome_vs_file_clash(pending, config_mtime=stale_file, now=now) == ""
+    assert (
+        format_last_ops_action_bit(pending, now=now, config_mtime=stale_file)
+        == "last config · pending · 30s fresh"
+    )
+    # Missing mtime / unparseable stay silent (fail-open).
+    assert ops_outcome_vs_file_clash(accepted, config_mtime=None, now=now) == ""
+    assert ops_file_freshness_band(None, now=now) == ""
 
 
 def test_format_last_ops_action_bit_stale_pending_for_aged_hanging():

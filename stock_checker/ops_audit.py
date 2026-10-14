@@ -304,6 +304,98 @@ def _ops_age_short(age_sec: float) -> str:
     return f"{sec // 86400}d"
 
 
+def ops_outcome_age_band(
+    row: dict[str, Any] | None,
+    *,
+    now: datetime | None = None,
+    fresh_hours: float = OPS_OUTCOME_FRESH_HOURS,
+    aging_hours: float = OPS_OUTCOME_AGING_HOURS,
+) -> str:
+    """``fresh`` / ``aging`` / ``stale`` for an audit stamp, or ``\"\"``.
+
+    Same floors as Ops saved-row ``file_freshness`` (24h · 7d). Unparseable
+    / future stamps stay empty (fail-open).
+    """
+    if not isinstance(row, dict):
+        return ""
+    stamp = _parse_ops_at(row.get("at"))
+    if stamp is None:
+        return ""
+    clock = now or datetime.now(timezone.utc)
+    if clock.tzinfo is None:
+        clock = clock.replace(tzinfo=timezone.utc)
+    age_sec = (clock.astimezone(timezone.utc) - stamp).total_seconds()
+    if age_sec < 0:
+        return ""
+    hours = age_sec / 3600.0
+    if hours < max(0.0, float(fresh_hours)):
+        return "fresh"
+    if hours < max(0.0, float(aging_hours)):
+        return "aging"
+    return "stale"
+
+
+def ops_file_freshness_band(
+    config_mtime: datetime | None,
+    *,
+    now: datetime | None = None,
+    fresh_hours: float = OPS_OUTCOME_FRESH_HOURS,
+    aging_hours: float = OPS_OUTCOME_AGING_HOURS,
+) -> str:
+    """``fresh`` / ``aging`` / ``stale`` for Ops file mtime, or ``\"\"``.
+
+    Parity with ``trader_config`` saved-row floors so audit vs file can clash
+    on one scale. Missing mtime stays empty (fail-open).
+    """
+    if config_mtime is None:
+        return ""
+    clock = now or datetime.now(timezone.utc)
+    if clock.tzinfo is None:
+        clock = clock.replace(tzinfo=timezone.utc)
+    mtime = config_mtime
+    if mtime.tzinfo is None:
+        mtime = mtime.replace(tzinfo=timezone.utc)
+    else:
+        mtime = mtime.astimezone(timezone.utc)
+    age_sec = (clock.astimezone(timezone.utc) - mtime).total_seconds()
+    if age_sec < 0:
+        return ""
+    hours = age_sec / 3600.0
+    if hours < max(0.0, float(fresh_hours)):
+        return "fresh"
+    if hours < max(0.0, float(aging_hours)):
+        return "aging"
+    return "stale"
+
+
+def ops_outcome_vs_file_clash(
+    row: dict[str, Any] | None,
+    *,
+    config_mtime: datetime | None = None,
+    now: datetime | None = None,
+) -> str:
+    """``clash · file stale`` when terminal audit age ≠ Ops file freshness.
+
+    Same band / missing clocks / hanging ``requested`` stay silent (pending
+    already has refuse-window + ``no outcome``). Age label alone hid that a
+    fresh accepted stamp can sit beside a stale (or hand-edited) Ops file —
+    FinRobot/xang1234 clock-clash + portfolio AI speak-both-sides after
+    outcome age.
+    """
+    if not isinstance(row, dict):
+        return ""
+    outcome = str(row.get("outcome") or "").strip()
+    if outcome in ("", "requested"):
+        return ""
+    audit_band = ops_outcome_age_band(row, now=now)
+    file_band = ops_file_freshness_band(config_mtime, now=now)
+    if not audit_band or not file_band:
+        return ""
+    if audit_band == file_band:
+        return ""
+    return f"clash · file {file_band}"
+
+
 def ops_outcome_age_line(
     row: dict[str, Any] | None,
     *,
@@ -328,13 +420,11 @@ def ops_outcome_age_line(
     age_sec = (clock.astimezone(timezone.utc) - stamp).total_seconds()
     if age_sec < 0:
         return ""
-    hours = age_sec / 3600.0
-    if hours < max(0.0, float(fresh_hours)):
-        band = "fresh"
-    elif hours < max(0.0, float(aging_hours)):
-        band = "aging"
-    else:
-        band = "stale"
+    band = ops_outcome_age_band(
+        row, now=clock, fresh_hours=fresh_hours, aging_hours=aging_hours
+    )
+    if not band:
+        return ""
     return f"{_ops_age_short(age_sec)} {band}"
 
 
@@ -368,11 +458,17 @@ def format_last_ops_action_bit(
     raw ISO (RyanJHamby/xang1234 + Ops saved-row age parity — bare ``…Z``
     hid whether the last Save was recent). Unparseable stamps keep the raw
     ``at`` text (fail-open).
+
+    When a terminal outcome age band disagrees with Ops file freshness, also
+    speak ``clash · file stale`` (same band silent) — audit stamp ≠ file mtime
+    can hide a hand-edit or band-boundary drift (FinRobot/xang1234 clock
+    clash after outcome age).
     """
     if not isinstance(row, dict):
         return ""
     kind = str(row.get("kind") or "").strip() or "?"
-    outcome = str(row.get("outcome") or "").strip() or "?"
+    raw_outcome = str(row.get("outcome") or "").strip() or "?"
+    outcome = raw_outcome
     if outcome == "requested":
         band = ops_pending_freshness_band(
             row, now=now, refuse_seconds=refuse_seconds
@@ -389,8 +485,16 @@ def format_last_ops_action_bit(
         if why:
             outcome = f"error · {why}"
     age = ops_outcome_age_line(row, now=now)
+    clash = ""
+    if age and raw_outcome != "requested":
+        clash = ops_outcome_vs_file_clash(
+            row, config_mtime=config_mtime, now=now
+        )
     if age:
-        return f"last {kind} · {outcome} · {age}"
+        bit = f"last {kind} · {outcome} · {age}"
+        if clash:
+            return f"{bit} · {clash}"
+        return bit
     at = str(row.get("at") or "").strip()
     if at:
         return f"last {kind} · {outcome} · {at}"
