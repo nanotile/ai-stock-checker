@@ -274,24 +274,45 @@ def test_ops_outcome_vs_file_clash_when_bands_disagree():
         format_last_ops_action_bit(accepted, now=now, config_mtime=same)
         == "last config · accepted · 3h fresh · agree · file fresh"
     )
-    # File stale while audit fresh → clash + warn.
+    # File stale while audit fresh → dual-clock clash + warn.
     stale_file = now - timedelta(hours=OPS_OUTCOME_AGING_HOURS + 24)
     assert ops_file_freshness_band(stale_file, now=now) == "stale"
     assert (
         ops_outcome_vs_file_clash(accepted, config_mtime=stale_file, now=now)
-        == "clash · file stale"
+        == "clash · audit fresh · file stale"
     )
-    assert ops_outcome_vs_file_warn("clash · file stale")
+    assert ops_outcome_vs_file_warn("clash · audit fresh · file stale")
     assert (
         format_last_ops_action_bit(accepted, now=now, config_mtime=stale_file)
-        == "last config · accepted · 3h fresh · clash · file stale"
+        == "last config · accepted · 3h fresh · clash · audit fresh · file stale"
     )
-    # Aging file vs fresh audit.
+    # Aging file vs fresh audit — both clocks on the relation bit.
     aging_file = now - timedelta(hours=OPS_OUTCOME_FRESH_HOURS + 2)
     assert ops_file_freshness_band(aging_file, now=now) == "aging"
     assert (
         format_last_ops_action_bit(accepted, now=now, config_mtime=aging_file)
-        == "last config · accepted · 3h fresh · clash · file aging"
+        == "last config · accepted · 3h fresh · clash · audit fresh · file aging"
+    )
+    # Dual-stale agree warns (stale confirm ≠ quiet); aging agree stays calm.
+    stale_stamp = now - timedelta(hours=OPS_OUTCOME_AGING_HOURS + 24)
+    stale_accepted = {
+        "kind": "config",
+        "outcome": "accepted",
+        "at": stale_stamp.strftime("%Y-%m-%dT%H:%M:%SZ"),
+    }
+    assert ops_outcome_age_band(stale_accepted, now=now) == "stale"
+    assert (
+        ops_outcome_vs_file_clash(stale_accepted, config_mtime=stale_file, now=now)
+        == "agree · file stale"
+    )
+    assert ops_outcome_vs_file_warn("agree · file stale")
+    assert not ops_outcome_vs_file_warn("agree · file aging")
+    assert not ops_outcome_vs_file_warn("agree · file fresh")
+    assert (
+        format_last_ops_action_bit(
+            stale_accepted, now=now, config_mtime=stale_file
+        )
+        == "last config · accepted · 8d stale · agree · file stale"
     )
     # Hanging requested never speaks file clash (refuse / no-outcome cover it).
     pending = {

@@ -374,13 +374,15 @@ def ops_outcome_vs_file_clash(
     config_mtime: datetime | None = None,
     now: datetime | None = None,
 ) -> str:
-    """``clash · file stale`` or ``agree · file fresh`` for audit vs Ops file.
+    """``clash · audit fresh · file stale`` or ``agree · file fresh``.
 
     Missing clocks / hanging ``requested`` stay silent (pending already has
     refuse-window + ``no outcome``). Same band speaks ``agree`` — silent
     match hid that stamp and mtime still line up (portfolio AI speak-both-
-    sides after clash-only). Disagree still speaks ``clash · file …`` —
-    FinRobot/xang1234 clock-clash after outcome age.
+    sides after clash-only). Disagree names **both** clocks
+    ``clash · audit … · file …`` — file-only hid which audit band disagreed
+    once the age clip dropped (FinRobot/xang1234 soft↔cash / LAYA↔cash
+    dual-clock clash after outcome age).
     """
     if not isinstance(row, dict):
         return ""
@@ -393,13 +395,21 @@ def ops_outcome_vs_file_clash(
         return ""
     if audit_band == file_band:
         return f"agree · file {file_band}"
-    return f"clash · file {file_band}"
+    return f"clash · audit {audit_band} · file {file_band}"
 
 
 def ops_outcome_vs_file_warn(bit: str) -> bool:
-    """True when audit vs file relation is an adverse clash (not agree)."""
-    return bool(bit) and bit.startswith("clash · file")
+    """True when audit vs file relation is adverse (clash, or agree on stale).
 
+    Fresh/aging agree stays calm; ``agree · file stale`` warns — dual-stale
+    confirm ≠ quiet (portfolio AI after silent stale agree hid that both
+    clocks are old).
+    """
+    if not bit:
+        return False
+    if bit.startswith("clash · audit"):
+        return True
+    return bit == "agree · file stale"
 
 def ops_outcome_age_line(
     row: dict[str, Any] | None,
@@ -465,10 +475,12 @@ def format_last_ops_action_bit(
     ``at`` text (fail-open).
 
     When a terminal outcome age band is known beside Ops file freshness, also
-    speak ``agree · file fresh`` (same band) or ``clash · file stale``
-    (disagree) — silent match hid confirm; stamp ≠ mtime can hide a hand-edit
-    or band-boundary drift (FinRobot/xang1234 clock clash + portfolio AI
-    speak-both-sides after outcome age).
+    speak ``agree · file fresh`` (same band) or
+    ``clash · audit fresh · file stale`` (disagree, both clocks) — silent
+    match hid confirm; stamp ≠ mtime can hide a hand-edit or band-boundary
+    drift; file-only clash hid the audit side once age clipped
+    (FinRobot/xang1234 dual-clock + portfolio AI speak-both-sides after
+    outcome age). Agree on stale warns (dual-stale ≠ quiet confirm).
     """
     if not isinstance(row, dict):
         return ""
