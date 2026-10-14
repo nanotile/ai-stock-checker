@@ -18,9 +18,11 @@ def test_equity_hours_glance_both_open_us_morning() -> None:
     assert g["tone"] == "open"
     assert g["us_open"] is True
     assert g["xetra_open"] is True
-    assert "US RTH open" in g["line"]
-    assert "Xetra open" in g["line"]
-    assert "crypto 24/7" in g["line"]
+    assert g["line"] == "active · US · Xetra · crypto"
+    assert g["inactive_line"] == ""
+    assert g["inactive_count"] == 0
+    assert g["active_markets"] == ["US", "Xetra", "crypto"]
+    assert g["inactive_markets"] == []
 
 
 def test_equity_hours_glance_both_closed_weekend() -> None:
@@ -30,8 +32,11 @@ def test_equity_hours_glance_both_closed_weekend() -> None:
     assert g["tone"] == "closed"
     assert g["us_open"] is False
     assert g["xetra_open"] is False
-    assert "US RTH closed" in g["line"]
-    assert "Xetra closed" in g["line"]
+    assert g["line"] == "active · crypto"
+    assert g["inactive_line"] == "Inactive markets (2): US · Xetra"
+    assert g["inactive_count"] == 2
+    assert g["active_markets"] == ["crypto"]
+    assert g["inactive_markets"] == ["US", "Xetra"]
 
 
 def test_equity_hours_glance_split_xetra_only() -> None:
@@ -42,8 +47,11 @@ def test_equity_hours_glance_split_xetra_only() -> None:
     assert g["tone"] == "split"
     assert g["xetra_open"] is True
     assert g["us_open"] is False
-    assert "Xetra open" in g["line"]
-    assert "US RTH closed" in g["line"]
+    assert g["line"] == "active · Xetra · crypto"
+    assert g["inactive_line"] == "Inactive markets (1): US"
+    assert g["inactive_count"] == 1
+    assert g["active_markets"] == ["Xetra", "crypto"]
+    assert g["inactive_markets"] == ["US"]
 
 
 def test_equity_hours_glance_in_snapshot(tmp_path) -> None:
@@ -57,9 +65,10 @@ def test_equity_hours_glance_in_snapshot(tmp_path) -> None:
     g = snap["equity_hours_glance"]
     assert g["ready"] is True
     assert g["tone"] in {"open", "closed", "split"}
-    assert "US RTH" in g["line"]
-    assert "Xetra" in g["line"]
-    assert "crypto 24/7" in g["line"]
+    assert g["line"].startswith("active · ")
+    assert "crypto" in g["line"]
+    assert "inactive_line" in g
+    assert "inactive_count" in g
 
 
 def test_equity_hours_glance_in_chart_payload(tmp_path) -> None:
@@ -72,6 +81,6 @@ def test_equity_hours_glance_in_chart_payload(tmp_path) -> None:
     g = load_chart_payload(tmp_path)["equity_hours_glance"]
     assert g["ready"] is True
     assert g["tone"] in {"open", "closed", "split"}
-    assert "US RTH" in g["line"]
-    assert "Xetra" in g["line"]
-    assert "crypto 24/7" in g["line"]
+    assert g["line"].startswith("active · ")
+    assert "crypto" in g["line"]
+    assert "inactive_line" in g

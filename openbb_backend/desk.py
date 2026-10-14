@@ -19363,6 +19363,10 @@ def build_equity_hours_glance(
     Session glance covers weekend crypto-only. This line shows live US vs
     German .DE hours so friends do not treat all equities as one clock.
     Crypto stays 24/7. Not a new entry gate — mirrors market_hours.py.
+
+    Active venues lead the primary line; closed cash sleeves sit behind an
+    Ops/Charts disclosure (xang1234 #631 active-markets-first / inactive
+    disclosure — we have three desks venues, not a 12-market Celery roster).
     """
     from stock_checker.market_hours import (
         is_us_cash_session_closed,
@@ -19371,21 +19375,42 @@ def build_equity_hours_glance(
 
     us_closed = bool(is_us_cash_session_closed(now=now))
     xetra_closed = bool(is_xetra_session_closed(now=now))
-    us_bit = "closed" if us_closed else "open"
-    xetra_bit = "closed" if xetra_closed else "open"
+    active: list[str] = []
+    inactive: list[str] = []
+    if us_closed:
+        inactive.append("US")
+    else:
+        active.append("US")
+    if xetra_closed:
+        inactive.append("Xetra")
+    else:
+        active.append("Xetra")
+    # Crypto is always live — always in the active set (24/7).
+    active.append("crypto")
     if not us_closed and not xetra_closed:
         tone = "open"
     elif us_closed and xetra_closed:
         tone = "closed"
     else:
         tone = "split"
-    line = f"US RTH {us_bit} · Xetra {xetra_bit} · crypto 24/7"
+    line = "active · " + " · ".join(active)
+    inactive_line = ""
+    if inactive:
+        inactive_line = (
+            f"Inactive markets ({len(inactive)}): " + " · ".join(inactive)
+        )
     if len(line) > 96:
         line = line[:95] + "…"
+    if len(inactive_line) > 96:
+        inactive_line = inactive_line[:95] + "…"
     return {
         "ready": True,
         "tone": tone,
         "line": line,
+        "inactive_line": inactive_line,
+        "inactive_count": len(inactive),
+        "active_markets": active,
+        "inactive_markets": inactive,
         "us_open": not us_closed,
         "xetra_open": not xetra_closed,
     }

@@ -2341,6 +2341,19 @@
     link.textContent = "Screener →";
     line.appendChild(link);
     wrap.appendChild(line);
+    if (glance.inactive_line) {
+      var fold = document.createElement("details");
+      fold.className = "equity-hours-inactive";
+      var summary = document.createElement("summary");
+      summary.textContent = String(glance.inactive_line);
+      fold.appendChild(summary);
+      var foldSub = document.createElement("p");
+      foldSub.className = "sub";
+      foldSub.textContent =
+        "Closed cash sessions — crypto stays on the active line. Not a gate.";
+      fold.appendChild(foldSub);
+      wrap.appendChild(fold);
+    }
     var sub = document.createElement("p");
     sub.className = "sub";
     sub.textContent =

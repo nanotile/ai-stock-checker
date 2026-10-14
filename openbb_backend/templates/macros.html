@@ -563,7 +563,8 @@
 {%- endmacro %}
 
 
-{# US RTH vs Xetra cash hours (display only). Complements weekend session. #}
+{# US RTH vs Xetra cash hours (display only). Complements weekend session.
+   Active venues lead; closed cash sleeves sit behind a disclosure (xang1234 #631). #}
 {% macro equity_hours_glance(
   snap,
   heading_id='equity-hours-glance-h',
@@ -582,6 +583,12 @@
     <span class="pretrade-sep" aria-hidden="true">·</span>
     <a class="equity-hours-glance-link" href="{{ link_href }}">{{ link_label }}</a>
   </p>
+  {% if glance.inactive_line %}
+  <details class="equity-hours-inactive">
+    <summary>{{ glance.inactive_line }}</summary>
+    <p class="sub">Closed cash sessions — crypto stays on the active line. Not a gate.</p>
+  </details>
+  {% endif %}
   <p class="sub">{{ sub }}</p>
 </section>
 {% endif %}
