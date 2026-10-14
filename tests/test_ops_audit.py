@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -17,6 +18,8 @@ from stock_checker.ops_audit import (
     last_ops_action,
     load_ops_actions,
     ops_actions_path,
+    ops_error_reason_from_exc,
+    ops_error_reason_label,
     ops_pending_freshness_band,
     ops_pending_no_outcome,
     ops_skip_reason_label,
@@ -114,6 +117,47 @@ def test_audited_records_error_and_reraises(tmp_path: Path):
     events = load_ops_actions(tmp_path)
     assert [e["outcome"] for e in events] == ["requested", "error"]
     assert events[0]["action_id"] == events[1]["action_id"]
+    # xang1234 #621: compact why persists (message text stays out of the row).
+    assert events[1].get("reason") == "act-fail"
+    assert "disk" not in json.dumps(events[1])
+    bit = format_last_ops_action_bit(events[1])
+    assert "last config · error · act-fail ·" in bit
+
+
+def test_ops_error_reason_from_exc_families():
+    assert ops_error_reason_from_exc(OSError("EIO")) == "write-fail"
+    assert ops_error_reason_from_exc(PermissionError("denied")) == "write-fail"
+    assert ops_error_reason_from_exc(ValueError("bad")) == "bad-value"
+    assert ops_error_reason_from_exc(TypeError("bad")) == "bad-value"
+    assert ops_error_reason_from_exc(KeyError("k")) == "bad-value"
+    assert ops_error_reason_from_exc(RuntimeError("x")) == "act-fail"
+
+
+def test_format_last_ops_action_bit_error_says_why():
+    """xang1234 #621: bare error hid write-fail vs act-fail after reload."""
+    bit = format_last_ops_action_bit(
+        {
+            "kind": "config",
+            "outcome": "error",
+            "reason": "write_fail",
+            "at": "2026-10-14T04:00:00Z",
+        }
+    )
+    assert bit == "last config · error · write-fail · 2026-10-14T04:00:00Z"
+    assert ops_error_reason_label(
+        {"outcome": "error", "reason": "write_fail"}
+    ) == "write-fail"
+    # Legacy rows without reason stay bare error (fail-open; do not invent why).
+    bare = format_last_ops_action_bit(
+        {
+            "kind": "config",
+            "outcome": "error",
+            "at": "2026-10-14T04:00:00Z",
+        }
+    )
+    assert bare == "last config · error · 2026-10-14T04:00:00Z"
+    assert "write-fail" not in bare
+    assert ops_error_reason_label({"outcome": "accepted", "reason": "act-fail"}) == ""
 
 
 def test_safe_detail_strips_secret_keys(tmp_path: Path):

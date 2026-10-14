@@ -248,6 +248,46 @@ def ops_skip_reason_label(row: dict[str, Any] | None) -> str:
     return ""
 
 
+def ops_error_reason_from_exc(exc: BaseException) -> str:
+    """Compact non-secret why for an ``error`` audit row.
+
+    Exception *messages* stay out of the glance (paths / hosts). Class family
+    is enough for friends to tell write fail vs bad value vs act fail
+    (xang1234 #621 show-request-failures adapted — bare ``error`` hid cause).
+    """
+    if isinstance(exc, OSError):
+        return "write-fail"
+    if isinstance(exc, (ValueError, TypeError, KeyError)):
+        return "bad-value"
+    return "act-fail"
+
+
+def ops_error_reason_label(row: dict[str, Any] | None) -> str:
+    """Compact why for an ``error`` row (xang1234 #621 failure visibility).
+
+    Bare ``error`` hid write-fail vs act-fail after reload. Unknown / empty
+    reasons stay silent so the glance does not invent a cause.
+    """
+    if not isinstance(row, dict):
+        return ""
+    if str(row.get("outcome") or "") != "error":
+        return ""
+    raw = str(row.get("reason") or "").strip().lower().replace("_", "-")
+    if not raw:
+        detail = row.get("detail")
+        if isinstance(detail, dict):
+            raw = str(detail.get("reason") or "").strip().lower().replace("_", "-")
+    if raw in ("write-fail", "writefail", "io", "oserror"):
+        return "write-fail"
+    if raw in ("bad-value", "badvalue", "value", "type"):
+        return "bad-value"
+    if raw in ("act-fail", "actfail", "runtime", "failed"):
+        return "act-fail"
+    if raw and len(raw) <= 24 and all(c.isalnum() or c in "-." for c in raw):
+        return raw
+    return ""
+
+
 def format_last_ops_action_bit(
     row: dict[str, Any] | None,
     *,
@@ -269,6 +309,10 @@ def format_last_ops_action_bit(
     A ``skipped`` row speaks ``skipped · no-op`` (or another compact reason)
     when the refuse recorded why — bare ``skipped`` hid intentional no-op
     vs other preflight (xang1234 #599/#623 skip-says-why).
+
+    An ``error`` row speaks ``error · write-fail`` (or another compact reason)
+    when recorded — bare ``error`` hid why Save failed after reload
+    (xang1234 #621 show jobs request failures adapted).
     """
     if not isinstance(row, dict):
         return ""
@@ -285,6 +329,10 @@ def format_last_ops_action_bit(
         why = ops_skip_reason_label(row)
         if why:
             outcome = f"skipped · {why}"
+    elif outcome == "error":
+        why = ops_error_reason_label(row)
+        if why:
+            outcome = f"error · {why}"
     at = str(row.get("at") or "").strip()
     if at:
         return f"last {kind} · {outcome} · {at}"
@@ -365,7 +413,9 @@ def audited_ops_action(
 
     try:
         result = act()
-    except Exception:
+    except Exception as exc:
+        # xang1234 #621: persist a compact why so glance speaks error · …
+        # after reload (toast alone disappears). Message text stays out.
         append_ops_action(
             data_dir,
             {
@@ -374,6 +424,7 @@ def audited_ops_action(
                 "at": _now_iso(),
                 "kind": kind_s,
                 "outcome": "error",
+                "reason": ops_error_reason_from_exc(exc),
                 "detail": detail_safe,
             },
         )

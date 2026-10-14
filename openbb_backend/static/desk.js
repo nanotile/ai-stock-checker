@@ -65,9 +65,20 @@
         body: JSON.stringify(body),
       })
         .then(function (res) {
-          return res.json().then(function (data) {
-            return { ok: res.ok, status: res.status, data: data };
-          });
+          // xang1234 #621: a non-JSON 502/503 body is still an HTTP failure —
+          // do not fall through to the network catch as if the backend were down.
+          return res
+            .json()
+            .then(function (data) {
+              return { ok: res.ok, status: res.status, data: data };
+            })
+            .catch(function () {
+              return {
+                ok: res.ok,
+                status: res.status,
+                data: { detail: "Save failed (" + res.status + ")" },
+              };
+            });
         })
         .then(function (result) {
           if (!result.ok) {
