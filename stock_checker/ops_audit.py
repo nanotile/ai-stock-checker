@@ -868,22 +868,42 @@ def audited_ops_action(
     }
 
 
-def ops_changed_impact_bit(row: dict[str, Any] | None) -> str:
-    """Compact ``Δ AI · hold`` from audit ``detail.changed`` (#636 impact)."""
+def _ops_changed_keys(row: dict[str, Any] | None) -> list[str]:
+    """Parse audit ``detail.changed`` knob keys (empty when absent)."""
     if not isinstance(row, dict):
-        return ""
+        return []
     detail = row.get("detail")
     if not isinstance(detail, dict):
-        return ""
+        return []
     raw = detail.get("changed")
     if not isinstance(raw, list):
-        return ""
-    keys = [str(k).strip() for k in raw if str(k).strip()]
+        return []
+    return [str(k).strip() for k in raw if str(k).strip()]
+
+
+def ops_changed_impact_bit(row: dict[str, Any] | None) -> str:
+    """Compact ``Δ hot · AI · hold`` from audit ``detail.changed`` (#636)."""
+    keys = _ops_changed_keys(row)
     if not keys:
         return ""
     from .trader_config import format_config_changed_bit
 
     return format_config_changed_bit(keys)
+
+
+def ops_changed_impact_warn(row: dict[str, Any] | None) -> bool:
+    """True when last accepted/pending Save moved hot book/fee/promote knobs.
+
+    xang1234 #636 advanced Run red — quiet AI-only Δ stays clay flat.
+    """
+    if not isinstance(row, dict):
+        return False
+    outcome = str(row.get("outcome") or "").strip()
+    if outcome not in {"accepted", "requested"}:
+        return False
+    from .trader_config import config_changed_impact_warn
+
+    return config_changed_impact_warn(_ops_changed_keys(row))
 
 
 def _safe_detail(detail: dict[str, Any] | None) -> dict[str, Any]:

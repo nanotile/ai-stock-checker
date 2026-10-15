@@ -49,6 +49,22 @@ def test_rs_gate_roundtrip(tmp_path: Path):
     assert saved2["rs_gate"] is True
 
 
+def test_config_changed_impact_severity_hot_vs_quiet():
+    """xang1234 #636 advanced Run: book/fee/promote = hot; AI/gates = quiet."""
+    from stock_checker.trader_config import (
+        config_changed_impact_severity,
+        config_changed_impact_warn,
+    )
+
+    assert config_changed_impact_severity([]) == ""
+    assert config_changed_impact_severity(["ai_mode"]) == "quiet"
+    assert config_changed_impact_warn(["ai_mode"]) is False
+    assert config_changed_impact_severity(["min_hold_hours"]) == "hot"
+    assert config_changed_impact_warn(["min_hold_hours"]) is True
+    # Mixed Save: hot wins (adverse severity).
+    assert config_changed_impact_severity(["ai_mode", "max_positions"]) == "hot"
+
+
 def test_trader_config_would_change_detects_noop(tmp_path: Path):
     """xang1234 #623: equal payload vs existing Ops file is skip-only."""
     from stock_checker.trader_config import (
@@ -61,10 +77,11 @@ def test_trader_config_would_change_detects_noop(tmp_path: Path):
     assert trader_config_changed_keys(tmp_path, {"ai_mode": "validate", "rs_gate": False}) == []
     assert trader_config_would_change(tmp_path, {"ai_mode": "off"}) is True
     assert trader_config_changed_keys(tmp_path, {"ai_mode": "off"}) == ["ai_mode"]
-    assert format_config_changed_bit(["ai_mode", "min_hold_hours"]) == "Δ AI · hold"
+    assert format_config_changed_bit(["ai_mode", "min_hold_hours"]) == "Δ hot · AI · hold"
     assert format_config_changed_bit(
         ["fee_preset", "commission_rate", "commission_min_eur"]
-    ) == "Δ fees"
+    ) == "Δ hot · fees"
+    assert format_config_changed_bit(["ai_mode", "rs_gate"]) == "Δ quiet · AI · RS"
     # Missing file always acts (first write materializes Ops precedence).
     empty = tmp_path / "empty_cfg"
     empty.mkdir()

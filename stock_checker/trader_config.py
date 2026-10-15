@@ -244,6 +244,20 @@ _CHANGE_SHORT: dict[str, str] = {
     "free_legs_per_month": "free legs",
 }
 
+# Book / fee / promote knobs move live paper risk (xang1234 #636 advanced Run).
+# Advisory AI + soft gates stay quiet — labels alone hid hot vs calm Saves.
+_CHANGE_HOT_KEYS: frozenset[str] = frozenset(
+    {
+        "fee_preset",
+        "commission_rate",
+        "commission_min_eur",
+        "free_legs_per_month",
+        "max_positions",
+        "min_hold_hours",
+        "promote_experiment_strategy",
+    }
+)
+
 
 def _values_differ(a: Any, b: Any) -> bool:
     if isinstance(a, bool) or isinstance(b, bool):
@@ -864,13 +878,36 @@ def trader_config_changed_keys(
     )
 
 
+def config_changed_impact_severity(keys: list[str] | None) -> str:
+    """``hot`` when any book/fee/promote knob moved; else ``quiet`` (#636).
+
+    Empty / unknown → ``\"\"``. Hot wins mixed Saves (adverse severity).
+    """
+    clean = [str(k).strip() for k in (keys or []) if str(k).strip()]
+    if not clean:
+        return ""
+    if any(k in _CHANGE_HOT_KEYS for k in clean):
+        return "hot"
+    return "quiet"
+
+
+def config_changed_impact_warn(keys: list[str] | None) -> bool:
+    """True when Save impact severity is hot (book/fee/promote)."""
+    return config_changed_impact_severity(keys) == "hot"
+
+
 def format_config_changed_bit(keys: list[str] | None, *, limit: int = 4) -> str:
-    """Compact ``Δ AI · hold`` for Ops glance / Save toast (#636 impact)."""
+    """Compact ``Δ hot · AI · hold`` / ``Δ quiet · AI`` for Ops glance / toast.
+
+    xang1234 #636: advanced jobs got a red Run — bare knob names hid whether
+    the Save moved live book/fee/promote risk vs advisory-only knobs.
+    """
     if not keys:
         return ""
     clean = [str(k).strip() for k in keys if str(k).strip()]
     if not clean:
         return ""
+    severity = config_changed_impact_severity(clean)
     # Prefer human short labels; fee rate/min/legs collapse under fees when
     # fee_preset already spoke, else keep the specific knob.
     labeled: list[str] = []
@@ -891,7 +928,11 @@ def format_config_changed_bit(keys: list[str] | None, *, limit: int = 4) -> str:
     extra = len(labeled) - min(len(labeled), limit)
     if extra > 0:
         bits = f"{bits} +{extra}" if bits else f"+{extra}"
-    return f"Δ {bits}" if bits else ""
+    if not bits:
+        return ""
+    if severity:
+        return f"Δ {severity} · {bits}"
+    return f"Δ {bits}"
 
 
 def trader_config_would_change(

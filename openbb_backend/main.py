@@ -224,6 +224,7 @@ def desk_config_get():
     from stock_checker.ops_audit import (
         format_last_ops_action_bit,
         last_ops_action,
+        ops_changed_impact_warn,
         ops_outcome_vs_file_clash,
         ops_outcome_vs_file_warn,
         trader_config_mtime_utc,
@@ -265,6 +266,7 @@ def desk_config_get():
         "last_ops_file_clash_warn": ops_outcome_vs_file_warn(
             ops_outcome_vs_file_clash(last_save, config_mtime=cfg_mtime)
         ),
+        "last_ops_impact_warn": ops_changed_impact_warn(last_save),
         "note": (
             "Saved Ops row wins over compose/env for keys present in "
             "data/trader_config.json; intelligent-trader hot-reloads each loop. "
@@ -284,6 +286,7 @@ async def desk_config_put(request: Request):
     from stock_checker.ops_audit import audited_ops_action, record_ops_skipped
     from stock_checker.trader_config import (
         ALLOWED_AI_MODES,
+        config_changed_impact_severity,
         format_config_changed_bit,
         save_trader_config,
         trader_config_changed_keys,
@@ -366,6 +369,7 @@ async def desk_config_put(request: Request):
         "audit_outcome_recorded": bool(audit.get("outcome_recorded")),
         "changed": changed,
         "changed_bit": impact,
+        "changed_impact_severity": config_changed_impact_severity(changed),
         "note": note,
     }
 

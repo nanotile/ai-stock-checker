@@ -22826,6 +22826,7 @@ def _trader_runtime_view() -> dict[str, Any]:
     from stock_checker.ops_audit import (
         format_last_ops_action_bit,
         last_ops_action,
+        ops_changed_impact_warn,
         ops_outcome_vs_file_clash,
         ops_outcome_vs_file_warn,
         trader_config_mtime_utc,
@@ -22964,6 +22965,7 @@ def _trader_runtime_view() -> dict[str, Any]:
             last_config_audit, config_mtime=cfg_mtime
         ),
         "last_ops_outcome": str((last_config_audit or {}).get("outcome") or ""),
+        "last_ops_impact_warn": ops_changed_impact_warn(last_config_audit),
         "last_ops_file_clash_warn": ops_outcome_vs_file_warn(
             ops_outcome_vs_file_clash(
                 last_config_audit, config_mtime=cfg_mtime
