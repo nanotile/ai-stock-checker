@@ -148,6 +148,7 @@ def test_format_last_ops_action_bit_accepted_speaks_changed_impact():
         ops_changed_impact_bit,
         ops_changed_impact_warn,
         ops_changed_session_bit,
+        ops_changed_session_warn,
     )
 
     now = datetime(2026, 10, 15, 6, 0, 0, tzinfo=timezone.utc)
@@ -173,12 +174,14 @@ def test_format_last_ops_action_bit_accepted_speaks_changed_impact():
         },
     }
     assert ops_changed_session_bit(mid_row) == (
-        "mid session · US · Xetra open · all cash · vs 0 closed · thin · 0%"
+        "mid session · US · Xetra open · all cash · "
+        "open vs closed align · hot|thin"
     )
+    assert ops_changed_session_warn(mid_row) is True
     mid_bit = format_last_ops_action_bit(mid_row, now=now)
     assert (
         "Δ hot · hold · mid session · US · Xetra open · all cash · "
-        "vs 0 closed · thin · 0% ·" in mid_bit
+        "open vs closed align · hot|thin ·" in mid_bit
     )
     half_row = {
         "kind": "config",
@@ -192,6 +195,7 @@ def test_format_last_ops_action_bit_accepted_speaks_changed_impact():
     assert ops_changed_session_bit(half_row) == (
         "mid session · US open · half cash · vs 1 closed · 50%"
     )
+    assert ops_changed_session_warn(half_row) is False
     quiet = {
         "kind": "config",
         "outcome": "accepted",

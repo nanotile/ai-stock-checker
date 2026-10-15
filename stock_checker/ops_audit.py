@@ -917,12 +917,26 @@ def ops_changed_session_bit(row: dict[str, Any] | None) -> str:
     Only speaks on hot Saves (book/fee/promote) that recorded open cash —
     quiet AI/gates mid-session stay silent (when-to-run is for live risk).
     Half/all cash ownership follows Hours attention share honesty.
+    All-cash open speaks ``open vs closed align · hot|thin`` (Hours lean).
     """
     if not ops_changed_impact_warn(row):
         return ""
     from .trader_config import format_config_save_session_bit
 
     return format_config_save_session_bit(_ops_open_cash(row))
+
+
+def ops_changed_session_warn(row: dict[str, Any] | None) -> bool:
+    """True when hot Save mid-session open vs closed lean is adverse.
+
+    Hours attention_vs_open_warn parity — all cash live + thin closed
+    escalates (hot impact already warns; this names the session lean).
+    """
+    if not ops_changed_impact_warn(row):
+        return False
+    from .trader_config import config_save_session_vs_closed_warn
+
+    return config_save_session_vs_closed_warn(_ops_open_cash(row))
 
 
 def ops_changed_impact_warn(row: dict[str, Any] | None) -> bool:

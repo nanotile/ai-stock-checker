@@ -918,31 +918,35 @@ def config_save_open_cash_venues(
     return open_cash
 
 
-def format_config_save_session_bit(open_cash: list[str] | None) -> str:
-    """Compact ``mid session · US open · half cash · vs 1 closed · 50%``.
+def _config_save_session_shares(
+    open_cash: list[str] | None,
+) -> tuple[list[str], int, int, str, str, str] | None:
+    """Parse open cash into named venues + open/closed severity bands.
 
-    Empty when all cash closed — quiet nights need no mid-session warn.
-    Venue names alone hid partial vs total cash live (Hours attention
-    half/all cash parity). Open share alone hid remaining dark sleeves
-    (Hours attention vs open + portfolio AI speak-both-sides / count≠share).
-    Crypto stays out of the cash denom (two sleeves: US + Xetra).
+    Returns ``(named, n_open, n_closed, share_bit, open_sev, closed_sev)``
+    or ``None`` when all cash closed (no mid-session speak).
     """
     clean = [str(v).strip() for v in (open_cash or []) if str(v).strip()]
     if not clean:
-        return ""
-    # Cap at both cash sleeves so the confirm stays short.
-    named = " · ".join(clean[:2])
+        return None
+    named = clean[:2]
     n_open = min(len(clean), 2)
     cash_venues = 2
     n_closed = cash_venues - n_open
-    # Two cash venues on the desk (US + Xetra); crypto stays out.
     if n_open >= 2:
         share = " · all cash"
     elif n_open == 1:
         share = " · half cash"
     else:
         share = ""
-    # Open ownership alone hid usable/closed remainder (Hours vs-open parity).
+    open_share_pct = int(round(100.0 * n_open / cash_venues))
+    # Same floors as Hours attention cash share: hot ≥75 · quiet ≤25.
+    if open_share_pct >= 75:
+        open_sev = "hot"
+    elif open_share_pct <= 25:
+        open_sev = "quiet"
+    else:
+        open_sev = "ok"
     closed_share_pct = int(round(100.0 * n_closed / cash_venues))
     # Same floors as Hours attention_open_share: strong ≥75 · thin <50.
     if closed_share_pct >= 75:
@@ -951,6 +955,78 @@ def format_config_save_session_bit(open_cash: list[str] | None) -> str:
         closed_sev = "thin"
     else:
         closed_sev = "ok"
+    return named, n_open, n_closed, share, open_sev, closed_sev
+
+
+def config_save_session_vs_closed_lean(
+    open_cash: list[str] | None,
+) -> str:
+    """Compact ``align · hot|thin`` / ``clash · open hot · closed ok``.
+
+    Hours attn vs open lean parity after mid-session vs-closed sides.
+    Extremes only; half cash (both mid) stays silent.
+    """
+    parsed = _config_save_session_shares(open_cash)
+    if parsed is None:
+        return ""
+    _, _, _, _, open_sev, closed_sev = parsed
+    open_lean = open_sev in {"hot", "quiet"}
+    closed_lean = closed_sev in {"strong", "thin"}
+    if open_lean and closed_lean:
+        matched = (
+            open_sev == "hot" and closed_sev == "thin"
+        ) or (open_sev == "quiet" and closed_sev == "strong")
+        if matched:
+            return f"align · {open_sev}|{closed_sev}"
+        return f"clash · open {open_sev} · closed {closed_sev}"
+    if open_lean != closed_lean:
+        return f"clash · open {open_sev} · closed {closed_sev}"
+    return ""
+
+
+def config_save_session_vs_closed_warn(
+    open_cash: list[str] | None,
+) -> bool:
+    """True when open vs closed lean is adverse (hot|thin align or clash).
+
+    Favorable quiet|strong align stays calm; half mid stays silent.
+    Hours attention_vs_open_warn parity — label ≠ severity.
+    """
+    lean = config_save_session_vs_closed_lean(open_cash)
+    if not lean:
+        return False
+    if lean.startswith("align · hot|thin"):
+        return True
+    if lean.startswith("clash ·"):
+        parsed = _config_save_session_shares(open_cash)
+        if parsed is None:
+            return False
+        _, _, _, _, open_sev, closed_sev = parsed
+        return open_sev == "hot" or closed_sev == "thin"
+    return False
+
+
+def format_config_save_session_bit(open_cash: list[str] | None) -> str:
+    """Compact ``mid session · US open · half cash · vs 1 closed · 50%``.
+
+    Empty when all cash closed — quiet nights need no mid-session warn.
+    Venue names alone hid partial vs total cash live (Hours attention
+    half/all cash parity). Open share alone hid remaining dark sleeves
+    (Hours attention vs open + portfolio AI speak-both-sides / count≠share).
+    Sides alone hid lean agreement (Hours attn vs open lean). Lean owns
+    the relationship on the clip; vs-closed % stays computable from shares.
+    Crypto stays out of the cash denom (two sleeves: US + Xetra).
+    """
+    parsed = _config_save_session_shares(open_cash)
+    if parsed is None:
+        return ""
+    named_list, _n_open, n_closed, share, _open_sev, closed_sev = parsed
+    named = " · ".join(named_list)
+    lean = config_save_session_vs_closed_lean(open_cash)
+    if lean:
+        # Lean owns the clip (Hours attn vs open); drop vs-closed %.
+        return f"mid session · {named} open{share} · open vs closed {lean}"
+    closed_share_pct = int(round(100.0 * n_closed / 2))
     vs_closed = f"vs {n_closed} closed"
     if closed_sev in {"strong", "thin"}:
         vs_closed = f"{vs_closed} · {closed_sev} · {closed_share_pct}%"

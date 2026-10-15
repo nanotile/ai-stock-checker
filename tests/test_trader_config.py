@@ -54,6 +54,8 @@ def test_config_changed_impact_severity_hot_vs_quiet():
     from stock_checker.trader_config import (
         config_changed_impact_severity,
         config_changed_impact_warn,
+        config_save_session_vs_closed_lean,
+        config_save_session_vs_closed_warn,
         format_config_save_confirm,
         format_config_save_session_bit,
     )
@@ -71,21 +73,30 @@ def test_config_changed_impact_severity_hot_vs_quiet():
     assert confirm.endswith("Continue?")
     assert format_config_save_confirm([]) == ""
     # xang1234 #636 when-to-run: mid-session only on hot + open cash.
-    # Venue names + half/all cash + vs closed (Hours attention vs-open parity).
+    # Venue names + half/all cash + vs closed + lean (Hours attn vs open).
     assert format_config_save_session_bit([]) == ""
+    assert config_save_session_vs_closed_lean([]) == ""
+    assert config_save_session_vs_closed_warn([]) is False
     assert format_config_save_session_bit(["US"]) == (
         "mid session · US open · half cash · vs 1 closed · 50%"
     )
+    assert config_save_session_vs_closed_lean(["US"]) == ""
+    assert config_save_session_vs_closed_warn(["US"]) is False
+    assert config_save_session_vs_closed_lean(["US", "Xetra"]) == (
+        "align · hot|thin"
+    )
+    assert config_save_session_vs_closed_warn(["US", "Xetra"]) is True
     assert (
         format_config_save_session_bit(["US", "Xetra"])
-        == "mid session · US · Xetra open · all cash · vs 0 closed · thin · 0%"
+        == "mid session · US · Xetra open · all cash · "
+        "open vs closed align · hot|thin"
     )
     mid = format_config_save_confirm(
         ["min_hold_hours"], open_cash=["US", "Xetra"]
     )
     assert (
-        "mid session · US · Xetra open · all cash · vs 0 closed · thin · 0%"
-        in mid
+        "mid session · US · Xetra open · all cash · "
+        "open vs closed align · hot|thin" in mid
     )
     assert mid.endswith("Continue?")
     half = format_config_save_confirm(
