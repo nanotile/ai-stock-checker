@@ -19386,12 +19386,17 @@ def build_equity_hours_glance(
     ``clash · attention hot · open strong`` (soft-allow gap vs other lean
     / Screener junk vs ok lean parity; attention hot ≥75% · quiet ≤25%;
     half-cash mid stays silent so the Hours line is not cluttered; clash
-    warns when attention hot or open thin). Adverse align ``hot|thin``
+    warns when attention hot or open thin).     Adverse align ``hot|thin``
     (all cash dark + open thin) escalates the Hours chip to ``warn`` —
     silent-confirm hid that dual dark agreement is not a calm closed
     session (soft-allow share/lean both-clash warn + RyanJHamby age
     severity + portfolio AI speak-both-sides); favorable ``quiet|strong``
     align stays session-toned.
+
+    Active+attention alone hid a typed per-venue status strip: also expose
+    ``venue_chips`` / ``venue_chips_line`` grouped by cash vs crypto with
+    open|closed|on per market (xang1234 #635 Operations job-type row + chip
+    per market — no Celery schedules here; session status is the chip).
     """
     from stock_checker.market_hours import (
         is_us_cash_session_closed,
@@ -19419,6 +19424,32 @@ def build_equity_hours_glance(
         active.append("Xetra")
     # Crypto is always live — always in the active set (24/7).
     active.append("crypto")
+    # Typed chips: one cash group + one crypto group (xang1234 #635).
+    venue_chips: list[dict[str, str]] = [
+        {
+            "group": "cash",
+            "id": "US",
+            "status": "closed" if us_closed else "open",
+            "label": "US closed" if us_closed else "US open",
+        },
+        {
+            "group": "cash",
+            "id": "Xetra",
+            "status": "closed" if xetra_closed else "open",
+            "label": "Xetra closed" if xetra_closed else "Xetra open",
+        },
+        {
+            "group": "crypto",
+            "id": "crypto",
+            "status": "on",
+            "label": "crypto on",
+        },
+    ]
+    us_chip = venue_chips[0]["label"]
+    xetra_chip = venue_chips[1]["label"]
+    venue_chips_line = f"cash · {us_chip} · {xetra_chip} · crypto · on"
+    if len(venue_chips_line) > 96:
+        venue_chips_line = venue_chips_line[:95] + "…"
     if not us_closed and not xetra_closed:
         tone = "open"
     elif us_closed and xetra_closed:
@@ -19549,6 +19580,8 @@ def build_equity_hours_glance(
         "inactive_count": len(inactive),
         "active_markets": active,
         "inactive_markets": inactive,
+        "venue_chips": venue_chips,
+        "venue_chips_line": venue_chips_line,
         "us_open": not us_closed,
         "xetra_open": not xetra_closed,
     }

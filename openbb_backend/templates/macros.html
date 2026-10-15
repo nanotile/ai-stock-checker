@@ -584,6 +584,23 @@
     <span class="pretrade-sep" aria-hidden="true">·</span>
     <a class="equity-hours-glance-link" href="{{ link_href }}">{{ link_label }}</a>
   </p>
+  {% if glance.venue_chips_line %}
+  <p class="equity-hours-venue-chips" aria-label="Venue session chips">
+    {% set chips = glance.venue_chips if glance.venue_chips is sequence and glance.venue_chips is not string else [] %}
+    {% if chips %}
+    <span class="equity-hours-venue-group">Cash</span>
+    {% for chip in chips if chip.group == 'cash' %}
+    <span class="equity-hours-venue-chip {{ chip.status }}">{{ chip.label }}</span>
+    {% endfor %}
+    <span class="equity-hours-venue-group">Crypto</span>
+    {% for chip in chips if chip.group == 'crypto' %}
+    <span class="equity-hours-venue-chip {{ chip.status }}">{{ chip.label }}</span>
+    {% endfor %}
+    {% else %}
+    <span class="equity-hours-venue-chips-body">{{ glance.venue_chips_line }}</span>
+    {% endif %}
+  </p>
+  {% endif %}
   {% if glance.inactive_line %}
   <details class="equity-hours-inactive">
     <summary>{{ glance.inactive_line }}</summary>

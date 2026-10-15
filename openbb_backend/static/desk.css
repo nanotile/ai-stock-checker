@@ -1225,6 +1225,42 @@ a:active {
   margin: 0.35rem 0 0;
 }
 
+/* Per-venue status chips grouped by cash vs crypto (xang1234 #635). */
+.equity-hours-venue-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.55rem;
+  margin: 0.35rem 0 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.equity-hours-venue-group {
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.72rem;
+}
+.equity-hours-venue-chip {
+  border: 1px solid var(--line);
+  border-radius: 0;
+  padding: 0.05rem 0.35rem;
+  color: var(--ink);
+}
+.equity-hours-venue-chip.closed {
+  color: var(--muted);
+  border-color: var(--line);
+}
+.equity-hours-venue-chip.open,
+.equity-hours-venue-chip.on {
+  color: var(--ink);
+  border-color: var(--accent);
+}
+.equity-hours-venue-chips-body {
+  color: var(--muted);
+}
+
 /* Closed cash venues behind disclosure (xang1234 #631 active-markets-first). */
 .equity-hours-inactive {
   margin: 0.35rem 0 0;

@@ -35,6 +35,11 @@ def test_equity_hours_glance_both_open_us_morning() -> None:
     assert g["inactive_count"] == 0
     assert g["active_markets"] == ["US", "Xetra", "crypto"]
     assert g["inactive_markets"] == []
+    assert g["venue_chips_line"] == (
+        "cash · US open · Xetra open · crypto · on"
+    )
+    assert [c["id"] for c in g["venue_chips"]] == ["US", "Xetra", "crypto"]
+    assert [c["status"] for c in g["venue_chips"]] == ["open", "open", "on"]
 
 
 def test_equity_hours_glance_both_closed_weekend() -> None:
@@ -67,6 +72,14 @@ def test_equity_hours_glance_both_closed_weekend() -> None:
     assert g["inactive_count"] == 2
     assert g["active_markets"] == ["crypto"]
     assert g["inactive_markets"] == ["US", "Xetra"]
+    assert g["venue_chips_line"] == (
+        "cash · US closed · Xetra closed · crypto · on"
+    )
+    assert [c["status"] for c in g["venue_chips"]] == [
+        "closed",
+        "closed",
+        "on",
+    ]
 
 
 def test_equity_hours_glance_split_xetra_only() -> None:
@@ -99,6 +112,12 @@ def test_equity_hours_glance_split_xetra_only() -> None:
     assert g["inactive_count"] == 1
     assert g["active_markets"] == ["Xetra", "crypto"]
     assert g["inactive_markets"] == ["US"]
+    assert g["venue_chips_line"] == (
+        "cash · US closed · Xetra open · crypto · on"
+    )
+    assert g["venue_chips"][0]["status"] == "closed"
+    assert g["venue_chips"][1]["status"] == "open"
+    assert g["venue_chips"][2]["status"] == "on"
 
 
 def test_equity_hours_glance_in_snapshot(tmp_path) -> None:
@@ -125,6 +144,9 @@ def test_equity_hours_glance_in_snapshot(tmp_path) -> None:
     assert "attention_vs_open" in g
     assert "attention_vs_open_warn" in g
     assert "cash_open" in g
+    assert "venue_chips" in g
+    assert "venue_chips_line" in g
+    assert g["venue_chips_line"].startswith("cash · ")
 
 
 def test_equity_hours_glance_in_chart_payload(tmp_path) -> None:
@@ -149,3 +171,6 @@ def test_equity_hours_glance_in_chart_payload(tmp_path) -> None:
     assert "attention_vs_open" in g
     assert "attention_vs_open_warn" in g
     assert "cash_open" in g
+    assert "venue_chips" in g
+    assert "venue_chips_line" in g
+    assert g["venue_chips_line"].startswith("cash · ")

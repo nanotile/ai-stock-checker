@@ -2341,6 +2341,44 @@
     link.textContent = "Screener →";
     line.appendChild(link);
     wrap.appendChild(line);
+    if (glance.venue_chips_line || (glance.venue_chips && glance.venue_chips.length)) {
+      var chipsRow = document.createElement("p");
+      chipsRow.className = "equity-hours-venue-chips";
+      chipsRow.setAttribute("aria-label", "Venue session chips");
+      var chips = Array.isArray(glance.venue_chips) ? glance.venue_chips : [];
+      if (chips.length) {
+        var cashLabel = document.createElement("span");
+        cashLabel.className = "equity-hours-venue-group";
+        cashLabel.textContent = "Cash";
+        chipsRow.appendChild(cashLabel);
+        chips.forEach(function (chip) {
+          if (!chip || chip.group !== "cash") return;
+          var el = document.createElement("span");
+          el.className =
+            "equity-hours-venue-chip " + String(chip.status || "");
+          el.textContent = String(chip.label || chip.id || "");
+          chipsRow.appendChild(el);
+        });
+        var cryptoLabel = document.createElement("span");
+        cryptoLabel.className = "equity-hours-venue-group";
+        cryptoLabel.textContent = "Crypto";
+        chipsRow.appendChild(cryptoLabel);
+        chips.forEach(function (chip) {
+          if (!chip || chip.group !== "crypto") return;
+          var el = document.createElement("span");
+          el.className =
+            "equity-hours-venue-chip " + String(chip.status || "");
+          el.textContent = String(chip.label || chip.id || "");
+          chipsRow.appendChild(el);
+        });
+      } else {
+        var chipsBody = document.createElement("span");
+        chipsBody.className = "equity-hours-venue-chips-body";
+        chipsBody.textContent = String(glance.venue_chips_line);
+        chipsRow.appendChild(chipsBody);
+      }
+      wrap.appendChild(chipsRow);
+    }
     if (glance.inactive_line) {
       var fold = document.createElement("details");
       fold.className = "equity-hours-inactive";
