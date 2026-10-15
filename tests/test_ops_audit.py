@@ -147,6 +147,7 @@ def test_format_last_ops_action_bit_accepted_speaks_changed_impact():
     from stock_checker.ops_audit import (
         ops_changed_impact_bit,
         ops_changed_impact_warn,
+        ops_changed_session_bit,
     )
 
     now = datetime(2026, 10, 15, 6, 0, 0, tzinfo=timezone.utc)
@@ -161,14 +162,32 @@ def test_format_last_ops_action_bit_accepted_speaks_changed_impact():
     bit = format_last_ops_action_bit(row, now=now)
     assert bit.startswith("last config · accepted · Δ hot · AI · hold ·")
     assert "1h fresh" in bit
+    # Mid-session after hot Δ when open_cash was recorded at Save time.
+    mid_row = {
+        "kind": "config",
+        "outcome": "accepted",
+        "at": "2026-10-15T05:00:00Z",
+        "detail": {
+            "changed": ["min_hold_hours"],
+            "open_cash": ["US", "Xetra"],
+        },
+    }
+    assert ops_changed_session_bit(mid_row) == "mid session · US · Xetra open"
+    mid_bit = format_last_ops_action_bit(mid_row, now=now)
+    assert "Δ hot · hold · mid session · US · Xetra open ·" in mid_bit
     quiet = {
         "kind": "config",
         "outcome": "accepted",
         "at": "2026-10-15T05:00:00Z",
-        "detail": {"changed": ["ai_mode"], "ai_mode": "off"},
+        "detail": {
+            "changed": ["ai_mode"],
+            "ai_mode": "off",
+            "open_cash": ["US"],  # quiet Save ignores mid-session
+        },
     }
     assert ops_changed_impact_bit(quiet) == "Δ quiet · AI"
     assert ops_changed_impact_warn(quiet) is False
+    assert ops_changed_session_bit(quiet) == ""
     # Legacy accepted without changed stays silent on Δ.
     bare = format_last_ops_action_bit(
         {

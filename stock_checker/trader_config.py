@@ -896,17 +896,60 @@ def config_changed_impact_warn(keys: list[str] | None) -> bool:
     return config_changed_impact_severity(keys) == "hot"
 
 
-def format_config_save_confirm(keys: list[str] | None) -> str:
+def config_save_open_cash_venues(
+    *, now: datetime | None = None
+) -> list[str]:
+    """Cash sleeves open right now (US / Xetra) — mid-session Save context.
+
+    xang1234 #636 when-to-run: hot Runs during a live session need a louder
+    confirm. Crypto is 24/7 and stays out of this list (book/fee knobs still
+    apply, but the mid-session warn is about cash RTH).
+    """
+    from .market_hours import (
+        is_us_cash_session_closed,
+        is_xetra_session_closed,
+    )
+
+    open_cash: list[str] = []
+    if not is_us_cash_session_closed(now=now):
+        open_cash.append("US")
+    if not is_xetra_session_closed(now=now):
+        open_cash.append("Xetra")
+    return open_cash
+
+
+def format_config_save_session_bit(open_cash: list[str] | None) -> str:
+    """Compact ``mid session · US · Xetra open`` when cash RTH is live.
+
+    Empty when all cash closed — quiet nights need no mid-session warn.
+    """
+    clean = [str(v).strip() for v in (open_cash or []) if str(v).strip()]
+    if not clean:
+        return ""
+    # Cap at both cash sleeves so the confirm stays short.
+    named = " · ".join(clean[:2])
+    return f"mid session · {named} open"
+
+
+def format_config_save_confirm(
+    keys: list[str] | None,
+    *,
+    open_cash: list[str] | None = None,
+) -> str:
     """Browser confirm copy when Save would move hot knobs (xang1234 #636).
 
     Empty when quiet / no-op — advisory AI/gates save without a prompt.
     Hot book/fee/promote/hold asks once before the mutating PUT.
+    When cash RTH is open, also speak mid-session (when-to-run honesty).
     """
     if not config_changed_impact_warn(keys):
         return ""
     bit = format_config_changed_bit(keys)
     if not bit:
         return ""
+    session = format_config_save_session_bit(open_cash)
+    if session:
+        return f"Save moves live paper risk ({bit}) · {session}. Continue?"
     return f"Save moves live paper risk ({bit}). Continue?"
 
 

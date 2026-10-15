@@ -697,7 +697,9 @@ def format_last_ops_action_bit(
     An ``accepted`` / hanging ``requested`` row with ``detail.changed`` speaks
     compact ``Δ AI · hold`` after the outcome (xang1234 #636 explain what a
     Run affects — adapted to Ops Save knob impact; bare accepted hid which
-    knobs moved).
+    knobs moved). When ``detail.open_cash`` names live US/Xetra sleeves,
+    also speak ``mid session · US open`` after Δ (xang1234 #636 when-to-run
+    — hot Save during cash RTH ≠ a quiet overnight tweak).
 
     Parseable stamps speak compact relative age + freshness band instead of
     raw ISO (RyanJHamby/xang1234 + Ops saved-row age parity — bare ``…Z``
@@ -737,8 +739,10 @@ def format_last_ops_action_bit(
         if why:
             outcome = f"error · {why}"
     impact = ""
+    session = ""
     if raw_outcome in {"accepted", "requested"}:
         impact = ops_changed_impact_bit(row)
+        session = ops_changed_session_bit(row)
     age = ops_outcome_age_line(row, now=now)
     relation = ""
     if age and raw_outcome != "requested":
@@ -748,6 +752,8 @@ def format_last_ops_action_bit(
     parts = [f"last {kind}", outcome]
     if impact:
         parts.append(impact)
+        if session:
+            parts.append(session)
     if age:
         parts.append(age)
         if relation:
@@ -891,6 +897,32 @@ def ops_changed_impact_bit(row: dict[str, Any] | None) -> str:
     return format_config_changed_bit(keys)
 
 
+def _ops_open_cash(row: dict[str, Any] | None) -> list[str]:
+    """Parse audit ``detail.open_cash`` venue labels (empty when absent)."""
+    if not isinstance(row, dict):
+        return []
+    detail = row.get("detail")
+    if not isinstance(detail, dict):
+        return []
+    raw = detail.get("open_cash")
+    if not isinstance(raw, list):
+        return []
+    return [str(v).strip() for v in raw if str(v).strip()]
+
+
+def ops_changed_session_bit(row: dict[str, Any] | None) -> str:
+    """Compact ``mid session · US open`` from audit ``detail.open_cash`` (#636).
+
+    Only speaks on hot Saves (book/fee/promote) that recorded open cash —
+    quiet AI/gates mid-session stay silent (when-to-run is for live risk).
+    """
+    if not ops_changed_impact_warn(row):
+        return ""
+    from .trader_config import format_config_save_session_bit
+
+    return format_config_save_session_bit(_ops_open_cash(row))
+
+
 def ops_changed_impact_warn(row: dict[str, Any] | None) -> bool:
     """True when last accepted/pending Save moved hot book/fee/promote knobs.
 
@@ -923,6 +955,16 @@ def _safe_detail(detail: dict[str, Any] | None) -> dict[str, Any]:
             cleaned = [
                 str(item).strip()[:40]
                 for item in val[:16]
+                if str(item).strip()
+            ]
+            if cleaned:
+                out[k] = cleaned
+            continue
+        if k == "open_cash" and isinstance(val, list):
+            # xang1234 #636 when-to-run: persist live cash sleeves for mid-session.
+            cleaned = [
+                str(item).strip()[:16]
+                for item in val[:4]
                 if str(item).strip()
             ]
             if cleaned:

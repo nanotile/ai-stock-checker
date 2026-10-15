@@ -297,8 +297,10 @@ async def desk_config_put(
         ALLOWED_AI_MODES,
         config_changed_impact_severity,
         config_changed_impact_warn,
+        config_save_open_cash_venues,
         format_config_changed_bit,
         format_config_save_confirm,
+        format_config_save_session_bit,
         save_trader_config,
         trader_config_changed_keys,
     )
@@ -333,7 +335,10 @@ async def desk_config_put(
     impact = format_config_changed_bit(changed)
     severity = config_changed_impact_severity(changed)
     needs_confirm = config_changed_impact_warn(changed)
-    confirm = format_config_save_confirm(changed)
+    # xang1234 #636 when-to-run: mid-session only matters for hot Saves.
+    open_cash = config_save_open_cash_venues() if needs_confirm else []
+    session_bit = format_config_save_session_bit(open_cash)
+    confirm = format_config_save_confirm(changed, open_cash=open_cash)
 
     # xang1234 #636: preview impact before Run/Save — no audit noise on dry-run.
     if dry_run:
@@ -345,6 +350,9 @@ async def desk_config_put(
             "changed_impact_severity": severity,
             "needs_confirm": needs_confirm,
             "confirm": confirm,
+            "open_cash": open_cash,
+            "session_bit": session_bit,
+            "mid_session": bool(session_bit),
             "note": (
                 confirm
                 or (
@@ -370,8 +378,11 @@ async def desk_config_put(
         )
 
     # xang1234 #636: persist which knobs this Save affects (glance Δ + toast).
+    # Mid-session open_cash only on hot Saves (when-to-run honesty).
     detail = {k: body.get(k) for k in sorted(body)[:16]}
     detail["changed"] = changed
+    if open_cash:
+        detail["open_cash"] = open_cash
 
     saved, audit = audited_ops_action(
         DATA_DIR,
@@ -394,7 +405,16 @@ async def desk_config_put(
         )
     note = "Saved. Trader applies on the next loop iteration (~trade interval)."
     if impact:
-        note = f"Saved ({impact}). Trader applies on the next loop iteration (~trade interval)."
+        if session_bit:
+            note = (
+                f"Saved ({impact} · {session_bit}). "
+                "Trader applies on the next loop iteration (~trade interval)."
+            )
+        else:
+            note = (
+                f"Saved ({impact}). "
+                "Trader applies on the next loop iteration (~trade interval)."
+            )
     return {
         **saved,
         "source": "file",
@@ -405,6 +425,9 @@ async def desk_config_put(
         "changed": changed,
         "changed_bit": impact,
         "changed_impact_severity": severity,
+        "open_cash": open_cash,
+        "session_bit": session_bit,
+        "mid_session": bool(session_bit),
         "note": note,
     }
 

@@ -438,6 +438,14 @@ def test_desk_config_api_dry_run_preview_no_write(tmp_path: Path, monkeypatch):
     assert "min_hold_hours" in (body.get("changed") or [])
     assert str(body.get("changed_bit") or "").startswith("Δ hot")
     assert "Continue?" in str(body.get("confirm") or "")
+    # Mid-session fields always present on hot dry-run (may be empty off-hours).
+    assert "open_cash" in body
+    assert "session_bit" in body
+    assert "mid_session" in body
+    assert isinstance(body.get("open_cash"), list)
+    if body.get("mid_session"):
+        assert "mid session" in str(body.get("confirm") or "")
+        assert body.get("session_bit")
     quiet = client.put(
         "/desk/api/config?dry_run=1",
         json={

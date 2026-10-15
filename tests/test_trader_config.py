@@ -55,6 +55,7 @@ def test_config_changed_impact_severity_hot_vs_quiet():
         config_changed_impact_severity,
         config_changed_impact_warn,
         format_config_save_confirm,
+        format_config_save_session_bit,
     )
 
     assert config_changed_impact_severity([]) == ""
@@ -69,6 +70,36 @@ def test_config_changed_impact_severity_hot_vs_quiet():
     assert confirm.startswith("Save moves live paper risk (Δ hot · AI · hold)")
     assert confirm.endswith("Continue?")
     assert format_config_save_confirm([]) == ""
+    # xang1234 #636 when-to-run: mid-session only on hot + open cash.
+    assert format_config_save_session_bit([]) == ""
+    assert format_config_save_session_bit(["US"]) == "mid session · US open"
+    assert (
+        format_config_save_session_bit(["US", "Xetra"])
+        == "mid session · US · Xetra open"
+    )
+    mid = format_config_save_confirm(
+        ["min_hold_hours"], open_cash=["US", "Xetra"]
+    )
+    assert "mid session · US · Xetra open" in mid
+    assert mid.endswith("Continue?")
+    # Quiet Save ignores open_cash (no confirm).
+    assert format_config_save_confirm(["ai_mode"], open_cash=["US"]) == ""
+
+
+def test_config_save_open_cash_venues_us_morning_vs_weekend():
+    """xang1234 #636 when-to-run: open cash sleeves from market_hours."""
+    from datetime import datetime, timezone
+
+    from stock_checker.trader_config import config_save_open_cash_venues
+
+    # Wednesday 15:00 UTC ≈ US RTH + Xetra afternoon overlap.
+    wed = datetime(2026, 10, 14, 15, 0, 0, tzinfo=timezone.utc)
+    open_cash = config_save_open_cash_venues(now=wed)
+    assert "US" in open_cash
+    assert "Xetra" in open_cash
+    # Saturday — both cash closed.
+    sat = datetime(2026, 10, 17, 15, 0, 0, tzinfo=timezone.utc)
+    assert config_save_open_cash_venues(now=sat) == []
 
 
 def test_trader_config_would_change_detects_noop(tmp_path: Path):
