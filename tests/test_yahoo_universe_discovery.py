@@ -30,6 +30,24 @@ def test_classify_yahoo_discovery_error_bundle_and_exc():
     assert (
         classify_yahoo_discovery_error(screens_ok=1, screens_failed=2) == "thin"
     )
+    assert (
+        classify_yahoo_discovery_error(
+            screens_ok=0, screens_failed=3, timeout_fails=3
+        )
+        == "timeout"
+    )
+    assert (
+        classify_yahoo_discovery_error(
+            screens_ok=0, screens_failed=3, timeout_fails=2
+        )
+        == "timeout"
+    )
+    assert (
+        classify_yahoo_discovery_error(
+            screens_ok=0, screens_failed=3, timeout_fails=1
+        )
+        == "empty"
+    )
     assert classify_yahoo_discovery_error(TimeoutError("timed out")) == "timeout"
     assert classify_yahoo_discovery_error(RuntimeError("HTTP 403")) == "http"
     assert classify_yahoo_discovery_error(YahooScreenEmptyError("empty")) == "empty"
@@ -189,7 +207,7 @@ def test_screen_payload_failed_empty_or_thin():
 
 
 def test_discover_yahoo_mover_symbols_mocked(monkeypatch):
-    def fake_fetch(screen: str, *, count: int = 25):
+    def fake_fetch(screen: str, *, count: int = 25, timeout_sec=None):
         if screen == "day_gainers":
             return ["AAPL", "USDT"]  # USDT filtered by is_tradeable
         if screen == "day_losers":
@@ -207,20 +225,46 @@ def test_discover_yahoo_mover_symbols_mocked(monkeypatch):
 
 
 def test_discover_yahoo_mover_report_all_empty_is_failed(monkeypatch):
-    def boom(screen: str, *, count: int = 25):
+    def boom(screen: str, *, count: int = 25, timeout_sec=None):
         raise YahooScreenEmptyError(screen)
 
     monkeypatch.setattr(
         "stock_checker.yahoo_universe_discovery.fetch_yahoo_screen_symbols",
         boom,
     )
-    symbols, ok, failed = discover_yahoo_mover_report(
+    symbols, ok, failed, timeouts = discover_yahoo_mover_report(
         screens=("day_gainers", "day_losers"), per_screen=5
     )
     assert symbols == []
     assert ok == 0
     assert failed == 2
+    assert timeouts == 0
     assert screens_bundle_failed(ok, failed) is True
+
+
+def test_discover_yahoo_mover_report_counts_timeouts(monkeypatch):
+    """xang1234 #639: hung screens count as timeout_fails (not quiet empty)."""
+
+    def hang(screen: str, *, count: int = 25, timeout_sec=None):
+        raise TimeoutError(f"yahoo screen {screen} timed out")
+
+    monkeypatch.setattr(
+        "stock_checker.yahoo_universe_discovery.fetch_yahoo_screen_symbols",
+        hang,
+    )
+    symbols, ok, failed, timeouts = discover_yahoo_mover_report(
+        screens=("day_gainers", "day_losers"), per_screen=5
+    )
+    assert symbols == []
+    assert ok == 0
+    assert failed == 2
+    assert timeouts == 2
+    assert (
+        classify_yahoo_discovery_error(
+            screens_ok=ok, screens_failed=failed, timeout_fails=timeouts
+        )
+        == "timeout"
+    )
 
 
 def test_screens_bundle_failed_majority_or_empty():
@@ -323,3 +367,22 @@ def test_fetch_yahoo_screen_403_is_empty_error(monkeypatch):
     monkeypatch.setitem(__import__("sys").modules, "yfinance", _YF)
     with pytest.raises(YahooScreenEmptyError):
         fetch_yahoo_screen_symbols("day_gainers", count=5)
+
+
+def test_fetch_yahoo_screen_timeout_raises(monkeypatch):
+    """xang1234 #639: hung yf.screen cannot stall the scan join forever."""
+    import time
+
+    import pytest
+
+    from stock_checker.yahoo_universe_discovery import fetch_yahoo_screen_symbols
+
+    class _YF:
+        @staticmethod
+        def screen(screen, count=25):
+            time.sleep(2.0)
+            return {"quotes": []}
+
+    monkeypatch.setitem(__import__("sys").modules, "yfinance", _YF)
+    with pytest.raises(TimeoutError, match="timed out"):
+        fetch_yahoo_screen_symbols("day_gainers", count=5, timeout_sec=1)

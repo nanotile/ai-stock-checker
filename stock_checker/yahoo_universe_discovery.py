@@ -8,6 +8,7 @@ fees gates.
 
 from __future__ import annotations
 
+import threading
 from datetime import datetime, timezone
 from typing import Any, List, Sequence
 
@@ -21,6 +22,9 @@ DEFAULT_YAHOO_DISCOVERY_MAX_AGE_HOURS = 24
 # Failed Yahoo still retries sooner than the 24h success throttle, but not
 # on every 15m scan — calm the thrash when movers stay blocked.
 DEFAULT_YAHOO_FAIL_BACKOFF_HOURS = 1
+# xang1234 #639: bound hung Yahoo screens (feedparser/requests had no timeout
+# and looked like quiet empty forever). Per-screen join ceiling for yf.screen.
+DEFAULT_YAHOO_SCREEN_TIMEOUT_SEC = 20
 DEFAULT_SCREENS: tuple[str, ...] = ("day_gainers", "day_losers", "most_actives")
 # xang1234: a mostly empty snapshot is a failed fetch, not a quiet day.
 EMPTY_SCREEN_FRACTION = 0.2
@@ -144,19 +148,32 @@ def classify_yahoo_discovery_error(
     *,
     screens_ok: int | None = None,
     screens_failed: int | None = None,
+    timeout_fails: int = 0,
 ) -> str:
     """Map a dead Yahoo movers fetch to a compact error class.
 
     xang1234 #639 reports content-source failures by kind so friends see
     *why* movers stayed dead — not only N× / fail age. Bundle path:
     ``empty`` when no screen answered; ``thin`` when majority failed but
-    some answered. Exception path: ``timeout`` / ``http`` / ``error``.
+    some answered. Transport timeouts own the class when they are the
+    majority of failed screens (hung ≠ quiet empty). Exception path:
+    ``timeout`` / ``http`` / ``error``.
     """
+    try:
+        timed_out = max(0, int(timeout_fails))
+    except (TypeError, ValueError):
+        timed_out = 0
     if screens_ok is not None and screens_failed is not None:
         ok_n = max(0, int(screens_ok))
+        fail_n = max(0, int(screens_failed))
+        other_fails = max(0, fail_n - timed_out)
+        # Prefer timeout when transport death owns (or ties) the fail side.
+        if timed_out > 0 and timed_out >= max(1, other_fails):
+            if ok_n <= 0 or screens_bundle_failed(ok_n, fail_n):
+                return "timeout"
         if ok_n <= 0:
             return "empty"
-        if screens_bundle_failed(ok_n, int(screens_failed)):
+        if screens_bundle_failed(ok_n, fail_n):
             return "thin"
     if exc is None:
         return "error"
@@ -436,21 +453,44 @@ def fetch_yahoo_screen_symbols(
     screen: str,
     *,
     count: int = DEFAULT_MOVER_COUNT,
+    timeout_sec: int | None = None,
 ) -> List[str]:
     """
     Return tradeable equity symbols from a yfinance predefined screen.
 
     Network call — wrap in try/except at call sites. Offline tests should mock.
+    xang1234 #639: join ceiling so a hung Yahoo cannot stall the scan loop;
+    timeout raises ``TimeoutError`` (not quiet empty).
     """
     import yfinance as yf
 
     want = max(1, min(100, int(count)))
-    try:
-        payload = yf.screen(screen, count=want)
-    except Exception as e:
+    limit = (
+        DEFAULT_YAHOO_SCREEN_TIMEOUT_SEC
+        if timeout_sec is None
+        else max(1, int(timeout_sec))
+    )
+    box: dict[str, Any] = {}
+
+    def _call() -> None:
+        try:
+            box["payload"] = yf.screen(screen, count=want)
+        except Exception as e:
+            box["error"] = e
+
+    worker = threading.Thread(target=_call, name=f"yahoo-screen-{screen}", daemon=True)
+    worker.start()
+    worker.join(timeout=float(limit))
+    if worker.is_alive():
+        raise TimeoutError(f"yahoo screen {screen} timed out after {limit}s")
+    if "error" in box:
+        err = box["error"]
+        if isinstance(err, TimeoutError):
+            raise err
         # xang1234 008f0ca: HTTP 403 / soft block → failed screen, not a raise
         # out of universe refresh.
-        raise YahooScreenEmptyError(screen) from e
+        raise YahooScreenEmptyError(screen) from err
+    payload = box.get("payload")
     if screen_payload_failed(payload, expected=want):
         raise YahooScreenEmptyError(screen)
     out: list[str] = []
@@ -473,16 +513,24 @@ def discover_yahoo_mover_report(
     *,
     screens: Sequence[str] = DEFAULT_SCREENS,
     per_screen: int = DEFAULT_MOVER_COUNT,
-) -> tuple[List[str], int, int]:
-    """Symbols plus how many screens succeeded vs failed (empty/blocked)."""
+    timeout_sec: int | None = None,
+) -> tuple[List[str], int, int, int]:
+    """Symbols plus screens ok / failed / timed-out (empty/blocked/hang)."""
     out: list[str] = []
     seen: set[str] = set()
     ok = 0
     failed = 0
+    timeouts = 0
     for name in screens:
         try:
-            batch = fetch_yahoo_screen_symbols(name, count=per_screen)
+            batch = fetch_yahoo_screen_symbols(
+                name, count=per_screen, timeout_sec=timeout_sec
+            )
             ok += 1
+        except TimeoutError:
+            failed += 1
+            timeouts += 1
+            continue
         except Exception:
             failed += 1
             continue
@@ -493,7 +541,7 @@ def discover_yahoo_mover_report(
                 continue
             seen.add(sym)
             out.append(sym)
-    return out, ok, failed
+    return out, ok, failed, timeouts
 
 
 def discover_yahoo_mover_symbols(
@@ -502,7 +550,7 @@ def discover_yahoo_mover_symbols(
     per_screen: int = DEFAULT_MOVER_COUNT,
 ) -> List[str]:
     """Union of symbols across screens, stable order, de-duplicated."""
-    symbols, _ok, _failed = discover_yahoo_mover_report(
+    symbols, _ok, _failed, _timeouts = discover_yahoo_mover_report(
         screens=screens, per_screen=per_screen
     )
     return symbols

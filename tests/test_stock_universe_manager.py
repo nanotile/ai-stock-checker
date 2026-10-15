@@ -44,7 +44,7 @@ def test_discover_yahoo_movers_empty_does_not_stamp_cache(tmp_path: Path, monkey
     names = list(mgr.universe["stocks"].keys())[:5]
 
     def empty_report(*, per_screen: int = 25):
-        return [], 0, 3
+        return [], 0, 3, 0
 
     monkeypatch.setattr(
         "stock_checker.yahoo_universe_discovery.discover_yahoo_mover_report",
@@ -58,6 +58,7 @@ def test_discover_yahoo_movers_empty_does_not_stamp_cache(tmp_path: Path, monkey
     assert meta["last_yahoo_added"] == 3
     assert "last_yahoo_discovery_fail" in meta
     assert meta.get("yahoo_discovery_fail_streak") == 1
+    assert meta.get("last_yahoo_discovery_error") == "empty"
     for n in names:
         assert n in mgr.universe["stocks"]
     assert meta.get("last_yahoo_screens_ok") == 0
@@ -83,7 +84,7 @@ def test_discover_yahoo_movers_majority_fail_discards_leftovers(
     mgr._save_universe()
 
     def thin_report(*, per_screen: int = 25):
-        return ["ZZZZFAKE"], 1, 2
+        return ["ZZZZFAKE"], 1, 2, 0
 
     monkeypatch.setattr(
         "stock_checker.yahoo_universe_discovery.discover_yahoo_mover_report",
@@ -97,6 +98,28 @@ def test_discover_yahoo_movers_majority_fail_discards_leftovers(
     assert "ZZZZFAKE" not in mgr.universe["stocks"]
     assert meta["last_yahoo_screens_ok"] == 1
     assert meta["last_yahoo_screens_failed"] == 2
+    assert meta.get("last_yahoo_discovery_error") == "thin"
+
+
+def test_discover_yahoo_movers_timeout_class(tmp_path: Path, monkeypatch):
+    """xang1234 #639: hung screens speak timeout, not quiet empty."""
+    mgr = StockUniverseManager(data_dir=str(tmp_path))
+    prior = "2026-09-01T00:00:00"
+    mgr.universe.setdefault("meta", {})
+    mgr.universe["meta"]["last_yahoo_discovery"] = prior
+    mgr._save_universe()
+
+    def timeout_report(*, per_screen: int = 25):
+        return [], 0, 3, 3
+
+    monkeypatch.setattr(
+        "stock_checker.yahoo_universe_discovery.discover_yahoo_mover_report",
+        timeout_report,
+    )
+    assert mgr.discover_yahoo_movers() == 0
+    meta = mgr.universe["meta"]
+    assert meta["last_yahoo_discovery_status"] == "failed"
+    assert meta.get("last_yahoo_discovery_error") == "timeout"
 
 
 def test_discover_yahoo_movers_403_does_not_raise(tmp_path: Path, monkeypatch):
@@ -170,7 +193,7 @@ def test_discover_yahoo_movers_prunes_dropped_movers(tmp_path: Path, monkeypatch
     mgr._save_universe()
 
     def ok_report(*, per_screen: int = 25):
-        return ["YYYYKEEP", "AAPL"], 3, 0
+        return ["YYYYKEEP", "AAPL"], 3, 0, 0
 
     monkeypatch.setattr(
         "stock_checker.yahoo_universe_discovery.discover_yahoo_mover_report",
@@ -199,7 +222,7 @@ def test_discover_yahoo_movers_partial_skips_prune(tmp_path: Path, monkeypatch):
     mgr._save_universe()
 
     def partial_report(*, per_screen: int = 25):
-        return ["NEWFAKE"], 2, 1
+        return ["NEWFAKE"], 2, 1, 0
 
     monkeypatch.setattr(
         "stock_checker.yahoo_universe_discovery.discover_yahoo_mover_report",
@@ -246,7 +269,7 @@ def test_discover_yahoo_movers_empty_does_not_prune_movers(
     mgr._save_universe()
 
     def empty_report(*, per_screen: int = 25):
-        return [], 0, 3
+        return [], 0, 3, 0
 
     monkeypatch.setattr(
         "stock_checker.yahoo_universe_discovery.discover_yahoo_mover_report",

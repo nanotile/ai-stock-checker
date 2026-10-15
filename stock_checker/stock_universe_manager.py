@@ -408,10 +408,14 @@ class StockUniverseManager:
 
         screens_ok = 0
         screens_failed = 0
+        timeout_fails = 0
         try:
-            symbols, screens_ok, screens_failed = discover_yahoo_mover_report(
-                per_screen=per_screen
-            )
+            (
+                symbols,
+                screens_ok,
+                screens_failed,
+                timeout_fails,
+            ) = discover_yahoo_mover_report(per_screen=per_screen)
         except Exception as e:
             print(f"   ⚠️ Yahoo movers discovery failed: {str(e)[:120]}")
             meta["last_yahoo_discovery_status"] = "failed"
@@ -438,7 +442,9 @@ class StockUniverseManager:
             set_yahoo_discovery_error(
                 meta,
                 classify_yahoo_discovery_error(
-                    screens_ok=screens_ok, screens_failed=screens_failed
+                    screens_ok=screens_ok,
+                    screens_failed=screens_failed,
+                    timeout_fails=timeout_fails,
                 ),
             )
             bump_yahoo_fail_streak(meta)
