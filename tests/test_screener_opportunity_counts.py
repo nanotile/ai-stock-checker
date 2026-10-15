@@ -70,15 +70,23 @@ def test_junk_slots_do_not_inflate_counts():
     assert c["ok_share_severity"] == "thin"
     assert c["junk_vs_ok"] == "align · hot|thin"
     assert c["junk_vs_ok_warn"] is False
+    # junk 62.5 − ok 37.5 = +25pp wide (lean alone ≠ ownership spread)
+    assert c["junk_vs_ok_delta_pp"] == 25.0
+    assert c["junk_vs_ok_delta_severity"] == "wide"
+    assert c["junk_vs_ok_lean_vs_delta"] == "align · wide"
+    assert c["junk_vs_ok_lean_vs_delta_warn"] is False
     assert c["lists_populated"] == 2
     assert (
         c["weight_core"]
         == "row slots · 5 junk · hot · 62.5% · in rec · crypto · brk · tied · vs 3 ok · thin · 37.5%"
     )
-    assert c["weight_lean"] == "junk vs ok align · hot|thin"
+    assert (
+        c["weight_lean"]
+        == "junk vs ok align · hot|thin · Δ wide · +25pp · lean vs Δ align · wide"
+    )
     assert (
         c["weight"]
-        == "row slots · 5 junk · hot · 62.5% · in rec · crypto · brk · tied · vs 3 ok · thin · 37.5% · junk vs ok align · hot|thin"
+        == "row slots · 5 junk · hot · 62.5% · in rec · crypto · brk · tied · vs 3 ok · thin · 37.5% · junk vs ok align · hot|thin · Δ wide · +25pp · lean vs Δ align · wide"
     )
     assert c["tone"] == "warn"
 
@@ -113,6 +121,10 @@ def test_empty_and_non_mapping():
     assert empty["ok_share_severity"] == ""
     assert empty["junk_vs_ok"] == ""
     assert empty["junk_vs_ok_warn"] is False
+    assert empty["junk_vs_ok_delta_pp"] is None
+    assert empty["junk_vs_ok_delta_severity"] == ""
+    assert empty["junk_vs_ok_lean_vs_delta"] == ""
+    assert empty["junk_vs_ok_lean_vs_delta_warn"] is False
     assert empty["lists_populated"] == 0
     assert empty["weight"] == "row slots"
     assert empty["unique_share_pct"] is None
@@ -167,6 +179,10 @@ def test_junk_appends_on_overlap_weight():
     assert c["ok_share_severity"] == "ok"
     assert c["junk_vs_ok"] == ""
     assert c["junk_vs_ok_warn"] is False
+    # mid junk/ok both ok → no lean → no Δ
+    assert c["junk_vs_ok_delta_pp"] is None
+    assert c["junk_vs_ok_delta_severity"] == ""
+    assert c["junk_vs_ok_lean_vs_delta"] == ""
     assert c["overlap"] is True
     assert c["weight_core"].endswith(
         " · 2 junk · 33.3% · in rec · brk · tied · vs 4 ok · 66.7%"
@@ -385,6 +401,10 @@ def test_string_symbols_and_bad_list_type():
     assert c["ok_share_pct"] == 33.3
     assert c["ok_share_severity"] == "thin"
     assert c["junk_vs_ok"] == "align · hot|thin"
+    # junk 66.7 − ok 33.3 = +33.4pp wide
+    assert c["junk_vs_ok_delta_pp"] == 33.4
+    assert c["junk_vs_ok_delta_severity"] == "wide"
+    assert c["junk_vs_ok_lean_vs_delta"] == "align · wide"
     assert c["overlap"] is False
     assert c["unique_share_pct"] is None
     assert c["dup_share_pct"] is None
@@ -392,10 +412,13 @@ def test_string_symbols_and_bad_list_type():
         c["weight_core"]
         == "row slots · 2 junk · hot · 66.7% · in rec · n=1 · vs 1 ok · thin · 33.3%"
     )
-    assert c["weight_lean"] == "junk vs ok align · hot|thin"
+    assert (
+        c["weight_lean"]
+        == "junk vs ok align · hot|thin · Δ wide · +33.4pp · lean vs Δ align · wide"
+    )
     assert (
         c["weight"]
-        == "row slots · 2 junk · hot · 66.7% · in rec · n=1 · vs 1 ok · thin · 33.3% · junk vs ok align · hot|thin"
+        == "row slots · 2 junk · hot · 66.7% · in rec · n=1 · vs 1 ok · thin · 33.3% · junk vs ok align · hot|thin · Δ wide · +33.4pp · lean vs Δ align · wide"
     )
     assert c["tone"] == "warn"
 
@@ -420,15 +443,22 @@ def test_junk_share_quiet_band():
     assert c["ok_share_severity"] == "strong"
     assert c["junk_vs_ok"] == "align · quiet|strong"
     assert c["junk_vs_ok_warn"] is False
+    # junk 12.5 − ok 87.5 = −75pp wide
+    assert c["junk_vs_ok_delta_pp"] == -75.0
+    assert c["junk_vs_ok_delta_severity"] == "wide"
+    assert c["junk_vs_ok_lean_vs_delta"] == "align · wide"
     assert c["junk_list_sample_gap"] == "n=1"
     assert (
         c["weight_core"]
         == "row slots · 1 junk · quiet · 12.5% · in rec · n=1 · vs 7 ok · strong · 87.5%"
     )
-    assert c["weight_lean"] == "junk vs ok align · quiet|strong"
+    assert (
+        c["weight_lean"]
+        == "junk vs ok align · quiet|strong · Δ wide · -75pp · lean vs Δ align · wide"
+    )
     assert (
         c["weight"]
-        == "row slots · 1 junk · quiet · 12.5% · in rec · n=1 · vs 7 ok · strong · 87.5% · junk vs ok align · quiet|strong"
+        == "row slots · 1 junk · quiet · 12.5% · in rec · n=1 · vs 7 ok · strong · 87.5% · junk vs ok align · quiet|strong · Δ wide · -75pp · lean vs Δ align · wide"
     )
     assert c["tone"] == "warn"
 
@@ -467,6 +497,10 @@ def test_junk_all_slots_speaks_zero_ok():
     assert c["junk_list_lead_vs_share"] == "align · fat · hot"
     assert c["junk_list_lead_vs_share_warn"] is False
     assert c["junk_vs_ok"] == "align · hot|thin"
+    # junk 100 − ok 0 = +100pp wide
+    assert c["junk_vs_ok_delta_pp"] == 100.0
+    assert c["junk_vs_ok_delta_severity"] == "wide"
+    assert c["junk_vs_ok_lean_vs_delta"] == "align · wide"
     assert c["junk_list_lead_vs_lean"] == "align · both align"
     assert c["junk_list_lead_vs_lean_warn"] is False
     assert (
@@ -475,11 +509,11 @@ def test_junk_all_slots_speaks_zero_ok():
     )
     assert (
         c["weight_lean"]
-        == "lead/share align · fat · hot · junk vs ok align · hot|thin · lead/lean align · both align"
+        == "lead/share align · fat · hot · junk vs ok align · hot|thin · Δ wide · +100pp · lean vs Δ align · wide · lead/lean align · both align"
     )
     assert (
         c["weight"]
-        == "row slots · 3 junk · hot · 100% · in rec · crypto · lead rec · 67% · ahead thin · +1 · vs crypto · 1 · 33% · vs 0 ok · thin · 0% · lead/share align · fat · hot · junk vs ok align · hot|thin · lead/lean align · both align"
+        == "row slots · 3 junk · hot · 100% · in rec · crypto · lead rec · 67% · ahead thin · +1 · vs crypto · 1 · 33% · vs 0 ok · thin · 0% · lead/share align · fat · hot · junk vs ok align · hot|thin · Δ wide · +100pp · lean vs Δ align · wide · lead/lean align · both align"
     )
     assert c["tone"] == "warn"
 
@@ -696,17 +730,53 @@ def test_junk_vs_ok_clash_at_half():
     assert c["ok_share_severity"] == "ok"
     assert c["junk_vs_ok"] == "clash · junk hot · ok ok"
     assert c["junk_vs_ok_warn"] is True
+    # 50−50 = 0pp thin (near-even ownership still speaks Δ thin)
+    assert c["junk_vs_ok_delta_pp"] == 0.0
+    assert c["junk_vs_ok_delta_severity"] == "thin"
+    assert c["junk_vs_ok_lean_vs_delta"] == "align · thin"
+    assert c["junk_vs_ok_lean_vs_delta_warn"] is False
     assert c["junk_list_sample_gap"] == "n=1"
     assert (
         c["weight_core"]
         == "row slots · 1 junk · hot · 50% · in rec · n=1 · vs 1 ok · 50%"
     )
-    assert c["weight_lean"] == "junk vs ok clash · junk hot · ok ok"
+    assert (
+        c["weight_lean"]
+        == "junk vs ok clash · junk hot · ok ok · Δ thin · 0pp · lean vs Δ align · thin"
+    )
     assert (
         c["weight"]
-        == "row slots · 1 junk · hot · 50% · in rec · n=1 · vs 1 ok · 50% · junk vs ok clash · junk hot · ok ok"
+        == "row slots · 1 junk · hot · 50% · in rec · n=1 · vs 1 ok · 50% · junk vs ok clash · junk hot · ok ok · Δ thin · 0pp · lean vs Δ align · thin"
     )
     assert c["tone"] == "warn"
+
+
+def test_junk_vs_ok_delta_mid_silent():
+    """Lean spoke + |junk%−ok%| mid → lean vs Δ clash; Δ bit itself silent."""
+    # 4 junk + 3 ok = 7 slots → 57.1% hot · 42.9% thin · Δ +14.2 mid
+    c = build_screener_opportunity_counts(
+        {
+            "recommendations": ["a", "b", "c", "d"],
+            "crypto_leaders": [],
+            "stock_breakouts": [
+                {"symbol": "OK1"},
+                {"symbol": "OK2"},
+                {"symbol": "OK3"},
+            ],
+        }
+    )
+    assert c["n_junk"] == 4
+    assert c["n_total"] == 3
+    assert c["junk_share_pct"] == 57.1
+    assert c["ok_share_pct"] == 42.9
+    assert c["junk_vs_ok"] == "align · hot|thin"
+    assert c["junk_vs_ok_delta_pp"] is None
+    assert c["junk_vs_ok_delta_severity"] == ""
+    assert c["junk_vs_ok_lean_vs_delta"] == "clash · lean · Δ mid"
+    assert c["junk_vs_ok_lean_vs_delta_warn"] is True
+    assert "Δ wide" not in c["weight_lean"]
+    assert "Δ thin" not in c["weight_lean"]
+    assert "lean vs Δ clash · lean · Δ mid" in c["weight_lean"]
 
 
 def test_overlap_unique_vs_dup_delta_mid_silent():

@@ -720,6 +720,10 @@ SCREENER_OK_SHARE_THIN = 50.0
 # Unique%−dup% spread after lean clash/align. Wide ≥20pp · thin <10pp (mid silent).
 SCREENER_UNIQUE_VS_DUP_DELTA_WIDE_PP = 20.0
 SCREENER_UNIQUE_VS_DUP_DELTA_THIN_PP = 10.0
+# Junk%−ok% spread after junk vs ok lean. Same wide/thin floors (portfolio AI
+# count≠share after absolute %; lean alone ≠ how far ownership sits).
+SCREENER_JUNK_VS_OK_DELTA_WIDE_PP = SCREENER_UNIQUE_VS_DUP_DELTA_WIDE_PP
+SCREENER_JUNK_VS_OK_DELTA_THIN_PP = SCREENER_UNIQUE_VS_DUP_DELTA_THIN_PP
 
 
 def scan_list_rows(raw: Any) -> list[Mapping[str, Any]]:
@@ -841,6 +845,10 @@ def build_screener_opportunity_counts(
         "ok_share_severity": "",
         "junk_vs_ok": "",
         "junk_vs_ok_warn": False,
+        "junk_vs_ok_delta_pp": None,
+        "junk_vs_ok_delta_severity": "",
+        "junk_vs_ok_lean_vs_delta": "",
+        "junk_vs_ok_lean_vs_delta_warn": False,
         "lists_populated": 0,
         "overlap": False,
         "unique_share_pct": None,
@@ -1045,6 +1053,10 @@ def build_screener_opportunity_counts(
     ok_share_severity = ""
     junk_vs_ok = ""
     junk_vs_ok_warn = False
+    junk_vs_ok_delta_pp: float | None = None
+    junk_vs_ok_delta_severity = ""
+    junk_vs_ok_lean_vs_delta = ""
+    junk_vs_ok_lean_vs_delta_warn = False
     junk_lists = ""
     junk_list_lead = ""
     junk_list_lead_name = ""
@@ -1149,6 +1161,23 @@ def build_screener_opportunity_counts(
             )
             if junk_share_severity == "hot" or ok_share_severity == "thin":
                 junk_vs_ok_warn = True
+        # Junk%−ok% spread after lean (unique/dup Δ parity; mid silent on Δ bit).
+        if junk_vs_ok and junk_share_pct is not None and ok_share_pct is not None:
+            delta_pp = round(junk_share_pct - ok_share_pct, 1)
+            abs_delta = abs(delta_pp)
+            if abs_delta >= SCREENER_JUNK_VS_OK_DELTA_WIDE_PP:
+                junk_vs_ok_delta_pp = delta_pp
+                junk_vs_ok_delta_severity = "wide"
+            elif abs_delta < SCREENER_JUNK_VS_OK_DELTA_THIN_PP:
+                junk_vs_ok_delta_pp = delta_pp
+                junk_vs_ok_delta_severity = "thin"
+            if junk_vs_ok_delta_severity:
+                junk_vs_ok_lean_vs_delta = (
+                    f"align · {junk_vs_ok_delta_severity}"
+                )
+            else:
+                junk_vs_ok_lean_vs_delta = "clash · lean · Δ mid"
+                junk_vs_ok_lean_vs_delta_warn = True
         # Lead % ≠ book junk heat (soft-allow last/share extremes).
         if (
             junk_list_lead
@@ -1194,6 +1223,22 @@ def build_screener_opportunity_counts(
             lean_extras.append(f"lead/share {junk_list_lead_vs_share}")
         if junk_vs_ok:
             lean_extras.append(f"junk vs ok {junk_vs_ok}")
+            if (
+                junk_vs_ok_delta_severity
+                and junk_vs_ok_delta_pp is not None
+            ):
+                sign = (
+                    f"+{junk_vs_ok_delta_pp:g}"
+                    if junk_vs_ok_delta_pp > 0
+                    else f"{junk_vs_ok_delta_pp:g}"
+                )
+                lean_extras.append(
+                    f"Δ {junk_vs_ok_delta_severity} · {sign}pp"
+                )
+            if junk_vs_ok_lean_vs_delta:
+                lean_extras.append(
+                    f"lean vs Δ {junk_vs_ok_lean_vs_delta}"
+                )
         if junk_list_lead_vs_lean:
             lean_extras.append(f"lead/lean {junk_list_lead_vs_lean}")
         for lean_extra in lean_extras:
@@ -1236,6 +1281,10 @@ def build_screener_opportunity_counts(
         "ok_share_severity": ok_share_severity,
         "junk_vs_ok": junk_vs_ok,
         "junk_vs_ok_warn": junk_vs_ok_warn,
+        "junk_vs_ok_delta_pp": junk_vs_ok_delta_pp,
+        "junk_vs_ok_delta_severity": junk_vs_ok_delta_severity,
+        "junk_vs_ok_lean_vs_delta": junk_vs_ok_lean_vs_delta,
+        "junk_vs_ok_lean_vs_delta_warn": junk_vs_ok_lean_vs_delta_warn,
         "lists_populated": lists_populated,
         "overlap": overlap,
         "unique_share_pct": unique_share_pct,
