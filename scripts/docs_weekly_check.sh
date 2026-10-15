@@ -91,7 +91,8 @@ for f in USAGE.md PAPER_TRADING.md MONITORING.md plan.md; do
   fi
 done
 
-# Docs-gate (tradermonty #555): refuse missing scripts/… paths + wrong --flags
+# Docs-gate (tradermonty #555/#558): refuse missing scripts/… paths + wrong
+# --flags, including fenced bash \ continuations (shell context).
 # Same scan as tests/test_docs_script_paths.py (host python; no network).
 if python3 - <<'PY'
 import sys

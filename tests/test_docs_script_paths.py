@@ -1,8 +1,9 @@
 """Docs-gate: script paths + CLI flags cited in active docs must be real.
 
-Adapted from tradermonty docs-gate (#555 / #498) — refuse advertised
-``scripts/…`` paths that are missing, and refuse ``--flags`` on those
-commands that the script (or its ``"$@"`` Python target) does not accept.
+Adapted from tradermonty docs-gate (#555 / #498 / #558) — refuse advertised
+``scripts/…`` paths that are missing, refuse ``--flags`` the script (or its
+``"$@"`` Python target) does not accept, and preserve fenced bash ``\\``
+continuations so flags on the next line still bind to the script.
 """
 
 from __future__ import annotations
@@ -41,6 +42,12 @@ _SCRIPT_WITH_TAIL_RE = re.compile(
 
 _FLAG_RE = re.compile(r"(?<![\w-])(--[A-Za-z][A-Za-z0-9-]*)\b")
 
+# Fenced bash/sh/shell/console blocks (tradermonty #558 shell context).
+_FENCED_SHELL_RE = re.compile(
+    r"```(?:bash|sh|shell|console)\s*\n(.*?)```",
+    re.DOTALL | re.IGNORECASE,
+)
+
 # Python argparse long options.
 _PY_ADD_ARG_RE = re.compile(
     r"""add_argument\(\s*['"](--[A-Za-z][A-Za-z0-9-]*)['"]"""
@@ -68,6 +75,42 @@ def _iter_doc_files() -> list[Path]:
     return out
 
 
+def join_shell_continuations(block: str) -> str:
+    """Join bash ``\\`` line continuations so flags stay on the script line.
+
+    tradermonty #558 — preserve shell context inside fenced examples.
+    """
+    lines = block.splitlines()
+    out: list[str] = []
+    buf = ""
+    for line in lines:
+        stripped = line.rstrip()
+        if stripped.endswith("\\"):
+            buf += stripped[:-1].rstrip() + " "
+            continue
+        out.append(buf + stripped)
+        buf = ""
+    if buf:
+        out.append(buf.rstrip())
+    return "\n".join(out)
+
+
+def iter_fenced_shell_blocks(text: str) -> list[str]:
+    """Return bodies of fenced bash/sh/shell/console blocks, continuations joined."""
+    return [
+        join_shell_continuations(m.group(1))
+        for m in _FENCED_SHELL_RE.finditer(text)
+    ]
+
+
+def _collect_script_flags(text: str, rel_doc: str, found: dict[tuple[str, str], set[str]]) -> None:
+    for match in _SCRIPT_WITH_TAIL_RE.finditer(text):
+        script = match.group(1)
+        tail = match.group(2) or ""
+        for flag in _FLAG_RE.findall(tail):
+            found.setdefault((script, flag), set()).add(rel_doc)
+
+
 def documented_script_paths() -> dict[str, set[str]]:
     """Map relative script path → set of docs that cite it."""
     found: dict[str, set[str]] = {}
@@ -81,16 +124,18 @@ def documented_script_paths() -> dict[str, set[str]]:
 
 
 def documented_script_flags() -> dict[tuple[str, str], set[str]]:
-    """Map (script, --flag) → docs that advertise that flag after the script."""
+    """Map (script, --flag) → docs that advertise that flag after the script.
+
+    Scans the full doc (inline/same-line) plus fenced shell blocks with
+    ``\\`` continuations joined (tradermonty #558 shell context).
+    """
     found: dict[tuple[str, str], set[str]] = {}
     for path in _iter_doc_files():
         text = path.read_text(encoding="utf-8")
         rel_doc = str(path.relative_to(ROOT))
-        for match in _SCRIPT_WITH_TAIL_RE.finditer(text):
-            script = match.group(1)
-            tail = match.group(2) or ""
-            for flag in _FLAG_RE.findall(tail):
-                found.setdefault((script, flag), set()).add(rel_doc)
+        _collect_script_flags(text, rel_doc, found)
+        for block in iter_fenced_shell_blocks(text):
+            _collect_script_flags(block, rel_doc, found)
     return found
 
 
@@ -172,3 +217,33 @@ def test_accepted_flags_resolve_shell_wrapper() -> None:
     assert "--force" in accepted_flags("scripts/run_github_watch_once.sh")
     assert "--tick" in accepted_flags("scripts/watchdog.sh")
     assert "--since" in accepted_flags("scripts/summarize_trades.py")
+
+
+def test_join_shell_continuations_binds_next_line_flags() -> None:
+    raw = "./scripts/watchdog.sh \\\n  --tick\n"
+    first_line = raw.splitlines()[0]
+    # Same-line regex alone misses the flag on the continuation.
+    m_line = _SCRIPT_WITH_TAIL_RE.search(first_line)
+    assert m_line is not None
+    assert "--tick" not in (m_line.group(2) or "")
+    joined = join_shell_continuations(raw)
+    assert "\\" not in joined
+    m = _SCRIPT_WITH_TAIL_RE.search(joined)
+    assert m is not None
+    assert "--tick" in (m.group(2) or "")
+
+
+def test_iter_fenced_shell_blocks_joins_continuations() -> None:
+    md = (
+        "intro\n"
+        "```bash\n"
+        "./scripts/run_github_watch_once.sh \\\n"
+        "  --force\n"
+        "```\n"
+        "outro\n"
+    )
+    blocks = iter_fenced_shell_blocks(md)
+    assert len(blocks) == 1
+    assert "scripts/run_github_watch_once.sh" in blocks[0]
+    assert "--force" in blocks[0]
+    assert "\\" not in blocks[0]
