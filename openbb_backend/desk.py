@@ -19874,8 +19874,12 @@ def build_universe_discovery_glance(
     (xang1234 never-partial / 4d995f8 row-cap honesty adapted).
     When consecutive fails ≥2, also speak ``N×`` after the screen fraction
     (xang1234 #639 Failed-N× chip — a single fail stamp hid a chronic dead
-    movers source; first fail stays silent on streak; source-health panel /
-    last-error tooltip still deferred).
+    movers source; first fail stays silent on streak).
+    When a fail already spoke, also speak compact last-error class
+    ``empty|thin|timeout|http|error`` after ``Yahoo fail`` / before the
+    screen fraction (xang1234 #639 report source failures by kind — N× +
+    fail age alone hid *why*; Manage Sources / last-error tooltip panel
+    still deferred).
     When N× already spoke, also speak streak vs seed extremes
     ``streak/seed clash · fresh`` / ``align · stale`` (portfolio AI
     speak-both-sides after N× alone hid a still-fresh reused list beside
@@ -19901,6 +19905,7 @@ def build_universe_discovery_glance(
         yahoo_cache_freshness,
         yahoo_discovery_due_from_meta,
         yahoo_fail_retry_remaining_sec,
+        yahoo_discovery_error_class,
         yahoo_fail_streak,
         yahoo_fail_streak_seed_fail_vs_budget,
         yahoo_fail_streak_seed_vs_fail,
@@ -20001,6 +20006,7 @@ def build_universe_discovery_glance(
 
     yahoo_failed = yahoo_status == "failed"
     fail_streak = yahoo_fail_streak(uni_meta)
+    fail_error = yahoo_discovery_error_class(uni_meta) if yahoo_failed else ""
     retry_due = yahoo_discovery_due_from_meta(
         uni_meta,
         now=now,
@@ -20093,6 +20099,8 @@ def build_universe_discovery_glance(
     )
     if yahoo_failed:
         tone = "warn"
+        # xang1234 #639: last-error class before fraction (why ≠ how many).
+        err_bit = f" · {fail_error}" if fail_error else ""
         frac = f" · {screens_bit}" if screens_bit else ""
         # xang1234 #639: repeated fails ≥2 speak N× (first fail silent).
         streak_bit = f" · {fail_streak}×" if fail_streak >= 2 else ""
@@ -20190,7 +20198,7 @@ def build_universe_discovery_glance(
         # Full join keeps streak before retry (test order).
         full_core = (
             f"US+DE · Yahoo ≤{per} · "
-            f"Yahoo fail{frac}{streak_bit}{streak_vs_seed_bit}"
+            f"Yahoo fail{err_bit}{frac}{streak_bit}{streak_vs_seed_bit}"
             f"{streak_vs_fail_bit}{streak_seed_vs_fail_bit}"
             f"{streak_vs_budget_bit}{streak_seed_fail_vs_budget_bit}"
             f"{retry} · {seed_bit}{fail_bit}"
@@ -20198,7 +20206,7 @@ def build_universe_discovery_glance(
         # Desk primary: omit streak lean so retry / ages survive the eye.
         line_core = (
             f"US+DE · Yahoo ≤{per} · "
-            f"Yahoo fail{frac}{streak_bit}"
+            f"Yahoo fail{err_bit}{frac}{streak_bit}"
             f"{retry} · {seed_bit}{fail_bit}"
         )
         line = full_core + lag
@@ -20250,6 +20258,7 @@ def build_universe_discovery_glance(
         "last_yahoo_prune_skipped": prune_skipped,
         "last_yahoo_discovery_status": yahoo_status or "unknown",
         "yahoo_failed": yahoo_failed,
+        "yahoo_fail_error": fail_error,
         "yahoo_fail_streak": fail_streak,
         "yahoo_fail_streak_vs_seed": streak_vs_seed,
         "yahoo_fail_streak_vs_fail": streak_vs_fail,

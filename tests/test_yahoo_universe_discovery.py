@@ -4,11 +4,15 @@ from stock_checker.yahoo_universe_discovery import (
     YahooScreenEmptyError,
     _quotes_from_screen_payload,
     bump_yahoo_fail_streak,
+    classify_yahoo_discovery_error,
+    clear_yahoo_discovery_error,
     clear_yahoo_fail_streak,
     discover_yahoo_mover_report,
     discover_yahoo_mover_symbols,
     screen_payload_failed,
     screens_bundle_failed,
+    set_yahoo_discovery_error,
+    yahoo_discovery_error_class,
     yahoo_fail_streak,
     yahoo_fail_streak_seed_fail_vs_budget,
     yahoo_fail_streak_seed_vs_fail,
@@ -16,6 +20,32 @@ from stock_checker.yahoo_universe_discovery import (
     yahoo_fail_streak_vs_fail,
     yahoo_fail_streak_vs_seed,
 )
+
+
+def test_classify_yahoo_discovery_error_bundle_and_exc():
+    """xang1234 #639: dead movers named by kind (empty/thin/timeout/http)."""
+    assert (
+        classify_yahoo_discovery_error(screens_ok=0, screens_failed=3) == "empty"
+    )
+    assert (
+        classify_yahoo_discovery_error(screens_ok=1, screens_failed=2) == "thin"
+    )
+    assert classify_yahoo_discovery_error(TimeoutError("timed out")) == "timeout"
+    assert classify_yahoo_discovery_error(RuntimeError("HTTP 403")) == "http"
+    assert classify_yahoo_discovery_error(YahooScreenEmptyError("empty")) == "empty"
+    assert classify_yahoo_discovery_error(RuntimeError("boom")) == "error"
+
+
+def test_yahoo_discovery_error_meta_allowlist():
+    """Only allowlisted classes persist; junk meta stays silent on glance."""
+    meta: dict = {}
+    assert set_yahoo_discovery_error(meta, "empty") == "empty"
+    assert yahoo_discovery_error_class(meta) == "empty"
+    assert set_yahoo_discovery_error(meta, "DROP TABLE;") == "error"
+    assert yahoo_discovery_error_class(meta) == "error"
+    clear_yahoo_discovery_error(meta)
+    assert yahoo_discovery_error_class(meta) == ""
+    assert yahoo_discovery_error_class({"last_yahoo_discovery_error": "nope"}) == ""
 
 
 def test_yahoo_fail_streak_bump_and_clear():

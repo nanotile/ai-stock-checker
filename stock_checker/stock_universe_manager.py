@@ -375,10 +375,13 @@ class StockUniverseManager:
         """
         from stock_checker.yahoo_universe_discovery import (
             bump_yahoo_fail_streak,
+            classify_yahoo_discovery_error,
+            clear_yahoo_discovery_error,
             clear_yahoo_fail_streak,
             discover_yahoo_mover_report,
             screens_bundle_failed,
             screens_bundle_partial,
+            set_yahoo_discovery_error,
             yahoo_fail_retry_remaining_sec,
         )
 
@@ -416,7 +419,9 @@ class StockUniverseManager:
             meta["last_yahoo_screens_ok"] = 0
             meta["last_yahoo_screens_failed"] = 0
             meta["last_yahoo_prune_skipped"] = False
-            # xang1234 #639: fail stamp alone hid repeated dead fetches.
+            # xang1234 #639: fail stamp alone hid repeated dead fetches;
+            # last-error class names why (timeout/http/empty/error).
+            set_yahoo_discovery_error(meta, classify_yahoo_discovery_error(e))
             bump_yahoo_fail_streak(meta)
             self.ensure_curated_seed()
             self._save_universe()
@@ -430,6 +435,12 @@ class StockUniverseManager:
             meta["last_yahoo_discovery_status"] = "failed"
             meta["last_yahoo_discovery_fail"] = datetime.now().isoformat()
             meta["last_yahoo_prune_skipped"] = False
+            set_yahoo_discovery_error(
+                meta,
+                classify_yahoo_discovery_error(
+                    screens_ok=screens_ok, screens_failed=screens_failed
+                ),
+            )
             bump_yahoo_fail_streak(meta)
             self.ensure_curated_seed()
             self._save_universe()
@@ -464,8 +475,10 @@ class StockUniverseManager:
         meta["last_yahoo_dropped"] = dropped
         meta["last_yahoo_dropped_venue"] = YAHOO_MOVER_SNAPSHOT_VENUE
         meta["last_yahoo_prune_skipped"] = prune_skipped
-        # xang1234 #639: only a success advances last-good; clear fail streak.
+        # xang1234 #639: only a success advances last-good; clear fail streak
+        # + last-error class (last_success honesty).
         clear_yahoo_fail_streak(meta)
+        clear_yahoo_discovery_error(meta)
         self._save_universe()
         if prune_skipped:
             print(

@@ -132,6 +132,80 @@ def clear_yahoo_fail_streak(meta: dict[str, Any]) -> None:
     meta["yahoo_discovery_fail_streak"] = 0
 
 
+# Compact fail reasons for desk (xang1234 #639 last-error chip — not a full
+# Manage Sources tooltip). Allowlist only so junk meta cannot inflate the line.
+YAHOO_FAIL_ERROR_CLASSES: frozenset[str] = frozenset(
+    ("timeout", "http", "empty", "thin", "error")
+)
+
+
+def classify_yahoo_discovery_error(
+    exc: BaseException | None = None,
+    *,
+    screens_ok: int | None = None,
+    screens_failed: int | None = None,
+) -> str:
+    """Map a dead Yahoo movers fetch to a compact error class.
+
+    xang1234 #639 reports content-source failures by kind so friends see
+    *why* movers stayed dead — not only N× / fail age. Bundle path:
+    ``empty`` when no screen answered; ``thin`` when majority failed but
+    some answered. Exception path: ``timeout`` / ``http`` / ``error``.
+    """
+    if screens_ok is not None and screens_failed is not None:
+        ok_n = max(0, int(screens_ok))
+        if ok_n <= 0:
+            return "empty"
+        if screens_bundle_failed(ok_n, int(screens_failed)):
+            return "thin"
+    if exc is None:
+        return "error"
+    name = type(exc).__name__.lower()
+    msg = str(exc).lower()
+    if (
+        isinstance(exc, TimeoutError)
+        or "timeout" in name
+        or "timed out" in msg
+        or "timeout" in msg
+    ):
+        return "timeout"
+    if (
+        "http" in name
+        or "403" in msg
+        or "404" in msg
+        or "429" in msg
+        or "http error" in msg
+    ):
+        return "http"
+    if isinstance(exc, YahooScreenEmptyError) or "empty" in msg:
+        return "empty"
+    return "error"
+
+
+def set_yahoo_discovery_error(meta: dict[str, Any], klass: str) -> str:
+    """Persist allowlisted fail class on universe meta (clear junk)."""
+    clean = str(klass or "").strip().lower()
+    if clean not in YAHOO_FAIL_ERROR_CLASSES:
+        clean = "error"
+    meta["last_yahoo_discovery_error"] = clean
+    return clean
+
+
+def clear_yahoo_discovery_error(meta: dict[str, Any]) -> None:
+    """Drop last-error class after a successful movers snapshot."""
+    meta.pop("last_yahoo_discovery_error", None)
+
+
+def yahoo_discovery_error_class(meta: Any) -> str:
+    """Read allowlisted last-error class; unknown / missing → ``\"\"``."""
+    if not isinstance(meta, dict):
+        return ""
+    raw = str(meta.get("last_yahoo_discovery_error") or "").strip().lower()
+    if raw in YAHOO_FAIL_ERROR_CLASSES:
+        return raw
+    return ""
+
+
 def yahoo_fail_streak_vs_seed(streak: int, seed_freshness: str) -> str:
     """Streak vs reused-seed extremes when N× already spoke (xang1234 #639).
 
