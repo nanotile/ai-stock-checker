@@ -19890,6 +19890,7 @@ def build_universe_discovery_glance(
         yahoo_discovery_due_from_meta,
         yahoo_fail_retry_remaining_sec,
         yahoo_fail_streak,
+        yahoo_fail_streak_vs_fail,
         yahoo_fail_streak_vs_seed,
     )
 
@@ -20045,6 +20046,12 @@ def build_universe_discovery_glance(
         if yahoo_failed
         else ""
     )
+    # xang1234 #639 + portfolio AI: N× alone hid stale fail stamp beside streak.
+    streak_vs_fail = (
+        yahoo_fail_streak_vs_fail(fail_streak, fail_freshness)
+        if yahoo_failed
+        else ""
+    )
     if yahoo_failed:
         tone = "warn"
         frac = f" · {screens_bit}" if screens_bit else ""
@@ -20052,6 +20059,9 @@ def build_universe_discovery_glance(
         streak_bit = f" · {fail_streak}×" if fail_streak >= 2 else ""
         streak_vs_seed_bit = (
             f" · streak/seed {streak_vs_seed}" if streak_vs_seed else ""
+        )
+        streak_vs_fail_bit = (
+            f" · streak/fail {streak_vs_fail}" if streak_vs_fail else ""
         )
         if retry_due:
             retry = " · retry due"
@@ -20101,13 +20111,14 @@ def build_universe_discovery_glance(
             )
             lag += f" · lean vs Δ clash · mid{mid_gap}"
         # Retry before lag: clip must not hide backoff (xang1234 never-partial).
-        # Streak + streak/seed sit with fail core (before retry) so chronic
-        # dead ≠ quiet fresh seed.
+        # Streak + streak/seed + streak/fail sit with fail core (before retry)
+        # so chronic dead ≠ quiet fresh seed / stale fail stamp.
         # Fail path allows 160 chars (seed/fail ages + lag); success stays 128.
         _fail_line_max = 160
         core = (
             f"US+DE · Yahoo ≤{per} · "
             f"Yahoo fail{frac}{streak_bit}{streak_vs_seed_bit}"
+            f"{streak_vs_fail_bit}"
             f"{retry} · {seed_bit}{fail_bit}"
         )
         line = core + lag
@@ -20151,6 +20162,7 @@ def build_universe_discovery_glance(
         "yahoo_failed": yahoo_failed,
         "yahoo_fail_streak": fail_streak,
         "yahoo_fail_streak_vs_seed": streak_vs_seed,
+        "yahoo_fail_streak_vs_fail": streak_vs_fail,
         "yahoo_retry_due": retry_due,
         "yahoo_retry_remain_sec": retry_remain_sec,
         "yahoo_fail_backoff_hours": int(DEFAULT_YAHOO_FAIL_BACKOFF_HOURS),

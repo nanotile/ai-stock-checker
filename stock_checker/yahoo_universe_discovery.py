@@ -153,6 +153,29 @@ def yahoo_fail_streak_vs_seed(streak: int, seed_freshness: str) -> str:
     return ""
 
 
+def yahoo_fail_streak_vs_fail(streak: int, fail_freshness: str) -> str:
+    """Streak vs fail-stamp extremes when N× already spoke (xang1234 #639).
+
+    Chronic ``N×`` with a fresh fail stamp agrees (live dead Yahoo). A stale
+    fail stamp beside a hot streak clashes — counter kept climbing without a
+    live death clock. Mid ``aging`` / streak <2 / never|unknown stay silent.
+    Polarity is inverted vs ``yahoo_fail_streak_vs_seed`` (seed fresh = clash).
+    Returns ``align · fresh`` / ``clash · stale`` / ``""``.
+    """
+    try:
+        n = int(streak)
+    except (TypeError, ValueError):
+        return ""
+    if n < 2:
+        return ""
+    band = str(fail_freshness or "").strip().lower()
+    if band == "fresh":
+        return "align · fresh"
+    if band == "stale":
+        return "clash · stale"
+    return ""
+
+
 def yahoo_fail_retry_remaining_sec(
     meta: Any,
     *,

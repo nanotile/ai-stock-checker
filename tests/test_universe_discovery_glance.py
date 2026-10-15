@@ -131,9 +131,12 @@ def test_universe_discovery_glance_yahoo_fail_streak_speaks(tmp_path) -> None:
     assert g["yahoo_failed"] is True
     assert g["yahoo_fail_streak"] == 3
     assert g["yahoo_fail_streak_vs_seed"] == "clash · fresh"
-    assert "Yahoo fail · 0/3 · 3× · streak/seed clash · fresh" in g["line"]
+    assert g["yahoo_fail_streak_vs_fail"] == "align · fresh"
+    assert "streak/seed clash · fresh" in g["line"]
+    assert "streak/fail align · fresh" in g["line"]
     assert g["line"].index("3×") < g["line"].index("streak/seed")
-    assert g["line"].index("streak/seed") < g["line"].index("retry")
+    assert g["line"].index("streak/seed") < g["line"].index("streak/fail")
+    assert g["line"].index("streak/fail") < g["line"].index("retry")
 
 
 def test_universe_discovery_glance_yahoo_fail_streak_vs_seed_stale(
@@ -163,7 +166,40 @@ def test_universe_discovery_glance_yahoo_fail_streak_vs_seed_stale(
     g = build_universe_discovery_glance(tmp_path, now=now)
     assert g["seed_freshness"] == "stale"
     assert g["yahoo_fail_streak_vs_seed"] == "align · stale"
+    assert g["yahoo_fail_streak_vs_fail"] == "align · fresh"
     assert "streak/seed align · stale" in g["line"]
+    assert "streak/fail align · fresh" in g["line"]
+
+
+def test_universe_discovery_glance_yahoo_fail_streak_vs_fail_stale(
+    tmp_path,
+) -> None:
+    """Hot streak + stale fail stamp speaks clash (counter ≠ live death)."""
+    now = datetime(2026, 9, 11, 10, 0, tzinfo=timezone.utc)
+    last = (now - timedelta(hours=6)).replace(tzinfo=None).isoformat()
+    # >48h with 24h throttle → stale fail stamp
+    fail = (now - timedelta(hours=50)).replace(tzinfo=None).isoformat()
+    (tmp_path / "stock_universe.json").write_text(
+        json.dumps(
+            {
+                "stocks": {"AAPL": {}},
+                "meta": {
+                    "last_yahoo_discovery": last,
+                    "last_yahoo_discovery_status": "failed",
+                    "last_yahoo_discovery_fail": fail,
+                    "yahoo_discovery_fail_streak": 5,
+                    "last_yahoo_screens_ok": 0,
+                    "last_yahoo_screens_failed": 3,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    g = build_universe_discovery_glance(tmp_path, now=now)
+    assert g["fail_freshness"] == "stale"
+    assert g["yahoo_fail_streak_vs_fail"] == "clash · stale"
+    assert "streak/fail clash · stale" in g["line"]
+    assert g["line"].index("streak/fail") < g["line"].index("retry")
 
 
 def test_universe_discovery_glance_yahoo_fail_shows_screen_fraction(tmp_path) -> None:

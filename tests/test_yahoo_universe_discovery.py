@@ -10,6 +10,7 @@ from stock_checker.yahoo_universe_discovery import (
     screen_payload_failed,
     screens_bundle_failed,
     yahoo_fail_streak,
+    yahoo_fail_streak_vs_fail,
     yahoo_fail_streak_vs_seed,
 )
 
@@ -35,6 +36,16 @@ def test_yahoo_fail_streak_vs_seed_extremes():
     assert yahoo_fail_streak_vs_seed(3, "aging") == ""
     assert yahoo_fail_streak_vs_seed(3, "never") == ""
     assert yahoo_fail_streak_vs_seed("nope", "fresh") == ""
+
+
+def test_yahoo_fail_streak_vs_fail_extremes():
+    """N× vs fail stamp: fresh align / stale clash (inverted vs seed)."""
+    assert yahoo_fail_streak_vs_fail(1, "fresh") == ""
+    assert yahoo_fail_streak_vs_fail(3, "fresh") == "align · fresh"
+    assert yahoo_fail_streak_vs_fail(3, "stale") == "clash · stale"
+    assert yahoo_fail_streak_vs_fail(3, "aging") == ""
+    assert yahoo_fail_streak_vs_fail(3, "never") == ""
+    assert yahoo_fail_streak_vs_fail("nope", "fresh") == ""
 
 
 def test_quotes_from_screen_payload():
