@@ -132,6 +132,27 @@ def clear_yahoo_fail_streak(meta: dict[str, Any]) -> None:
     meta["yahoo_discovery_fail_streak"] = 0
 
 
+def yahoo_fail_streak_vs_seed(streak: int, seed_freshness: str) -> str:
+    """Streak vs reused-seed extremes when N× already spoke (xang1234 #639).
+
+    Chronic ``N×`` beside a still-fresh seed looks healthy; a stale seed with
+    a hot streak agrees. Mid ``aging`` / streak <2 / never|unknown stay
+    silent. Returns ``clash · fresh`` / ``align · stale`` / ``""``.
+    """
+    try:
+        n = int(streak)
+    except (TypeError, ValueError):
+        return ""
+    if n < 2:
+        return ""
+    band = str(seed_freshness or "").strip().lower()
+    if band == "fresh":
+        return "clash · fresh"
+    if band == "stale":
+        return "align · stale"
+    return ""
+
+
 def yahoo_fail_retry_remaining_sec(
     meta: Any,
     *,

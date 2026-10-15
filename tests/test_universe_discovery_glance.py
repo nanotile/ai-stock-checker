@@ -130,8 +130,40 @@ def test_universe_discovery_glance_yahoo_fail_streak_speaks(tmp_path) -> None:
     g = build_universe_discovery_glance(tmp_path, now=now)
     assert g["yahoo_failed"] is True
     assert g["yahoo_fail_streak"] == 3
-    assert "Yahoo fail · 0/3 · 3×" in g["line"]
-    assert g["line"].index("3×") < g["line"].index("retry")
+    assert g["yahoo_fail_streak_vs_seed"] == "clash · fresh"
+    assert "Yahoo fail · 0/3 · 3× · streak/seed clash · fresh" in g["line"]
+    assert g["line"].index("3×") < g["line"].index("streak/seed")
+    assert g["line"].index("streak/seed") < g["line"].index("retry")
+
+
+def test_universe_discovery_glance_yahoo_fail_streak_vs_seed_stale(
+    tmp_path,
+) -> None:
+    """Hot streak + stale seed speaks align (both adverse)."""
+    now = datetime(2026, 9, 11, 10, 0, tzinfo=timezone.utc)
+    # >48h with 24h throttle → stale
+    last = (now - timedelta(hours=50)).replace(tzinfo=None).isoformat()
+    fail = (now - timedelta(minutes=10)).replace(tzinfo=None).isoformat()
+    (tmp_path / "stock_universe.json").write_text(
+        json.dumps(
+            {
+                "stocks": {"AAPL": {}},
+                "meta": {
+                    "last_yahoo_discovery": last,
+                    "last_yahoo_discovery_status": "failed",
+                    "last_yahoo_discovery_fail": fail,
+                    "yahoo_discovery_fail_streak": 4,
+                    "last_yahoo_screens_ok": 0,
+                    "last_yahoo_screens_failed": 3,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    g = build_universe_discovery_glance(tmp_path, now=now)
+    assert g["seed_freshness"] == "stale"
+    assert g["yahoo_fail_streak_vs_seed"] == "align · stale"
+    assert "streak/seed align · stale" in g["line"]
 
 
 def test_universe_discovery_glance_yahoo_fail_shows_screen_fraction(tmp_path) -> None:
