@@ -107,17 +107,19 @@ def test_yahoo_fail_streak_seed_fail_vs_budget_extremes():
     )
     assert bit == "align · both clash"
     assert warn is True
-    # Outer verbs both align (incl. seed/fail ``align · both clash``) → calm.
+    # Outer both-align + calm seed/fail stays calm.
     bit, warn = yahoo_fail_streak_seed_fail_vs_budget(
         "align · both align", "align · due"
     )
     assert bit == "align · both align"
     assert warn is False
+    # Outer both-align with seed/fail dual-clash under due → warn
+    # (soft-allow both-clash warn parity; about-to-spend ≠ quiet confirm).
     bit, warn = yahoo_fail_streak_seed_fail_vs_budget(
         "align · both clash", "align · due"
     )
     assert bit == "align · both align"
-    assert warn is False
+    assert warn is True
     # Crossed outer verbs warn.
     bit, warn = yahoo_fail_streak_seed_fail_vs_budget(
         "align · both clash", "clash · held"

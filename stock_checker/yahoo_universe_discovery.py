@@ -253,7 +253,10 @@ def yahoo_fail_streak_seed_fail_vs_budget(
 
     Returns ``(bit, warn)``. Seed/fail relationship ≠ fetch-budget hold.
     When both already spoke: same verb speaks ``align · both align|clash``
-    — ``both align`` stays calm; ``both clash`` warns. Crossed verbs speak
+    — outer ``both clash`` warns; calm ``both align`` warns when seed/fail
+    already spoke ``both clash`` and budget is ``due`` (inner dual-clash
+    about to spend ≠ quiet confirm; soft-allow share/lean both-clash warn
+    parity). Crossed verbs speak
     ``clash · seed/fail align|clash · budget align|clash`` (warn). Missing
     either stays silent — portfolio AI speak-both-sides + soft-allow
     share/lean parity after seed/fail + streak/budget alone hid whether
@@ -276,7 +279,15 @@ def yahoo_fail_streak_seed_fail_vs_budget(
     if sf_verb is None or budget_verb is None:
         return "", False
     if sf_verb == budget_verb:
-        return f"align · both {sf_verb}", sf_verb == "clash"
+        bit = f"align · both {sf_verb}"
+        # RyanJHamby + soft-allow both-clash warn: outer both-align can still
+        # hide seed/fail dual-clash under retry-due (about to spend Yahoo).
+        adverse_due = (
+            sf_verb == "align"
+            and "both clash" in sf_bit
+            and "due" in budget_bit
+        )
+        return bit, sf_verb == "clash" or adverse_due
     return f"clash · seed/fail {sf_verb} · budget {budget_verb}", True
 
 

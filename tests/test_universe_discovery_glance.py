@@ -228,9 +228,10 @@ def test_universe_discovery_glance_yahoo_fail_streak_vs_fail_stale(
     assert g["yahoo_fail_streak_seed_vs_fail_warn"] is True
     # Fail 50h ago → backoff elapsed → budget about to spend (xang1234 #640).
     assert g["yahoo_fail_streak_vs_budget"] == "align · due"
-    # Outer verbs both align (seed/fail ``align · both clash`` + budget due).
+    # Outer both-align but seed/fail dual-clash under due → warn
+    # (soft-allow both-clash parity; about-to-spend ≠ quiet confirm).
     assert g["yahoo_fail_streak_seed_fail_vs_budget"] == "align · both align"
-    assert g["yahoo_fail_streak_seed_fail_vs_budget_warn"] is False
+    assert g["yahoo_fail_streak_seed_fail_vs_budget_warn"] is True
     assert "seed/fail align · both clash" in g["line"]
     assert "streak/fail" not in g["line"]
     assert "sf/budget align · both align" in g["line"]
