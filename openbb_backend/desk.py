@@ -19888,6 +19888,10 @@ def build_universe_discovery_glance(
     (xang1234 #640/#642 spend budget only on work actually dispatched —
     hot streak alone hid whether backoff is holding unused Yahoo capacity
     or retry is about to spend; sits after streak/fail · before retry).
+    Streak relationship cascade (streak/seed · fail · seed/fail · budget ·
+    sf/budget) sits in ``streak_lean`` under a desk fold; ``line_core`` keeps
+    fail · N× · retry · seed/fail ages (MonsterDeveloper + Screener weight
+    lean declutter — full ``line`` join kept for tests). Warn opens the fold.
     Buys still need regime/RS/breadth/fees. Not a new gate.
     """
     from stock_checker.yahoo_universe_discovery import (
@@ -20163,26 +20167,52 @@ def build_universe_discovery_glance(
             )
             lag += f" · lean vs Δ clash · mid{mid_gap}"
         # Retry before lag: clip must not hide backoff (xang1234 never-partial).
-        # Streak + streak/seed + streak/fail + seed/fail + streak/budget +
-        # sf/budget sit with fail core (before retry) so chronic dead ≠ quiet
-        # fresh seed / stale fail stamp / held fetch budget while cooling.
+        # Streak relationships sit between N× and retry on the full ``line``
+        # (tests); desk shows ``line_core`` (fail · N× · retry · ages) and
+        # folds streak lean (MonsterDeveloper + Screener weight lean).
         # Fail path allows 160 chars (seed/fail ages + lag); success stays 128.
         _fail_line_max = 160
-        core = (
+        streak_lean_bits: list[str] = []
+        for bit in (
+            streak_vs_seed_bit,
+            streak_vs_fail_bit,
+            streak_seed_vs_fail_bit,
+            streak_vs_budget_bit,
+            streak_seed_fail_vs_budget_bit,
+        ):
+            cleaned = str(bit or "").strip(" ·")
+            if cleaned:
+                streak_lean_bits.append(cleaned)
+        streak_lean = " · ".join(streak_lean_bits)
+        streak_lean_warn = bool(
+            streak_seed_vs_fail_warn or streak_seed_fail_vs_budget_warn
+        )
+        # Full join keeps streak before retry (test order).
+        full_core = (
             f"US+DE · Yahoo ≤{per} · "
             f"Yahoo fail{frac}{streak_bit}{streak_vs_seed_bit}"
             f"{streak_vs_fail_bit}{streak_seed_vs_fail_bit}"
             f"{streak_vs_budget_bit}{streak_seed_fail_vs_budget_bit}"
             f"{retry} · {seed_bit}{fail_bit}"
         )
-        line = core + lag
+        # Desk primary: omit streak lean so retry / ages survive the eye.
+        line_core = (
+            f"US+DE · Yahoo ≤{per} · "
+            f"Yahoo fail{frac}{streak_bit}"
+            f"{retry} · {seed_bit}{fail_bit}"
+        )
+        line = full_core + lag
         if len(line) > _fail_line_max:
             # Prefer dropping lag over clipping retry / seed / fail ages.
             line = (
-                core
-                if len(core) <= _fail_line_max
-                else (core[: _fail_line_max - 1] + "…")
+                full_core
+                if len(full_core) <= _fail_line_max
+                else (full_core[: _fail_line_max - 1] + "…")
             )
+        if len(line_core + lag) <= _fail_line_max:
+            line_core = line_core + lag
+        elif len(line_core) > _fail_line_max:
+            line_core = line_core[: _fail_line_max - 1] + "…"
     else:
         drop_bit = ""
         if prune_skipped:
@@ -20197,10 +20227,16 @@ def build_universe_discovery_glance(
         )
         if len(line) > 128:
             line = line[:127] + "…"
+        line_core = line
+        streak_lean = ""
+        streak_lean_warn = False
     return {
         "ready": True,
         "tone": tone,
         "line": line,
+        "line_core": line_core,
+        "streak_lean": streak_lean,
+        "streak_lean_warn": bool(streak_lean_warn),
         "mover_count": per,
         "discovery_only": True,
         "auto_buy": False,

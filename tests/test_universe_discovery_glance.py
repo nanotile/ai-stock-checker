@@ -151,6 +151,14 @@ def test_universe_discovery_glance_yahoo_fail_streak_speaks(tmp_path) -> None:
     assert g["line"].index("streak/seed") < g["line"].index("seed/fail")
     assert g["line"].index("seed/fail") < g["line"].index("sf/budget")
     assert g["line"].index("sf/budget") < g["line"].index("retry")
+    # MonsterDeveloper fold: primary keeps fail · N× · retry; lean owns cascade.
+    assert "3×" in g["line_core"]
+    assert "retry" in g["line_core"]
+    assert "streak/seed" not in g["line_core"]
+    assert "sf/budget" not in g["line_core"]
+    assert "streak/seed clash · fresh" in g["streak_lean"]
+    assert "sf/budget align · both clash" in g["streak_lean"]
+    assert g["streak_lean_warn"] is True
 
 
 def test_universe_discovery_glance_yahoo_fail_streak_vs_seed_stale(
@@ -194,6 +202,9 @@ def test_universe_discovery_glance_yahoo_fail_streak_vs_seed_stale(
     assert "streak/fail" not in g["line"]
     assert "sf/budget clash · seed/fail align · budget clash" in g["line"]
     assert "streak/budget" not in g["line"]
+    assert "streak/seed" not in g["line_core"]
+    assert "sf/budget clash · seed/fail align · budget clash" in g["streak_lean"]
+    assert g["streak_lean_warn"] is True
 
 
 def test_universe_discovery_glance_yahoo_fail_streak_vs_fail_stale(
@@ -238,6 +249,11 @@ def test_universe_discovery_glance_yahoo_fail_streak_vs_fail_stale(
     assert "streak/budget" not in g["line"]
     assert g["line"].index("seed/fail") < g["line"].index("sf/budget")
     assert g["line"].index("sf/budget") < g["line"].index("retry")
+    assert "retry due" in g["line_core"]
+    assert "seed/fail" not in g["line_core"]
+    assert "seed/fail align · both clash" in g["streak_lean"]
+    assert "sf/budget align · both align" in g["streak_lean"]
+    assert g["streak_lean_warn"] is True
 
 
 def test_universe_discovery_glance_yahoo_fail_shows_screen_fraction(tmp_path) -> None:

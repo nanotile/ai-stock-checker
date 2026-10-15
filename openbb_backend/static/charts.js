@@ -2652,7 +2652,7 @@
     line.appendChild(sep1);
     var body = document.createElement("span");
     body.className = "universe-discovery-glance-body";
-    body.textContent = String(glance.line);
+    body.textContent = String(glance.line_core || glance.line);
     line.appendChild(body);
     var sep2 = document.createElement("span");
     sep2.className = "pretrade-sep";
@@ -2665,10 +2665,31 @@
     link.textContent = "Screener →";
     line.appendChild(link);
     wrap.appendChild(line);
+    var streakLean = glance.streak_lean ? String(glance.streak_lean) : "";
+    if (streakLean) {
+      var leanWarn = !!glance.streak_lean_warn;
+      var details = document.createElement("details");
+      details.className =
+        "universe-streak-lean" + (leanWarn ? " warn" : "");
+      if (leanWarn) details.open = true;
+      var summary = document.createElement("summary");
+      summary.appendChild(document.createTextNode("streak lean "));
+      var meta = document.createElement("span");
+      meta.className = "meta";
+      meta.textContent = "cascade";
+      summary.appendChild(meta);
+      details.appendChild(summary);
+      var leanBody = document.createElement("p");
+      leanBody.className =
+        "universe-streak-lean-body" + (leanWarn ? " warn" : "");
+      leanBody.textContent = streakLean;
+      details.appendChild(leanBody);
+      wrap.appendChild(details);
+    }
     var sub = document.createElement("p");
     sub.className = "sub";
     sub.textContent =
-      "Universe discovery beside charts — Yahoo movers cache age vs 24h; empty/blocked Yahoo reuses seed, names fail age, and retries next scan; not auto-buy.";
+      "Universe discovery beside charts — Yahoo movers cache age vs 24h; empty/blocked Yahoo reuses seed, names fail age, and retries next scan; streak lean folds under the primary line; not auto-buy.";
     wrap.appendChild(sub);
     appendGlance(wrap);
   }

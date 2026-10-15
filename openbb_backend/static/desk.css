@@ -1682,6 +1682,52 @@ a:active {
   color: var(--down);
 }
 
+/* Universe Yahoo streak lean fold (MonsterDeveloper declutter). */
+.universe-discovery-glance .universe-streak-lean {
+  margin: 0.25rem 0 0.15rem;
+  padding: 0;
+  border: 0;
+}
+
+.universe-discovery-glance .universe-streak-lean > summary {
+  cursor: pointer;
+  color: var(--link);
+  font-family: var(--font-body, system-ui, sans-serif);
+  font-size: 0.78rem;
+  list-style: none;
+}
+
+.universe-discovery-glance .universe-streak-lean > summary::-webkit-details-marker {
+  display: none;
+}
+
+.universe-discovery-glance .universe-streak-lean > summary .meta {
+  margin-left: 0.25rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.universe-discovery-glance .universe-streak-lean.warn > summary,
+.universe-discovery-glance .universe-streak-lean.warn > summary .meta {
+  color: var(--down);
+}
+
+.universe-discovery-glance .universe-streak-lean[open] > summary {
+  margin-bottom: 0.15rem;
+}
+
+.universe-discovery-glance .universe-streak-lean-body {
+  margin: 0;
+  font-family: var(--font-data, ui-monospace, monospace);
+  font-size: 0.78rem;
+  color: var(--ink);
+  line-height: 1.35;
+}
+
+.universe-discovery-glance .universe-streak-lean-body.warn {
+  color: var(--down);
+}
+
 /* Screener Total lean cascade fold (MonsterDeveloper declutter). */
 .strip .screener-weight-lean {
   margin-top: 0.35rem;

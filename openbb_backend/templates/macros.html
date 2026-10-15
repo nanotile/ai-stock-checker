@@ -745,19 +745,28 @@
   heading_id='universe-discovery-glance-h',
   link_href='/desk/screener',
   link_label='Screener →',
-  sub='Yahoo movers grow the curated US+DE scan list only. A complete US movers snapshot drops US yahoo_mover names the source no longer lists (dropped N · US); Xetra rows are out of that baseline. Empty/blocked Yahoo does not prune. Fail path keeps the last good seed clock age (seed Nh ago · fresh|aging|stale), speaks fail Nh ago · band, seed lags / fail lags when those bands disagree, plus retry due — it does not inherit the 24h success throttle. Buys still need gates. Display only — not a new gate.'
+  sub='Yahoo movers grow the curated US+DE scan list only. A complete US movers snapshot drops US yahoo_mover names the source no longer lists (dropped N · US); Xetra rows are out of that baseline. Empty/blocked Yahoo does not prune. Fail path keeps the last good seed clock age (seed Nh ago · fresh|aging|stale), speaks fail Nh ago · band, seed lags / fail lags when those bands disagree, plus retry due — it does not inherit the 24h success throttle. Streak/seed · fail · budget lean sits under streak lean when N× spoke. Buys still need gates. Display only — not a new gate.'
 ) -%}
 {% set glance = snap.universe_discovery_glance if snap.universe_discovery_glance is mapping else {} %}
 {% if glance.ready %}
+{% set body_line = glance.line_core|default(glance.line|default('')) %}
+{% set streak_lean = glance.streak_lean|default('') %}
+{% set lean_warn = glance.streak_lean_warn|default(false) %}
 <section class="universe-discovery-glance" aria-labelledby="{{ heading_id }}">
   <h2 id="{{ heading_id }}" class="visually-hidden">Universe discovery</h2>
   <p class="universe-discovery-glance-line">
     <span class="universe-discovery-glance-tone {{ glance.tone }}">Universe</span>
     <span class="pretrade-sep" aria-hidden="true">·</span>
-    <span class="universe-discovery-glance-body">{{ glance.line }}</span>
+    <span class="universe-discovery-glance-body">{{ body_line }}</span>
     <span class="pretrade-sep" aria-hidden="true">·</span>
     <a class="universe-discovery-glance-link" href="{{ link_href }}">{{ link_label }}</a>
   </p>
+  {% if streak_lean %}
+  <details class="universe-streak-lean{% if lean_warn %} warn{% endif %}"{% if lean_warn %} open{% endif %}>
+    <summary>streak lean <span class="meta">cascade</span></summary>
+    <p class="universe-streak-lean-body{% if lean_warn %} warn{% endif %}">{{ streak_lean }}</p>
+  </details>
+  {% endif %}
   <p class="sub">{{ sub }}</p>
 </section>
 {% endif %}
