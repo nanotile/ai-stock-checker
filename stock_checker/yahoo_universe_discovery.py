@@ -207,6 +207,41 @@ def yahoo_fail_streak_vs_budget(
     return ""
 
 
+def yahoo_fail_streak_seed_vs_fail(
+    streak_vs_seed: str,
+    streak_vs_fail: str,
+) -> tuple[str, bool]:
+    """Streak/seed vs streak/fail relationship agreement (display only).
+
+    Returns ``(bit, warn)``. N×↔seed ≠ N×↔fail stamp. When both already
+    spoke: same verb speaks ``align · both align|clash`` — ``both align``
+    stays calm; ``both clash`` warns (dual-clash agreement ≠ quiet confirm).
+    Crossed verbs speak ``clash · seed align|clash · fail align|clash``
+    (warn). Missing either stays silent — portfolio AI speak-both-sides +
+    soft-allow share/lean parity after streak/seed + streak/fail alone hid
+    whether the two relationships agree. Not a gate.
+    """
+    seed_bit = str(streak_vs_seed or "").strip()
+    fail_bit = str(streak_vs_fail or "").strip()
+    if not seed_bit or not fail_bit:
+        return "", False
+
+    def _verb(bit: str) -> str | None:
+        if bit.startswith("align · "):
+            return "align"
+        if bit.startswith("clash · "):
+            return "clash"
+        return None
+
+    seed_verb = _verb(seed_bit)
+    fail_verb = _verb(fail_bit)
+    if seed_verb is None or fail_verb is None:
+        return "", False
+    if seed_verb == fail_verb:
+        return f"align · both {seed_verb}", seed_verb == "clash"
+    return f"clash · seed {seed_verb} · fail {fail_verb}", True
+
+
 def yahoo_fail_retry_remaining_sec(
     meta: Any,
     *,

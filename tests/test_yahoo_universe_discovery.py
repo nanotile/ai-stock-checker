@@ -10,6 +10,7 @@ from stock_checker.yahoo_universe_discovery import (
     screen_payload_failed,
     screens_bundle_failed,
     yahoo_fail_streak,
+    yahoo_fail_streak_seed_vs_fail,
     yahoo_fail_streak_vs_budget,
     yahoo_fail_streak_vs_fail,
     yahoo_fail_streak_vs_seed,
@@ -75,6 +76,25 @@ def test_yahoo_fail_streak_vs_budget_extremes():
     assert (
         yahoo_fail_streak_vs_budget("nope", retry_due=False, retry_remain_sec=1800)
         == ""
+    )
+
+
+def test_yahoo_fail_streak_seed_vs_fail_extremes():
+    """seed/fail meta: same verb align · both; crossed clash; missing silent."""
+    bit, warn = yahoo_fail_streak_seed_vs_fail("clash · fresh", "align · fresh")
+    assert bit == "clash · seed clash · fail align"
+    assert warn is True
+    bit, warn = yahoo_fail_streak_seed_vs_fail("align · stale", "align · fresh")
+    assert bit == "align · both align"
+    assert warn is False
+    bit, warn = yahoo_fail_streak_seed_vs_fail("clash · fresh", "clash · stale")
+    assert bit == "align · both clash"
+    assert warn is True
+    assert yahoo_fail_streak_seed_vs_fail("", "align · fresh") == ("", False)
+    assert yahoo_fail_streak_seed_vs_fail("clash · fresh", "") == ("", False)
+    assert yahoo_fail_streak_seed_vs_fail("aging · fresh", "align · fresh") == (
+        "",
+        False,
     )
 
 
