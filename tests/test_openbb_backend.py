@@ -401,6 +401,76 @@ def test_desk_config_api_put_refuses_pending_in_flight(tmp_path: Path, monkeypat
     assert load_trader_config(tmp_path).get("ai_mode") == "off"
 
 
+def test_desk_config_api_dry_run_preview_no_write(tmp_path: Path, monkeypatch):
+    """xang1234 #636 confirm-first: dry_run returns impact without audit/write."""
+    _seed_portfolio(tmp_path)
+    monkeypatch.setattr(backend, "DATA_DIR", tmp_path)
+    monkeypatch.setenv("DESK_LIVE_MARKS", "0")
+    from stock_checker.ops_audit import load_ops_actions
+    from stock_checker.trader_config import load_trader_config, save_trader_config
+    from starlette.testclient import TestClient
+
+    save_trader_config(
+        tmp_path,
+        {
+            "ai_mode": "off",
+            "fee_preset": "revolut_standard",
+            "min_hold_hours": 24,
+            "max_positions": 5,
+        },
+    )
+    mtime_before = (tmp_path / "trader_config.json").stat().st_mtime_ns
+    client = TestClient(backend.app)
+    hot = client.put(
+        "/desk/api/config?dry_run=1",
+        json={
+            "ai_mode": "off",
+            "fee_preset": "revolut_standard",
+            "min_hold_hours": 48,
+            "max_positions": 5,
+        },
+    )
+    assert hot.status_code == 200
+    body = hot.json()
+    assert body.get("dry_run") is True
+    assert body.get("needs_confirm") is True
+    assert body.get("changed_impact_severity") == "hot"
+    assert "min_hold_hours" in (body.get("changed") or [])
+    assert str(body.get("changed_bit") or "").startswith("Δ hot")
+    assert "Continue?" in str(body.get("confirm") or "")
+    quiet = client.put(
+        "/desk/api/config?dry_run=1",
+        json={
+            "ai_mode": "validate",
+            "fee_preset": "revolut_standard",
+            "min_hold_hours": 24,
+            "max_positions": 5,
+        },
+    )
+    assert quiet.status_code == 200
+    q = quiet.json()
+    assert q.get("needs_confirm") is False
+    assert q.get("changed_impact_severity") == "quiet"
+    assert q.get("confirm") == ""
+    noop = client.put(
+        "/desk/api/config?dry_run=1",
+        json={
+            "ai_mode": "off",
+            "fee_preset": "revolut_standard",
+            "min_hold_hours": 24,
+            "max_positions": 5,
+        },
+    )
+    assert noop.status_code == 200
+    assert noop.json().get("changed") == []
+    assert noop.json().get("needs_confirm") is False
+    # Dry-run must not rewrite disk or append audit rows.
+    assert (tmp_path / "trader_config.json").stat().st_mtime_ns == mtime_before
+    assert load_trader_config(tmp_path).get("ai_mode") == "off"
+    assert load_trader_config(tmp_path).get("min_hold_hours") == 24
+    assert load_ops_actions(tmp_path) == []
+
+
 def test_desk_config_api_put_refuses_noop(tmp_path: Path, monkeypatch):
     """xang1234 #623: equal knobs → 409 skipped; no trader_config rewrite."""
     _seed_portfolio(tmp_path)

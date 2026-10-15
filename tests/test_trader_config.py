@@ -54,15 +54,21 @@ def test_config_changed_impact_severity_hot_vs_quiet():
     from stock_checker.trader_config import (
         config_changed_impact_severity,
         config_changed_impact_warn,
+        format_config_save_confirm,
     )
 
     assert config_changed_impact_severity([]) == ""
     assert config_changed_impact_severity(["ai_mode"]) == "quiet"
     assert config_changed_impact_warn(["ai_mode"]) is False
+    assert format_config_save_confirm(["ai_mode"]) == ""
     assert config_changed_impact_severity(["min_hold_hours"]) == "hot"
     assert config_changed_impact_warn(["min_hold_hours"]) is True
     # Mixed Save: hot wins (adverse severity).
     assert config_changed_impact_severity(["ai_mode", "max_positions"]) == "hot"
+    confirm = format_config_save_confirm(["ai_mode", "min_hold_hours"])
+    assert confirm.startswith("Save moves live paper risk (Δ hot · AI · hold)")
+    assert confirm.endswith("Continue?")
+    assert format_config_save_confirm([]) == ""
 
 
 def test_trader_config_would_change_detects_noop(tmp_path: Path):

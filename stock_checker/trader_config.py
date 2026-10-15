@@ -896,6 +896,20 @@ def config_changed_impact_warn(keys: list[str] | None) -> bool:
     return config_changed_impact_severity(keys) == "hot"
 
 
+def format_config_save_confirm(keys: list[str] | None) -> str:
+    """Browser confirm copy when Save would move hot knobs (xang1234 #636).
+
+    Empty when quiet / no-op — advisory AI/gates save without a prompt.
+    Hot book/fee/promote/hold asks once before the mutating PUT.
+    """
+    if not config_changed_impact_warn(keys):
+        return ""
+    bit = format_config_changed_bit(keys)
+    if not bit:
+        return ""
+    return f"Save moves live paper risk ({bit}). Continue?"
+
+
 def format_config_changed_bit(keys: list[str] | None, *, limit: int = 4) -> str:
     """Compact ``Δ hot · AI · hold`` / ``Δ quiet · AI`` for Ops glance / toast.
 

@@ -30,8 +30,7 @@
       }
     }
 
-    form.addEventListener("submit", function (ev) {
-      ev.preventDefault();
+    function readConfigBody() {
       var modeEl = document.getElementById("ops-ai-mode");
       var modelEl = document.getElementById("ops-ai-model");
       var multiEl = document.getElementById("ops-multi-role");
@@ -42,7 +41,7 @@
       var feeEl = document.getElementById("ops-fee-preset");
       var maxEl = document.getElementById("ops-max-pos");
       var holdEl = document.getElementById("ops-min-hold");
-      var body = {
+      return {
         ai_mode: modeEl ? modeEl.value : "off",
         ai_model: modelEl ? String(modelEl.value || "").trim() : "",
         ai_multi_role: multiEl ? !!multiEl.checked : true,
@@ -54,32 +53,33 @@
         max_positions: maxEl ? parseInt(maxEl.value, 10) : 5,
         min_hold_hours: holdEl ? parseFloat(holdEl.value) : 24,
       };
-      if (saveBtn) {
-        saveBtn.disabled = true;
-      }
-      setStatus("Saving…", null);
+    }
 
-      fetch("/desk/api/config", {
+    function parseJsonResponse(res) {
+      // xang1234 #621: a non-JSON 502/503 body is still an HTTP failure —
+      // do not fall through to the network catch as if the backend were down.
+      return res
+        .json()
+        .then(function (data) {
+          return { ok: res.ok, status: res.status, data: data };
+        })
+        .catch(function () {
+          return {
+            ok: res.ok,
+            status: res.status,
+            data: { detail: "Save failed (" + res.status + ")" },
+          };
+        });
+    }
+
+    function putConfig(body) {
+      setStatus("Saving…", null);
+      return fetch("/desk/api/config", {
         method: "PUT",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify(body),
       })
-        .then(function (res) {
-          // xang1234 #621: a non-JSON 502/503 body is still an HTTP failure —
-          // do not fall through to the network catch as if the backend were down.
-          return res
-            .json()
-            .then(function (data) {
-              return { ok: res.ok, status: res.status, data: data };
-            })
-            .catch(function () {
-              return {
-                ok: res.ok,
-                status: res.status,
-                data: { detail: "Save failed (" + res.status + ")" },
-              };
-            });
-        })
+        .then(parseJsonResponse)
         .then(function (result) {
           if (!result.ok) {
             var detail =
@@ -107,6 +107,42 @@
               " · applies on next trader loop",
             "is-ok"
           );
+        });
+    }
+
+    form.addEventListener("submit", function (ev) {
+      ev.preventDefault();
+      var body = readConfigBody();
+      if (saveBtn) {
+        saveBtn.disabled = true;
+      }
+      setStatus("Checking Save impact…", null);
+
+      // xang1234 #636: dry-run first; hot book/fee/promote asks confirm before write.
+      fetch("/desk/api/config?dry_run=1", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify(body),
+      })
+        .then(parseJsonResponse)
+        .then(function (preview) {
+          if (!preview.ok) {
+            var pdetail =
+              (preview.data && (preview.data.detail || preview.data.note)) ||
+              "Preview failed (" + preview.status + ")";
+            setStatus(String(pdetail), "is-err");
+            return;
+          }
+          if (preview.data && preview.data.needs_confirm) {
+            var msg =
+              String(preview.data.confirm || "").trim() ||
+              "Save moves live paper risk. Continue?";
+            if (!window.confirm(msg)) {
+              setStatus("Save cancelled — hot Δ not applied", null);
+              return;
+            }
+          }
+          return putConfig(body);
         })
         .catch(function () {
           setStatus("Network error — is openbb-backend up?", "is-err");

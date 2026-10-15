@@ -276,18 +276,29 @@ def desk_config_get():
 
 
 @app.put("/desk/api/config")
-async def desk_config_put(request: Request):
+async def desk_config_put(
+    request: Request,
+    dry_run: bool = Query(
+        False,
+        description="Preview Save impact only (no audit / disk write)",
+    ),
+):
     """Update trader knobs from Ops. Never accepts API keys.
 
     xang1234 #613/#628: audit ``requested`` before the file write; block
     the mutation when that audit commit fails so a silent change cannot
     land without a record of intent.
+
+    ``dry_run=1`` (xang1234 #636 confirm-first): return changed / severity /
+    confirm copy without writing — Ops asks once before a hot Save.
     """
     from stock_checker.ops_audit import audited_ops_action, record_ops_skipped
     from stock_checker.trader_config import (
         ALLOWED_AI_MODES,
         config_changed_impact_severity,
+        config_changed_impact_warn,
         format_config_changed_bit,
+        format_config_save_confirm,
         save_trader_config,
         trader_config_changed_keys,
     )
@@ -318,9 +329,34 @@ async def desk_config_put(request: Request):
             detail=f"ai_mode must be one of: {', '.join(sorted(ALLOWED_AI_MODES))}",
         )
 
+    changed = trader_config_changed_keys(DATA_DIR, body)
+    impact = format_config_changed_bit(changed)
+    severity = config_changed_impact_severity(changed)
+    needs_confirm = config_changed_impact_warn(changed)
+    confirm = format_config_save_confirm(changed)
+
+    # xang1234 #636: preview impact before Run/Save — no audit noise on dry-run.
+    if dry_run:
+        return {
+            "ok": True,
+            "dry_run": True,
+            "changed": changed,
+            "changed_bit": impact,
+            "changed_impact_severity": severity,
+            "needs_confirm": needs_confirm,
+            "confirm": confirm,
+            "note": (
+                confirm
+                or (
+                    f"Quiet Save ({impact}) — no confirm."
+                    if impact
+                    else "No config changes — save would skip."
+                )
+            ),
+        }
+
     # xang1234 #623: refuse before audit/write when Save would only skip;
     # record why so glance speaks ``skipped · no-op`` (#599 skip-says-why).
-    changed = trader_config_changed_keys(DATA_DIR, body)
     if not changed:
         record_ops_skipped(
             DATA_DIR,
@@ -336,7 +372,6 @@ async def desk_config_put(request: Request):
     # xang1234 #636: persist which knobs this Save affects (glance Δ + toast).
     detail = {k: body.get(k) for k in sorted(body)[:16]}
     detail["changed"] = changed
-    impact = format_config_changed_bit(changed)
 
     saved, audit = audited_ops_action(
         DATA_DIR,
@@ -369,7 +404,7 @@ async def desk_config_put(request: Request):
         "audit_outcome_recorded": bool(audit.get("outcome_recorded")),
         "changed": changed,
         "changed_bit": impact,
-        "changed_impact_severity": config_changed_impact_severity(changed),
+        "changed_impact_severity": severity,
         "note": note,
     }
 
