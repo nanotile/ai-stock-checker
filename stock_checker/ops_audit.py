@@ -698,8 +698,9 @@ def format_last_ops_action_bit(
     compact ``Δ AI · hold`` after the outcome (xang1234 #636 explain what a
     Run affects — adapted to Ops Save knob impact; bare accepted hid which
     knobs moved). When ``detail.open_cash`` names live US/Xetra sleeves,
-    also speak ``mid session · US open`` after Δ (xang1234 #636 when-to-run
-    — hot Save during cash RTH ≠ a quiet overnight tweak).
+    also speak ``mid session · US open · half cash`` after Δ (xang1234 #636
+    when-to-run — hot Save during cash RTH ≠ a quiet overnight tweak; half/all
+    cash ownership after venue names).
 
     Parseable stamps speak compact relative age + freshness band instead of
     raw ISO (RyanJHamby/xang1234 + Ops saved-row age parity — bare ``…Z``
@@ -911,10 +912,11 @@ def _ops_open_cash(row: dict[str, Any] | None) -> list[str]:
 
 
 def ops_changed_session_bit(row: dict[str, Any] | None) -> str:
-    """Compact ``mid session · US open`` from audit ``detail.open_cash`` (#636).
+    """Compact ``mid session · US open · half cash`` from audit open_cash (#636).
 
     Only speaks on hot Saves (book/fee/promote) that recorded open cash —
     quiet AI/gates mid-session stay silent (when-to-run is for live risk).
+    Half/all cash ownership follows Hours attention share honesty.
     """
     if not ops_changed_impact_warn(row):
         return ""

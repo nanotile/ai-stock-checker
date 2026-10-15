@@ -919,16 +919,26 @@ def config_save_open_cash_venues(
 
 
 def format_config_save_session_bit(open_cash: list[str] | None) -> str:
-    """Compact ``mid session · US · Xetra open`` when cash RTH is live.
+    """Compact ``mid session · US · Xetra open · all cash`` when cash RTH is live.
 
     Empty when all cash closed — quiet nights need no mid-session warn.
+    Venue names alone hid partial vs total cash live (Hours attention
+    half/all cash parity + portfolio AI speak-both-sides / count≠share).
     """
     clean = [str(v).strip() for v in (open_cash or []) if str(v).strip()]
     if not clean:
         return ""
     # Cap at both cash sleeves so the confirm stays short.
     named = " · ".join(clean[:2])
-    return f"mid session · {named} open"
+    n = min(len(clean), 2)
+    # Two cash venues on the desk (US + Xetra); crypto stays out.
+    if n >= 2:
+        share = " · all cash"
+    elif n == 1:
+        share = " · half cash"
+    else:
+        share = ""
+    return f"mid session · {named} open{share}"
 
 
 def format_config_save_confirm(
