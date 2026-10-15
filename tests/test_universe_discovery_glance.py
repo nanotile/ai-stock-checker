@@ -138,7 +138,7 @@ def test_universe_discovery_glance_yahoo_fail_streak_speaks(tmp_path) -> None:
     )
     assert g["yahoo_fail_streak_seed_vs_fail_warn"] is True
     # Fail 10m ago → still inside 1h backoff → budget held (xang1234 #640).
-    assert g["yahoo_fail_streak_vs_budget"] == "clash · held"
+    assert g["yahoo_fail_streak_vs_budget"] == "clash · held · not spent"
     # seed/fail clash + budget clash → sf/budget align · both clash.
     assert g["yahoo_fail_streak_seed_fail_vs_budget"] == "align · both clash"
     assert g["yahoo_fail_streak_seed_fail_vs_budget_warn"] is True
@@ -184,7 +184,7 @@ def test_universe_discovery_glance_yahoo_fail_streak_vs_seed_stale(
     assert g["yahoo_fail_streak_seed_vs_fail"] == "align · both align"
     assert g["yahoo_fail_streak_seed_vs_fail_warn"] is False
     # Fail 10m ago → budget held; seed/fail both-align vs budget clash → crossed.
-    assert g["yahoo_fail_streak_vs_budget"] == "clash · held"
+    assert g["yahoo_fail_streak_vs_budget"] == "clash · held · not spent"
     assert g["yahoo_fail_streak_seed_fail_vs_budget"] == (
         "clash · seed/fail align · budget clash"
     )

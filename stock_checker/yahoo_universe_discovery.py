@@ -188,7 +188,8 @@ def yahoo_fail_streak_vs_budget(
     budget or holding unused capacity in fail backoff. Cooling (remain > 0)
     clashes with a hot streak (counter ≠ live spend). Retry due aligns
     (about to spend / spending again). Streak <2 / missing remain while not
-    due stay silent. Returns ``clash · held`` / ``align · due`` / ``""``.
+    due stay silent. Returns ``clash · held · not spent`` / ``align · due`` /
+    ``""``.
     """
     try:
         n = int(streak)
@@ -203,7 +204,9 @@ def yahoo_fail_streak_vs_budget(
     except (TypeError, ValueError):
         return ""
     if remain is not None and remain > 0:
-        return "clash · held"
+        # xang1234 #642: cooling = reservation not dispatched — speak not spent
+        # so held backoff ≠ a live fetch that already burned budget.
+        return "clash · held · not spent"
     return ""
 
 

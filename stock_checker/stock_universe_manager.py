@@ -355,11 +355,23 @@ class StockUniverseManager:
             max_age_hours=age_limit,
         )
 
-    def discover_yahoo_movers(self, *, per_screen: int = 25, max_new: int = 40) -> int:
+    def discover_yahoo_movers(
+        self,
+        *,
+        per_screen: int = 25,
+        max_new: int = 40,
+        force: bool = False,
+        max_age_hours: int | None = None,
+    ) -> int:
         """
         Add Yahoo day gainers/losers/actives into the universe (discovery only).
 
         Does not buy anything. Caps new adds per call to avoid universe bloat.
+
+        xang1234 #640/#642: fail backoff always holds unused fetch budget —
+        weekend/cycle ``force`` cannot thrash a cooling dead Yahoo (reservation
+        cancelled before dispatch → not spent; do not bump fail streak).
+        Success-age freshness still yields to ``force=True``.
         """
         from stock_checker.yahoo_universe_discovery import (
             bump_yahoo_fail_streak,
@@ -367,12 +379,29 @@ class StockUniverseManager:
             discover_yahoo_mover_report,
             screens_bundle_failed,
             screens_bundle_partial,
+            yahoo_fail_retry_remaining_sec,
         )
 
         meta = self.universe.setdefault("meta", {})
         if not isinstance(meta, dict):
             meta = {}
             self.universe["meta"] = meta
+
+        remain = yahoo_fail_retry_remaining_sec(meta)
+        if remain is not None and remain > 0:
+            # Held backoff: never dispatch — #642 refund before spend.
+            rem = int(remain)
+            if rem < 60:
+                wait = "<1m"
+            elif rem < 3600:
+                wait = f"{rem // 60}m"
+            else:
+                wait = f"{rem // 3600}h"
+            print(f"   📡 Yahoo movers held (fail backoff {wait}) — not spent")
+            return 0
+        if not force and not self.yahoo_discovery_due(max_age_hours=max_age_hours):
+            print("   📡 Yahoo movers skipped (discovery fresh) — not spent")
+            return 0
 
         screens_ok = 0
         screens_failed = 0
@@ -620,12 +649,10 @@ class StockUniverseManager:
             else int(yahoo_max_age_hours)
         )
         added = self.ensure_curated_seed()
-        run_yahoo = force_yahoo or self.yahoo_discovery_due(max_age_hours=age_h)
-        if not run_yahoo:
-            print(f"   📡 Yahoo movers skipped (discovery fresh <{age_h}h)")
-            return added
         try:
-            added += self.discover_yahoo_movers()
+            added += self.discover_yahoo_movers(
+                force=force_yahoo, max_age_hours=age_h
+            )
         except Exception as e:
             print(f"⚠️  Yahoo discovery skipped: {str(e)[:100]}")
         return added

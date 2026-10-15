@@ -62,7 +62,12 @@ def test_discover_yahoo_movers_empty_does_not_stamp_cache(tmp_path: Path, monkey
         assert n in mgr.universe["stocks"]
     assert meta.get("last_yahoo_screens_ok") == 0
     assert meta.get("last_yahoo_screens_failed") == 3
-    # Second fail bumps streak (xang1234 #639 Failed-N×).
+    # Cooling hold: second call must not dispatch / bump (#642 not spent).
+    assert mgr.discover_yahoo_movers(force=True) == 0
+    assert mgr.universe["meta"]["yahoo_discovery_fail_streak"] == 1
+    # After backoff expires, a real fail bumps streak (#639 Failed-N×).
+    mgr.universe["meta"]["last_yahoo_discovery_fail"] = "2020-01-01T00:00:00"
+    mgr._save_universe()
     assert mgr.discover_yahoo_movers() == 0
     assert mgr.universe["meta"]["yahoo_discovery_fail_streak"] == 2
 
@@ -126,6 +131,36 @@ def test_yahoo_discovery_due_failed_skips_success_age_throttle(tmp_path: Path):
     # Fresh fail stamp → cool down inside 1h backoff.
     mgr.universe["meta"]["last_yahoo_discovery_fail"] = datetime.now().isoformat()
     assert mgr.yahoo_discovery_due(max_age_hours=24) is False
+
+
+def test_discover_yahoo_movers_held_backoff_not_spent(
+    tmp_path: Path, monkeypatch
+):
+    """xang1234 #642: cooling fail backoff never dispatches — force ≠ thrash."""
+    mgr = StockUniverseManager(data_dir=str(tmp_path))
+    meta = mgr.universe.setdefault("meta", {})
+    meta["last_yahoo_discovery_status"] = "failed"
+    meta["last_yahoo_discovery_fail"] = datetime.now().isoformat()
+    meta["yahoo_discovery_fail_streak"] = 3
+    mgr._save_universe()
+
+    called = {"n": 0}
+
+    def boom(*, per_screen: int = 25):
+        called["n"] += 1
+        raise RuntimeError("should not dispatch")
+
+    monkeypatch.setattr(
+        "stock_checker.yahoo_universe_discovery.discover_yahoo_mover_report",
+        boom,
+    )
+    assert mgr.discover_yahoo_movers(force=True) == 0
+    assert called["n"] == 0
+    assert mgr.universe["meta"]["yahoo_discovery_fail_streak"] == 3
+    # Outer force path (weekend/cycle) also yields to fail hold.
+    assert mgr.discover_and_add_stocks(force_yahoo=True) >= 0
+    assert called["n"] == 0
+    assert mgr.universe["meta"]["yahoo_discovery_fail_streak"] == 3
 
 
 def test_discover_yahoo_movers_prunes_dropped_movers(tmp_path: Path, monkeypatch):

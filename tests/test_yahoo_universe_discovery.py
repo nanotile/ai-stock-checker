@@ -58,7 +58,7 @@ def test_yahoo_fail_streak_vs_budget_extremes():
     )
     assert (
         yahoo_fail_streak_vs_budget(3, retry_due=False, retry_remain_sec=1800)
-        == "clash · held"
+        == "clash · held · not spent"
     )
     assert (
         yahoo_fail_streak_vs_budget(3, retry_due=True, retry_remain_sec=0)

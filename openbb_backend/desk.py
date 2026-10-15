@@ -19884,10 +19884,10 @@ def build_universe_discovery_glance(
     ``streak/fail align · fresh`` / ``clash · stale`` (counter ≠ live
     death clock; mid aging silent; sits after streak/seed · before retry).
     When N× already spoke, also speak streak vs fetch-budget spend
-    ``streak/budget clash · held`` / ``align · due`` (xang1234 #640 spend
-    budget only on work actually done — hot streak alone hid whether
-    backoff is holding unused Yahoo capacity or retry is about to spend;
-    sits after streak/fail · before retry).
+    ``streak/budget clash · held · not spent`` / ``align · due``
+    (xang1234 #640/#642 spend budget only on work actually dispatched —
+    hot streak alone hid whether backoff is holding unused Yahoo capacity
+    or retry is about to spend; sits after streak/fail · before retry).
     Buys still need regime/RS/breadth/fees. Not a new gate.
     """
     from stock_checker.yahoo_universe_discovery import (
