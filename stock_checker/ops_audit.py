@@ -858,6 +858,8 @@ def audited_ops_action(
 
 def _safe_detail(detail: dict[str, Any] | None) -> dict[str, Any]:
     """Keep a small non-secret summary of what Ops asked to change."""
+    from .secret_redact import redact_secrets
+
     if not isinstance(detail, dict):
         return {}
     out: dict[str, Any] = {}
@@ -869,7 +871,8 @@ def _safe_detail(detail: dict[str, Any] | None) -> dict[str, Any]:
         if isinstance(val, (bool, int, float)):
             out[k] = val
         elif isinstance(val, str):
-            out[k] = val[:80]
+            # tradermonty #556: redact encoded key echoes inside benign string fields.
+            out[k] = redact_secrets(val)[:80]
         elif val is None:
             out[k] = None
         else:

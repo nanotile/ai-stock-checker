@@ -6,6 +6,8 @@ import asyncio
 from pathlib import Path
 from typing import AsyncIterator, Dict, List
 
+from stock_checker.secret_redact import redact_secrets
+
 
 # Relative to DATA_DIR. Only these names are exposed to the browser.
 LOG_SOURCES: Dict[str, str] = {
@@ -75,11 +77,13 @@ def read_log_tail(
                 raw = raw[nl + 1 :]
         else:
             raw = fh.read()
+    # tradermonty #556: never echo raw/URL-encoded provider keys to Ops tails.
+    text = redact_secrets(raw.decode("utf-8", errors="replace"))
     return {
         "source": source,
         "path": LOG_SOURCES[source],
         "exists": True,
-        "text": raw.decode("utf-8", errors="replace"),
+        "text": text,
         "size_bytes": size,
         "truncated": truncated,
     }
@@ -119,4 +123,4 @@ async def follow_log(
         except OSError:
             continue
         if chunk:
-            yield chunk.decode("utf-8", errors="replace")
+            yield redact_secrets(chunk.decode("utf-8", errors="replace"))
