@@ -93,6 +93,7 @@ def test_universe_discovery_glance_yahoo_fail_reuses_seed(tmp_path) -> None:
     assert g["tone"] == "warn"
     assert g["yahoo_failed"] is True
     assert g["yahoo_retry_due"] is True
+    assert g["yahoo_fail_streak"] == 0
     assert g["age_label"]
     assert g["seed_freshness"] == "fresh"
     assert "Yahoo fail" in g["line"]
@@ -101,6 +102,36 @@ def test_universe_discovery_glance_yahoo_fail_reuses_seed(tmp_path) -> None:
     assert "discovery-only" not in g["line"]
     assert g["last_yahoo_added"] == 2
     assert g["screens_bit"] == ""
+    # First fail / missing streak: no N× chip (xang1234 #639).
+    assert "×" not in g["line"]
+
+
+def test_universe_discovery_glance_yahoo_fail_streak_speaks(tmp_path) -> None:
+    """xang1234 #639: repeated fails speak N× (chronic dead ≠ quiet seed)."""
+    now = datetime(2026, 9, 11, 10, 0, tzinfo=timezone.utc)
+    last = (now - timedelta(hours=6)).replace(tzinfo=None).isoformat()
+    fail = (now - timedelta(minutes=10)).replace(tzinfo=None).isoformat()
+    (tmp_path / "stock_universe.json").write_text(
+        json.dumps(
+            {
+                "stocks": {"AAPL": {}},
+                "meta": {
+                    "last_yahoo_discovery": last,
+                    "last_yahoo_discovery_status": "failed",
+                    "last_yahoo_discovery_fail": fail,
+                    "yahoo_discovery_fail_streak": 3,
+                    "last_yahoo_screens_ok": 0,
+                    "last_yahoo_screens_failed": 3,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    g = build_universe_discovery_glance(tmp_path, now=now)
+    assert g["yahoo_failed"] is True
+    assert g["yahoo_fail_streak"] == 3
+    assert "Yahoo fail · 0/3 · 3×" in g["line"]
+    assert g["line"].index("3×") < g["line"].index("retry")
 
 
 def test_universe_discovery_glance_yahoo_fail_shows_screen_fraction(tmp_path) -> None:

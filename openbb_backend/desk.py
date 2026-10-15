@@ -19872,6 +19872,10 @@ def build_universe_discovery_glance(
     fail backoff (xang1234 dfb6a86 — do not refetch empty slices every scan).
     Retry sits before seed/fail lag so the 128-char clip cannot hide backoff
     (xang1234 never-partial / 4d995f8 row-cap honesty adapted).
+    When consecutive fails ≥2, also speak ``N×`` after the screen fraction
+    (xang1234 #639 Failed-N× chip — a single fail stamp hid a chronic dead
+    movers source; first fail stays silent on streak; source-health panel /
+    last-error tooltip still deferred).
     Buys still need regime/RS/breadth/fees. Not a new gate.
     """
     from stock_checker.yahoo_universe_discovery import (
@@ -19881,6 +19885,7 @@ def build_universe_discovery_glance(
         yahoo_cache_freshness,
         yahoo_discovery_due_from_meta,
         yahoo_fail_retry_remaining_sec,
+        yahoo_fail_streak,
     )
 
     per = int(DEFAULT_MOVER_COUNT)
@@ -19974,6 +19979,7 @@ def build_universe_discovery_glance(
             )
 
     yahoo_failed = yahoo_status == "failed"
+    fail_streak = yahoo_fail_streak(uni_meta)
     retry_due = yahoo_discovery_due_from_meta(
         uni_meta,
         now=now,
@@ -20031,6 +20037,8 @@ def build_universe_discovery_glance(
     if yahoo_failed:
         tone = "warn"
         frac = f" · {screens_bit}" if screens_bit else ""
+        # xang1234 #639: repeated fails ≥2 speak N× (first fail silent).
+        streak_bit = f" · {fail_streak}×" if fail_streak >= 2 else ""
         if retry_due:
             retry = " · retry due"
         elif retry_remain_sec is not None and retry_remain_sec > 0:
@@ -20079,11 +20087,12 @@ def build_universe_discovery_glance(
             )
             lag += f" · lean vs Δ clash · mid{mid_gap}"
         # Retry before lag: clip must not hide backoff (xang1234 never-partial).
+        # Streak sits with fail core (before retry) so chronic dead ≠ quiet seed.
         # Fail path allows 160 chars (seed/fail ages + lag); success stays 128.
         _fail_line_max = 160
         core = (
             f"US+DE · Yahoo ≤{per} · "
-            f"Yahoo fail{frac}{retry} · {seed_bit}{fail_bit}"
+            f"Yahoo fail{frac}{streak_bit}{retry} · {seed_bit}{fail_bit}"
         )
         line = core + lag
         if len(line) > _fail_line_max:
@@ -20124,6 +20133,7 @@ def build_universe_discovery_glance(
         "last_yahoo_prune_skipped": prune_skipped,
         "last_yahoo_discovery_status": yahoo_status or "unknown",
         "yahoo_failed": yahoo_failed,
+        "yahoo_fail_streak": fail_streak,
         "yahoo_retry_due": retry_due,
         "yahoo_retry_remain_sec": retry_remain_sec,
         "yahoo_fail_backoff_hours": int(DEFAULT_YAHOO_FAIL_BACKOFF_HOURS),

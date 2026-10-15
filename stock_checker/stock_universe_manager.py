@@ -362,6 +362,8 @@ class StockUniverseManager:
         Does not buy anything. Caps new adds per call to avoid universe bloat.
         """
         from stock_checker.yahoo_universe_discovery import (
+            bump_yahoo_fail_streak,
+            clear_yahoo_fail_streak,
             discover_yahoo_mover_report,
             screens_bundle_failed,
             screens_bundle_partial,
@@ -385,6 +387,8 @@ class StockUniverseManager:
             meta["last_yahoo_screens_ok"] = 0
             meta["last_yahoo_screens_failed"] = 0
             meta["last_yahoo_prune_skipped"] = False
+            # xang1234 #639: fail stamp alone hid repeated dead fetches.
+            bump_yahoo_fail_streak(meta)
             self.ensure_curated_seed()
             self._save_universe()
             return 0
@@ -397,6 +401,7 @@ class StockUniverseManager:
             meta["last_yahoo_discovery_status"] = "failed"
             meta["last_yahoo_discovery_fail"] = datetime.now().isoformat()
             meta["last_yahoo_prune_skipped"] = False
+            bump_yahoo_fail_streak(meta)
             self.ensure_curated_seed()
             self._save_universe()
             print(
@@ -430,6 +435,8 @@ class StockUniverseManager:
         meta["last_yahoo_dropped"] = dropped
         meta["last_yahoo_dropped_venue"] = YAHOO_MOVER_SNAPSHOT_VENUE
         meta["last_yahoo_prune_skipped"] = prune_skipped
+        # xang1234 #639: only a success advances last-good; clear fail streak.
+        clear_yahoo_fail_streak(meta)
         self._save_universe()
         if prune_skipped:
             print(

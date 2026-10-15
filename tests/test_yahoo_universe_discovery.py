@@ -3,11 +3,27 @@
 from stock_checker.yahoo_universe_discovery import (
     YahooScreenEmptyError,
     _quotes_from_screen_payload,
+    bump_yahoo_fail_streak,
+    clear_yahoo_fail_streak,
     discover_yahoo_mover_report,
     discover_yahoo_mover_symbols,
     screen_payload_failed,
     screens_bundle_failed,
+    yahoo_fail_streak,
 )
+
+
+def test_yahoo_fail_streak_bump_and_clear():
+    """xang1234 #639: consecutive fails are counted; success resets."""
+    assert yahoo_fail_streak(None) == 0
+    assert yahoo_fail_streak({}) == 0
+    assert yahoo_fail_streak({"yahoo_discovery_fail_streak": "nope"}) == 0
+    meta: dict = {}
+    assert bump_yahoo_fail_streak(meta) == 1
+    assert bump_yahoo_fail_streak(meta) == 2
+    assert yahoo_fail_streak(meta) == 2
+    clear_yahoo_fail_streak(meta)
+    assert yahoo_fail_streak(meta) == 0
 
 
 def test_quotes_from_screen_payload():

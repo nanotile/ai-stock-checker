@@ -57,10 +57,14 @@ def test_discover_yahoo_movers_empty_does_not_stamp_cache(tmp_path: Path, monkey
     assert meta["last_yahoo_discovery_status"] == "failed"
     assert meta["last_yahoo_added"] == 3
     assert "last_yahoo_discovery_fail" in meta
+    assert meta.get("yahoo_discovery_fail_streak") == 1
     for n in names:
         assert n in mgr.universe["stocks"]
     assert meta.get("last_yahoo_screens_ok") == 0
     assert meta.get("last_yahoo_screens_failed") == 3
+    # Second fail bumps streak (xang1234 #639 Failed-N×).
+    assert mgr.discover_yahoo_movers() == 0
+    assert mgr.universe["meta"]["yahoo_discovery_fail_streak"] == 2
 
 
 def test_discover_yahoo_movers_majority_fail_discards_leftovers(
@@ -137,6 +141,8 @@ def test_discover_yahoo_movers_prunes_dropped_movers(tmp_path: Path, monkeypatch
         "stock_checker.yahoo_universe_discovery.discover_yahoo_mover_report",
         ok_report,
     )
+    mgr.universe.setdefault("meta", {})["yahoo_discovery_fail_streak"] = 4
+    mgr._save_universe()
     added = mgr.discover_yahoo_movers()
     assert added == 0
     assert "ZZZZOLD" not in mgr.universe["stocks"]
@@ -147,6 +153,8 @@ def test_discover_yahoo_movers_prunes_dropped_movers(tmp_path: Path, monkeypatch
     assert mgr.universe["meta"]["last_yahoo_dropped_venue"] == "US"
     assert mgr.universe["meta"]["last_yahoo_discovery_status"] == "ok"
     assert mgr.universe["meta"]["last_yahoo_prune_skipped"] is False
+    # Success clears consecutive-fail streak (#639 last_success honesty).
+    assert mgr.universe["meta"]["yahoo_discovery_fail_streak"] == 0
 
 
 def test_discover_yahoo_movers_partial_skips_prune(tmp_path: Path, monkeypatch):

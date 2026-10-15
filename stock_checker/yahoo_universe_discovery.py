@@ -104,6 +104,34 @@ def _naive_utc(dt: datetime) -> datetime:
     return dt
 
 
+def yahoo_fail_streak(meta: Any) -> int:
+    """Consecutive failed Yahoo discovery attempts (xang1234 #639).
+
+    Failures that looked like a quiet seed reused the same fail stamp without
+    naming how many times in a row movers stayed dead. ``0`` when absent /
+    unparseable / success cleared the counter.
+    """
+    if not isinstance(meta, dict):
+        return 0
+    raw = meta.get("yahoo_discovery_fail_streak")
+    try:
+        return max(0, int(raw))
+    except (TypeError, ValueError):
+        return 0
+
+
+def bump_yahoo_fail_streak(meta: dict[str, Any]) -> int:
+    """Increment consecutive-fail counter on a blocked / empty movers fetch."""
+    n = yahoo_fail_streak(meta) + 1
+    meta["yahoo_discovery_fail_streak"] = n
+    return n
+
+
+def clear_yahoo_fail_streak(meta: dict[str, Any]) -> None:
+    """Reset streak after a successful movers snapshot (last_success honesty)."""
+    meta["yahoo_discovery_fail_streak"] = 0
+
+
 def yahoo_fail_retry_remaining_sec(
     meta: Any,
     *,
