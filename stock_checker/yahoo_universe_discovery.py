@@ -176,6 +176,37 @@ def yahoo_fail_streak_vs_fail(streak: int, fail_freshness: str) -> str:
     return ""
 
 
+def yahoo_fail_streak_vs_budget(
+    streak: int,
+    *,
+    retry_due: bool,
+    retry_remain_sec: int | None,
+) -> str:
+    """Streak vs fetch-budget spend when N× already spoke (xang1234 #640).
+
+    Chronic ``N×`` alone hid whether discovery is still spending Yahoo fetch
+    budget or holding unused capacity in fail backoff. Cooling (remain > 0)
+    clashes with a hot streak (counter ≠ live spend). Retry due aligns
+    (about to spend / spending again). Streak <2 / missing remain while not
+    due stay silent. Returns ``clash · held`` / ``align · due`` / ``""``.
+    """
+    try:
+        n = int(streak)
+    except (TypeError, ValueError):
+        return ""
+    if n < 2:
+        return ""
+    if retry_due:
+        return "align · due"
+    try:
+        remain = int(retry_remain_sec) if retry_remain_sec is not None else None
+    except (TypeError, ValueError):
+        return ""
+    if remain is not None and remain > 0:
+        return "clash · held"
+    return ""
+
+
 def yahoo_fail_retry_remaining_sec(
     meta: Any,
     *,

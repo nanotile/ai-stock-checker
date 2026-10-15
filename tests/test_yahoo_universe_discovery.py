@@ -10,6 +10,7 @@ from stock_checker.yahoo_universe_discovery import (
     screen_payload_failed,
     screens_bundle_failed,
     yahoo_fail_streak,
+    yahoo_fail_streak_vs_budget,
     yahoo_fail_streak_vs_fail,
     yahoo_fail_streak_vs_seed,
 )
@@ -46,6 +47,35 @@ def test_yahoo_fail_streak_vs_fail_extremes():
     assert yahoo_fail_streak_vs_fail(3, "aging") == ""
     assert yahoo_fail_streak_vs_fail(3, "never") == ""
     assert yahoo_fail_streak_vs_fail("nope", "fresh") == ""
+
+
+def test_yahoo_fail_streak_vs_budget_extremes():
+    """N× vs fetch budget: cooling held clash / retry-due align (xang1234 #640)."""
+    assert (
+        yahoo_fail_streak_vs_budget(1, retry_due=False, retry_remain_sec=1800) == ""
+    )
+    assert (
+        yahoo_fail_streak_vs_budget(3, retry_due=False, retry_remain_sec=1800)
+        == "clash · held"
+    )
+    assert (
+        yahoo_fail_streak_vs_budget(3, retry_due=True, retry_remain_sec=0)
+        == "align · due"
+    )
+    assert (
+        yahoo_fail_streak_vs_budget(3, retry_due=True, retry_remain_sec=None)
+        == "align · due"
+    )
+    assert (
+        yahoo_fail_streak_vs_budget(3, retry_due=False, retry_remain_sec=None) == ""
+    )
+    assert (
+        yahoo_fail_streak_vs_budget(3, retry_due=False, retry_remain_sec=0) == ""
+    )
+    assert (
+        yahoo_fail_streak_vs_budget("nope", retry_due=False, retry_remain_sec=1800)
+        == ""
+    )
 
 
 def test_quotes_from_screen_payload():

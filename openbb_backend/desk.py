@@ -19880,6 +19880,14 @@ def build_universe_discovery_glance(
     ``streak/seed clash · fresh`` / ``align · stale`` (portfolio AI
     speak-both-sides after N× alone hid a still-fresh reused list beside
     chronic dead Yahoo; mid aging silent; sits after N× · before retry).
+    When N× already spoke, also speak streak vs fail-stamp extremes
+    ``streak/fail align · fresh`` / ``clash · stale`` (counter ≠ live
+    death clock; mid aging silent; sits after streak/seed · before retry).
+    When N× already spoke, also speak streak vs fetch-budget spend
+    ``streak/budget clash · held`` / ``align · due`` (xang1234 #640 spend
+    budget only on work actually done — hot streak alone hid whether
+    backoff is holding unused Yahoo capacity or retry is about to spend;
+    sits after streak/fail · before retry).
     Buys still need regime/RS/breadth/fees. Not a new gate.
     """
     from stock_checker.yahoo_universe_discovery import (
@@ -19890,6 +19898,7 @@ def build_universe_discovery_glance(
         yahoo_discovery_due_from_meta,
         yahoo_fail_retry_remaining_sec,
         yahoo_fail_streak,
+        yahoo_fail_streak_vs_budget,
         yahoo_fail_streak_vs_fail,
         yahoo_fail_streak_vs_seed,
     )
@@ -20052,6 +20061,16 @@ def build_universe_discovery_glance(
         if yahoo_failed
         else ""
     )
+    # xang1234 #640: N× alone hid whether backoff holds unused fetch budget.
+    streak_vs_budget = (
+        yahoo_fail_streak_vs_budget(
+            fail_streak,
+            retry_due=retry_due,
+            retry_remain_sec=retry_remain_sec,
+        )
+        if yahoo_failed
+        else ""
+    )
     if yahoo_failed:
         tone = "warn"
         frac = f" · {screens_bit}" if screens_bit else ""
@@ -20062,6 +20081,9 @@ def build_universe_discovery_glance(
         )
         streak_vs_fail_bit = (
             f" · streak/fail {streak_vs_fail}" if streak_vs_fail else ""
+        )
+        streak_vs_budget_bit = (
+            f" · streak/budget {streak_vs_budget}" if streak_vs_budget else ""
         )
         if retry_due:
             retry = " · retry due"
@@ -20111,14 +20133,15 @@ def build_universe_discovery_glance(
             )
             lag += f" · lean vs Δ clash · mid{mid_gap}"
         # Retry before lag: clip must not hide backoff (xang1234 never-partial).
-        # Streak + streak/seed + streak/fail sit with fail core (before retry)
-        # so chronic dead ≠ quiet fresh seed / stale fail stamp.
+        # Streak + streak/seed + streak/fail + streak/budget sit with fail core
+        # (before retry) so chronic dead ≠ quiet fresh seed / stale fail stamp
+        # / held fetch budget while cooling.
         # Fail path allows 160 chars (seed/fail ages + lag); success stays 128.
         _fail_line_max = 160
         core = (
             f"US+DE · Yahoo ≤{per} · "
             f"Yahoo fail{frac}{streak_bit}{streak_vs_seed_bit}"
-            f"{streak_vs_fail_bit}"
+            f"{streak_vs_fail_bit}{streak_vs_budget_bit}"
             f"{retry} · {seed_bit}{fail_bit}"
         )
         line = core + lag
@@ -20163,6 +20186,7 @@ def build_universe_discovery_glance(
         "yahoo_fail_streak": fail_streak,
         "yahoo_fail_streak_vs_seed": streak_vs_seed,
         "yahoo_fail_streak_vs_fail": streak_vs_fail,
+        "yahoo_fail_streak_vs_budget": streak_vs_budget,
         "yahoo_retry_due": retry_due,
         "yahoo_retry_remain_sec": retry_remain_sec,
         "yahoo_fail_backoff_hours": int(DEFAULT_YAHOO_FAIL_BACKOFF_HOURS),
