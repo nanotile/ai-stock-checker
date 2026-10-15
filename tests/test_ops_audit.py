@@ -173,10 +173,13 @@ def test_format_last_ops_action_bit_accepted_speaks_changed_impact():
         },
     }
     assert ops_changed_session_bit(mid_row) == (
-        "mid session · US · Xetra open · all cash"
+        "mid session · US · Xetra open · all cash · vs 0 closed · thin · 0%"
     )
     mid_bit = format_last_ops_action_bit(mid_row, now=now)
-    assert "Δ hot · hold · mid session · US · Xetra open · all cash ·" in mid_bit
+    assert (
+        "Δ hot · hold · mid session · US · Xetra open · all cash · "
+        "vs 0 closed · thin · 0% ·" in mid_bit
+    )
     half_row = {
         "kind": "config",
         "outcome": "accepted",
@@ -187,7 +190,7 @@ def test_format_last_ops_action_bit_accepted_speaks_changed_impact():
         },
     }
     assert ops_changed_session_bit(half_row) == (
-        "mid session · US open · half cash"
+        "mid session · US open · half cash · vs 1 closed · 50%"
     )
     quiet = {
         "kind": "config",

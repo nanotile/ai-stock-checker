@@ -71,24 +71,27 @@ def test_config_changed_impact_severity_hot_vs_quiet():
     assert confirm.endswith("Continue?")
     assert format_config_save_confirm([]) == ""
     # xang1234 #636 when-to-run: mid-session only on hot + open cash.
-    # Venue names + half/all cash ownership (Hours attention parity).
+    # Venue names + half/all cash + vs closed (Hours attention vs-open parity).
     assert format_config_save_session_bit([]) == ""
     assert format_config_save_session_bit(["US"]) == (
-        "mid session · US open · half cash"
+        "mid session · US open · half cash · vs 1 closed · 50%"
     )
     assert (
         format_config_save_session_bit(["US", "Xetra"])
-        == "mid session · US · Xetra open · all cash"
+        == "mid session · US · Xetra open · all cash · vs 0 closed · thin · 0%"
     )
     mid = format_config_save_confirm(
         ["min_hold_hours"], open_cash=["US", "Xetra"]
     )
-    assert "mid session · US · Xetra open · all cash" in mid
+    assert (
+        "mid session · US · Xetra open · all cash · vs 0 closed · thin · 0%"
+        in mid
+    )
     assert mid.endswith("Continue?")
     half = format_config_save_confirm(
         ["min_hold_hours"], open_cash=["US"]
     )
-    assert "mid session · US open · half cash" in half
+    assert "mid session · US open · half cash · vs 1 closed · 50%" in half
     # Quiet Save ignores open_cash (no confirm).
     assert format_config_save_confirm(["ai_mode"], open_cash=["US"]) == ""
 

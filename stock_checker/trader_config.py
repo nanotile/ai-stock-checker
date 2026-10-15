@@ -919,26 +919,44 @@ def config_save_open_cash_venues(
 
 
 def format_config_save_session_bit(open_cash: list[str] | None) -> str:
-    """Compact ``mid session · US · Xetra open · all cash`` when cash RTH is live.
+    """Compact ``mid session · US open · half cash · vs 1 closed · 50%``.
 
     Empty when all cash closed — quiet nights need no mid-session warn.
     Venue names alone hid partial vs total cash live (Hours attention
-    half/all cash parity + portfolio AI speak-both-sides / count≠share).
+    half/all cash parity). Open share alone hid remaining dark sleeves
+    (Hours attention vs open + portfolio AI speak-both-sides / count≠share).
+    Crypto stays out of the cash denom (two sleeves: US + Xetra).
     """
     clean = [str(v).strip() for v in (open_cash or []) if str(v).strip()]
     if not clean:
         return ""
     # Cap at both cash sleeves so the confirm stays short.
     named = " · ".join(clean[:2])
-    n = min(len(clean), 2)
+    n_open = min(len(clean), 2)
+    cash_venues = 2
+    n_closed = cash_venues - n_open
     # Two cash venues on the desk (US + Xetra); crypto stays out.
-    if n >= 2:
+    if n_open >= 2:
         share = " · all cash"
-    elif n == 1:
+    elif n_open == 1:
         share = " · half cash"
     else:
         share = ""
-    return f"mid session · {named} open{share}"
+    # Open ownership alone hid usable/closed remainder (Hours vs-open parity).
+    closed_share_pct = int(round(100.0 * n_closed / cash_venues))
+    # Same floors as Hours attention_open_share: strong ≥75 · thin <50.
+    if closed_share_pct >= 75:
+        closed_sev = "strong"
+    elif closed_share_pct < 50:
+        closed_sev = "thin"
+    else:
+        closed_sev = "ok"
+    vs_closed = f"vs {n_closed} closed"
+    if closed_sev in {"strong", "thin"}:
+        vs_closed = f"{vs_closed} · {closed_sev} · {closed_share_pct}%"
+    else:
+        vs_closed = f"{vs_closed} · {closed_share_pct}%"
+    return f"mid session · {named} open{share} · {vs_closed}"
 
 
 def format_config_save_confirm(
