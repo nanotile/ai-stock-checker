@@ -236,6 +236,14 @@ _PRECEDENCE_SHORT: dict[str, str] = {
     "promote_experiment_strategy": "promote",
 }
 
+# Save-impact short labels (disk_config_payload keys; xang1234 #636).
+_CHANGE_SHORT: dict[str, str] = {
+    **_PRECEDENCE_SHORT,
+    "commission_rate": "fee%",
+    "commission_min_eur": "fee min",
+    "free_legs_per_month": "free legs",
+}
+
 
 def _values_differ(a: Any, b: Any) -> bool:
     if isinstance(a, bool) or isinstance(b, bool):
@@ -833,6 +841,59 @@ def disk_config_payload(cfg: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def trader_config_changed_keys(
+    data_dir: Path | str, updates: dict[str, Any] | None
+) -> list[str]:
+    """Sorted disk keys a Save would rewrite (xang1234 #636 impact honesty).
+
+    Missing Ops file returns every payload key (first write materializes the
+    whole row). Equal payload returns ``[]`` (no-op / skip path).
+    """
+    current = load_trader_config(data_dir)
+    merged = normalize_config(
+        updates if isinstance(updates, dict) else {}, base=current
+    )
+    new_payload = disk_config_payload(merged)
+    if not config_path(data_dir).is_file():
+        return sorted(new_payload.keys())
+    old_payload = disk_config_payload(current)
+    return sorted(
+        key
+        for key, val in new_payload.items()
+        if _values_differ(val, old_payload.get(key))
+    )
+
+
+def format_config_changed_bit(keys: list[str] | None, *, limit: int = 4) -> str:
+    """Compact ``Δ AI · hold`` for Ops glance / Save toast (#636 impact)."""
+    if not keys:
+        return ""
+    clean = [str(k).strip() for k in keys if str(k).strip()]
+    if not clean:
+        return ""
+    # Prefer human short labels; fee rate/min/legs collapse under fees when
+    # fee_preset already spoke, else keep the specific knob.
+    labeled: list[str] = []
+    seen_fees = False
+    for key in clean:
+        if key in {
+            "commission_rate",
+            "commission_min_eur",
+            "free_legs_per_month",
+        }:
+            if "fee_preset" in clean or seen_fees:
+                continue
+            labeled.append("fees")
+            seen_fees = True
+            continue
+        labeled.append(_CHANGE_SHORT.get(key, _PRECEDENCE_SHORT.get(key, key)))
+    bits = " · ".join(labeled[:limit])
+    extra = len(labeled) - min(len(labeled), limit)
+    if extra > 0:
+        bits = f"{bits} +{extra}" if bits else f"+{extra}"
+    return f"Δ {bits}" if bits else ""
+
+
 def trader_config_would_change(
     data_dir: Path | str, updates: dict[str, Any] | None
 ) -> bool:
@@ -842,18 +903,7 @@ def trader_config_would_change(
     saved-row precedence story). Equal payload vs current effective config is
     a no-op — refuse before audit / disk write.
     """
-    current = load_trader_config(data_dir)
-    merged = normalize_config(
-        updates if isinstance(updates, dict) else {}, base=current
-    )
-    new_payload = disk_config_payload(merged)
-    if not config_path(data_dir).is_file():
-        return True
-    old_payload = disk_config_payload(current)
-    for key, val in new_payload.items():
-        if _values_differ(val, old_payload.get(key)):
-            return True
-    return False
+    return bool(trader_config_changed_keys(data_dir, updates))
 
 
 def save_trader_config(data_dir: Path | str, updates: dict[str, Any]) -> dict[str, Any]:

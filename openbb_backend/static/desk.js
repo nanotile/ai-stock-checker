@@ -94,9 +94,15 @@
               : result.data.action_id
                 ? " · audit " + String(result.data.audit_outcome || "?")
                 : "";
+          // xang1234 #636: speak which knobs this Save affected (not bare AI mode).
+          var impactBit =
+            result.data.changed_bit
+              ? " · " + String(result.data.changed_bit)
+              : "";
           setStatus(
             "Saved · AI " +
               result.data.ai_mode +
+              impactBit +
               auditBit +
               " · applies on next trader loop",
             "is-ok"

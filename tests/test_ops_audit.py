@@ -142,6 +142,51 @@ def test_ops_error_reason_from_exc_families():
     assert ops_error_reason_from_exc(RuntimeError("x")) == "act-fail"
 
 
+def test_format_last_ops_action_bit_accepted_speaks_changed_impact():
+    """xang1234 #636: bare accepted hid which knobs the Save moved."""
+    from stock_checker.ops_audit import ops_changed_impact_bit
+
+    now = datetime(2026, 10, 15, 6, 0, 0, tzinfo=timezone.utc)
+    row = {
+        "kind": "config",
+        "outcome": "accepted",
+        "at": "2026-10-15T05:00:00Z",
+        "detail": {"changed": ["ai_mode", "min_hold_hours"], "ai_mode": "off"},
+    }
+    assert ops_changed_impact_bit(row) == "Δ AI · hold"
+    bit = format_last_ops_action_bit(row, now=now)
+    assert bit.startswith("last config · accepted · Δ AI · hold ·")
+    assert "1h fresh" in bit
+    # Legacy accepted without changed stays silent on Δ.
+    bare = format_last_ops_action_bit(
+        {
+            "kind": "config",
+            "outcome": "accepted",
+            "at": "2026-10-15T05:00:00Z",
+            "detail": {"ai_mode": "off"},
+        },
+        now=now,
+    )
+    assert "Δ" not in bare
+    assert bare.startswith("last config · accepted ·")
+
+
+def test_safe_detail_keeps_changed_key_list(tmp_path: Path):
+    """xang1234 #636: persist detail.changed for glance Δ after reload."""
+    _, meta = audited_ops_action(
+        tmp_path,
+        kind="config",
+        detail={"ai_mode": "off", "changed": ["ai_mode", "rs_gate"]},
+        act=lambda: {"ok": True},
+    )
+    assert meta["blocked"] is False
+    events = load_ops_actions(tmp_path)
+    accepted = [e for e in events if e.get("outcome") == "accepted"][-1]
+    assert accepted["detail"]["changed"] == ["ai_mode", "rs_gate"]
+    bit = format_last_ops_action_bit(accepted)
+    assert "Δ AI · RS" in bit
+
+
 def test_format_last_ops_action_bit_error_says_why():
     """xang1234 #621: bare error hid write-fail vs act-fail after reload."""
     now = datetime(2026, 10, 14, 5, 0, 0, tzinfo=timezone.utc)

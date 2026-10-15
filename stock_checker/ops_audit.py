@@ -694,6 +694,11 @@ def format_last_ops_action_bit(
     when recorded — bare ``error`` hid why Save failed after reload
     (xang1234 #621 show jobs request failures adapted).
 
+    An ``accepted`` / hanging ``requested`` row with ``detail.changed`` speaks
+    compact ``Δ AI · hold`` after the outcome (xang1234 #636 explain what a
+    Run affects — adapted to Ops Save knob impact; bare accepted hid which
+    knobs moved).
+
     Parseable stamps speak compact relative age + freshness band instead of
     raw ISO (RyanJHamby/xang1234 + Ops saved-row age parity — bare ``…Z``
     hid whether the last Save was recent). Unparseable stamps keep the raw
@@ -731,21 +736,28 @@ def format_last_ops_action_bit(
         why = ops_error_reason_label(row)
         if why:
             outcome = f"error · {why}"
+    impact = ""
+    if raw_outcome in {"accepted", "requested"}:
+        impact = ops_changed_impact_bit(row)
     age = ops_outcome_age_line(row, now=now)
     relation = ""
     if age and raw_outcome != "requested":
         relation = ops_outcome_vs_file_clash(
             row, config_mtime=config_mtime, now=now
         )
+    parts = [f"last {kind}", outcome]
+    if impact:
+        parts.append(impact)
     if age:
-        bit = f"last {kind} · {outcome} · {age}"
+        parts.append(age)
         if relation:
-            return f"{bit} · {relation}"
-        return bit
+            parts.append(relation)
+        return " · ".join(parts)
     at = str(row.get("at") or "").strip()
     if at:
-        return f"last {kind} · {outcome} · {at}"
-    return f"last {kind} · {outcome}"
+        parts.append(at)
+        return " · ".join(parts)
+    return " · ".join(parts)
 
 
 def record_ops_skipped(
@@ -856,6 +868,24 @@ def audited_ops_action(
     }
 
 
+def ops_changed_impact_bit(row: dict[str, Any] | None) -> str:
+    """Compact ``Δ AI · hold`` from audit ``detail.changed`` (#636 impact)."""
+    if not isinstance(row, dict):
+        return ""
+    detail = row.get("detail")
+    if not isinstance(detail, dict):
+        return ""
+    raw = detail.get("changed")
+    if not isinstance(raw, list):
+        return ""
+    keys = [str(k).strip() for k in raw if str(k).strip()]
+    if not keys:
+        return ""
+    from .trader_config import format_config_changed_bit
+
+    return format_config_changed_bit(keys)
+
+
 def _safe_detail(detail: dict[str, Any] | None) -> dict[str, Any]:
     """Keep a small non-secret summary of what Ops asked to change."""
     from .secret_redact import redact_secrets
@@ -867,6 +897,16 @@ def _safe_detail(detail: dict[str, Any] | None) -> dict[str, Any]:
         k = str(key)
         kl = k.lower()
         if any(s in kl for s in ("key", "token", "secret", "password")):
+            continue
+        if k == "changed" and isinstance(val, list):
+            # xang1234 #636: persist knob-impact keys for glance Δ speak.
+            cleaned = [
+                str(item).strip()[:40]
+                for item in val[:16]
+                if str(item).strip()
+            ]
+            if cleaned:
+                out[k] = cleaned
             continue
         if isinstance(val, (bool, int, float)):
             out[k] = val

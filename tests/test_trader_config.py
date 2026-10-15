@@ -51,13 +51,25 @@ def test_rs_gate_roundtrip(tmp_path: Path):
 
 def test_trader_config_would_change_detects_noop(tmp_path: Path):
     """xang1234 #623: equal payload vs existing Ops file is skip-only."""
+    from stock_checker.trader_config import (
+        format_config_changed_bit,
+        trader_config_changed_keys,
+    )
+
     save_trader_config(tmp_path, {"ai_mode": "validate", "rs_gate": False})
     assert trader_config_would_change(tmp_path, {"ai_mode": "validate", "rs_gate": False}) is False
+    assert trader_config_changed_keys(tmp_path, {"ai_mode": "validate", "rs_gate": False}) == []
     assert trader_config_would_change(tmp_path, {"ai_mode": "off"}) is True
+    assert trader_config_changed_keys(tmp_path, {"ai_mode": "off"}) == ["ai_mode"]
+    assert format_config_changed_bit(["ai_mode", "min_hold_hours"]) == "Δ AI · hold"
+    assert format_config_changed_bit(
+        ["fee_preset", "commission_rate", "commission_min_eur"]
+    ) == "Δ fees"
     # Missing file always acts (first write materializes Ops precedence).
     empty = tmp_path / "empty_cfg"
     empty.mkdir()
     assert trader_config_would_change(empty, {"ai_mode": "off"}) is True
+    assert "ai_mode" in trader_config_changed_keys(empty, {"ai_mode": "off"})
 
 
 def test_save_load_roundtrip(tmp_path: Path):

@@ -352,12 +352,18 @@ def test_desk_config_api_put(tmp_path: Path, monkeypatch):
     assert abs(ok.json()["commission_rate"] - 0.0025) < 1e-9
     assert ok.json().get("audit_outcome") == "accepted"
     assert ok.json().get("action_id")
+    # xang1234 #636: Save response + glance speak which knobs moved.
+    assert isinstance(ok.json().get("changed"), list)
+    assert ok.json().get("changed")
+    assert str(ok.json().get("changed_bit") or "").startswith("Δ ")
     assert (tmp_path / "trader_config.json").exists()
     assert (tmp_path / "ops_actions.json").exists()
     got = client.get("/desk/api/config")
     assert got.status_code == 200
     assert got.json()["ai_mode"] == "validate"
-    assert "last config · accepted" in str(got.json().get("last_ops_action") or "")
+    last_ops = str(got.json().get("last_ops_action") or "")
+    assert "last config · accepted" in last_ops
+    assert "Δ " in last_ops
 
 
 def test_desk_config_api_put_refuses_pending_in_flight(tmp_path: Path, monkeypatch):

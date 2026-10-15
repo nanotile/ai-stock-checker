@@ -284,8 +284,9 @@ async def desk_config_put(request: Request):
     from stock_checker.ops_audit import audited_ops_action, record_ops_skipped
     from stock_checker.trader_config import (
         ALLOWED_AI_MODES,
+        format_config_changed_bit,
         save_trader_config,
-        trader_config_would_change,
+        trader_config_changed_keys,
     )
 
     try:
@@ -316,7 +317,8 @@ async def desk_config_put(request: Request):
 
     # xang1234 #623: refuse before audit/write when Save would only skip;
     # record why so glance speaks ``skipped · no-op`` (#599 skip-says-why).
-    if not trader_config_would_change(DATA_DIR, body):
+    changed = trader_config_changed_keys(DATA_DIR, body)
+    if not changed:
         record_ops_skipped(
             DATA_DIR,
             kind="config",
@@ -328,10 +330,15 @@ async def desk_config_put(request: Request):
             detail="No config changes — save skipped",
         )
 
+    # xang1234 #636: persist which knobs this Save affects (glance Δ + toast).
+    detail = {k: body.get(k) for k in sorted(body)[:16]}
+    detail["changed"] = changed
+    impact = format_config_changed_bit(changed)
+
     saved, audit = audited_ops_action(
         DATA_DIR,
         kind="config",
-        detail={k: body.get(k) for k in sorted(body)[:16]},
+        detail=detail,
         act=lambda: save_trader_config(DATA_DIR, body),
     )
     if audit.get("blocked") or saved is None:
@@ -347,6 +354,9 @@ async def desk_config_put(request: Request):
             status_code=503,
             detail="Ops audit unavailable — config not saved",
         )
+    note = "Saved. Trader applies on the next loop iteration (~trade interval)."
+    if impact:
+        note = f"Saved ({impact}). Trader applies on the next loop iteration (~trade interval)."
     return {
         **saved,
         "source": "file",
@@ -354,7 +364,9 @@ async def desk_config_put(request: Request):
         "action_id": audit.get("action_id") or "",
         "audit_outcome": audit.get("outcome") or "accepted",
         "audit_outcome_recorded": bool(audit.get("outcome_recorded")),
-        "note": "Saved. Trader applies on the next loop iteration (~trade interval).",
+        "changed": changed,
+        "changed_bit": impact,
+        "note": note,
     }
 
 
