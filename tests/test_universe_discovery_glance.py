@@ -139,14 +139,18 @@ def test_universe_discovery_glance_yahoo_fail_streak_speaks(tmp_path) -> None:
     assert g["yahoo_fail_streak_seed_vs_fail_warn"] is True
     # Fail 10m ago → still inside 1h backoff → budget held (xang1234 #640).
     assert g["yahoo_fail_streak_vs_budget"] == "clash · held"
+    # seed/fail clash + budget clash → sf/budget align · both clash.
+    assert g["yahoo_fail_streak_seed_fail_vs_budget"] == "align · both clash"
+    assert g["yahoo_fail_streak_seed_fail_vs_budget_warn"] is True
     assert "streak/seed clash · fresh" in g["line"]
     assert "seed/fail clash · seed clash · fail align" in g["line"]
     assert "streak/fail" not in g["line"]  # dropped when meta spoke; stays in fields
-    assert "streak/budget clash · held" in g["line"]
+    assert "sf/budget align · both clash" in g["line"]
+    assert "streak/budget" not in g["line"]  # dropped when sf/budget spoke
     assert g["line"].index("3×") < g["line"].index("streak/seed")
     assert g["line"].index("streak/seed") < g["line"].index("seed/fail")
-    assert g["line"].index("seed/fail") < g["line"].index("streak/budget")
-    assert g["line"].index("streak/budget") < g["line"].index("retry")
+    assert g["line"].index("seed/fail") < g["line"].index("sf/budget")
+    assert g["line"].index("sf/budget") < g["line"].index("retry")
 
 
 def test_universe_discovery_glance_yahoo_fail_streak_vs_seed_stale(
@@ -179,9 +183,17 @@ def test_universe_discovery_glance_yahoo_fail_streak_vs_seed_stale(
     assert g["yahoo_fail_streak_vs_fail"] == "align · fresh"
     assert g["yahoo_fail_streak_seed_vs_fail"] == "align · both align"
     assert g["yahoo_fail_streak_seed_vs_fail_warn"] is False
+    # Fail 10m ago → budget held; seed/fail both-align vs budget clash → crossed.
+    assert g["yahoo_fail_streak_vs_budget"] == "clash · held"
+    assert g["yahoo_fail_streak_seed_fail_vs_budget"] == (
+        "clash · seed/fail align · budget clash"
+    )
+    assert g["yahoo_fail_streak_seed_fail_vs_budget_warn"] is True
     assert "streak/seed align · stale" in g["line"]
     assert "seed/fail align · both align" in g["line"]
     assert "streak/fail" not in g["line"]
+    assert "sf/budget clash · seed/fail align · budget clash" in g["line"]
+    assert "streak/budget" not in g["line"]
 
 
 def test_universe_discovery_glance_yahoo_fail_streak_vs_fail_stale(
@@ -216,11 +228,15 @@ def test_universe_discovery_glance_yahoo_fail_streak_vs_fail_stale(
     assert g["yahoo_fail_streak_seed_vs_fail_warn"] is True
     # Fail 50h ago → backoff elapsed → budget about to spend (xang1234 #640).
     assert g["yahoo_fail_streak_vs_budget"] == "align · due"
+    # Outer verbs both align (seed/fail ``align · both clash`` + budget due).
+    assert g["yahoo_fail_streak_seed_fail_vs_budget"] == "align · both align"
+    assert g["yahoo_fail_streak_seed_fail_vs_budget_warn"] is False
     assert "seed/fail align · both clash" in g["line"]
     assert "streak/fail" not in g["line"]
-    assert "streak/budget align · due" in g["line"]
-    assert g["line"].index("seed/fail") < g["line"].index("streak/budget")
-    assert g["line"].index("streak/budget") < g["line"].index("retry")
+    assert "sf/budget align · both align" in g["line"]
+    assert "streak/budget" not in g["line"]
+    assert g["line"].index("seed/fail") < g["line"].index("sf/budget")
+    assert g["line"].index("sf/budget") < g["line"].index("retry")
 
 
 def test_universe_discovery_glance_yahoo_fail_shows_screen_fraction(tmp_path) -> None:

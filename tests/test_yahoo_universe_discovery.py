@@ -10,6 +10,7 @@ from stock_checker.yahoo_universe_discovery import (
     screen_payload_failed,
     screens_bundle_failed,
     yahoo_fail_streak,
+    yahoo_fail_streak_seed_fail_vs_budget,
     yahoo_fail_streak_seed_vs_fail,
     yahoo_fail_streak_vs_budget,
     yahoo_fail_streak_vs_fail,
@@ -96,6 +97,48 @@ def test_yahoo_fail_streak_seed_vs_fail_extremes():
         "",
         False,
     )
+
+
+def test_yahoo_fail_streak_seed_fail_vs_budget_extremes():
+    """sf/budget meta: same outer verb align · both; crossed clash; missing silent."""
+    # Outer verbs both clash → dual-clash warn.
+    bit, warn = yahoo_fail_streak_seed_fail_vs_budget(
+        "clash · seed clash · fail align", "clash · held"
+    )
+    assert bit == "align · both clash"
+    assert warn is True
+    # Outer verbs both align (incl. seed/fail ``align · both clash``) → calm.
+    bit, warn = yahoo_fail_streak_seed_fail_vs_budget(
+        "align · both align", "align · due"
+    )
+    assert bit == "align · both align"
+    assert warn is False
+    bit, warn = yahoo_fail_streak_seed_fail_vs_budget(
+        "align · both clash", "align · due"
+    )
+    assert bit == "align · both align"
+    assert warn is False
+    # Crossed outer verbs warn.
+    bit, warn = yahoo_fail_streak_seed_fail_vs_budget(
+        "align · both clash", "clash · held"
+    )
+    assert bit == "clash · seed/fail align · budget clash"
+    assert warn is True
+    bit, warn = yahoo_fail_streak_seed_fail_vs_budget(
+        "clash · seed clash · fail align", "align · due"
+    )
+    assert bit == "clash · seed/fail clash · budget align"
+    assert warn is True
+    assert yahoo_fail_streak_seed_fail_vs_budget("", "clash · held") == (
+        "",
+        False,
+    )
+    assert yahoo_fail_streak_seed_fail_vs_budget(
+        "align · both align", ""
+    ) == ("", False)
+    assert yahoo_fail_streak_seed_fail_vs_budget(
+        "aging · both", "align · due"
+    ) == ("", False)
 
 
 def test_quotes_from_screen_payload():

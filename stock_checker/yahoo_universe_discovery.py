@@ -242,6 +242,41 @@ def yahoo_fail_streak_seed_vs_fail(
     return f"clash · seed {seed_verb} · fail {fail_verb}", True
 
 
+def yahoo_fail_streak_seed_fail_vs_budget(
+    seed_vs_fail: str,
+    streak_vs_budget: str,
+) -> tuple[str, bool]:
+    """Seed/fail meta vs streak/budget agreement (display only).
+
+    Returns ``(bit, warn)``. Seed/fail relationship ≠ fetch-budget hold.
+    When both already spoke: same verb speaks ``align · both align|clash``
+    — ``both align`` stays calm; ``both clash`` warns. Crossed verbs speak
+    ``clash · seed/fail align|clash · budget align|clash`` (warn). Missing
+    either stays silent — portfolio AI speak-both-sides + soft-allow
+    share/lean parity after seed/fail + streak/budget alone hid whether
+    the two relationships agree. Not a gate.
+    """
+    sf_bit = str(seed_vs_fail or "").strip()
+    budget_bit = str(streak_vs_budget or "").strip()
+    if not sf_bit or not budget_bit:
+        return "", False
+
+    def _verb(bit: str) -> str | None:
+        if bit.startswith("align · "):
+            return "align"
+        if bit.startswith("clash · "):
+            return "clash"
+        return None
+
+    sf_verb = _verb(sf_bit)
+    budget_verb = _verb(budget_bit)
+    if sf_verb is None or budget_verb is None:
+        return "", False
+    if sf_verb == budget_verb:
+        return f"align · both {sf_verb}", sf_verb == "clash"
+    return f"clash · seed/fail {sf_verb} · budget {budget_verb}", True
+
+
 def yahoo_fail_retry_remaining_sec(
     meta: Any,
     *,
