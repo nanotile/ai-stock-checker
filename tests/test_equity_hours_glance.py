@@ -41,7 +41,8 @@ def test_equity_hours_glance_both_closed_weekend() -> None:
     sat = pytz.timezone("US/Eastern").localize(datetime(2026, 9, 12, 12, 0))
     g = build_equity_hours_glance(now=sat)
     assert g["ready"] is True
-    assert g["tone"] == "closed"
+    # Adverse hot|thin align escalates chip (session closed alone stayed flat).
+    assert g["tone"] == "warn"
     assert g["us_open"] is False
     assert g["xetra_open"] is False
     # Lean owns the clip when extremes agree (hot|thin); vs-open stays in fields.
@@ -60,7 +61,7 @@ def test_equity_hours_glance_both_closed_weekend() -> None:
     assert g["attention_open_share_pct"] == 0
     assert g["attention_open_share_severity"] == "thin"
     assert g["attention_vs_open"] == "align · hot|thin"
-    assert g["attention_vs_open_warn"] is False
+    assert g["attention_vs_open_warn"] is True
     assert g["cash_open"] is False
     assert g["inactive_line"] == "Inactive markets (2): US · Xetra"
     assert g["inactive_count"] == 2
@@ -110,7 +111,7 @@ def test_equity_hours_glance_in_snapshot(tmp_path) -> None:
     snap = load_desk_snapshot(tmp_path, live_marks=False)
     g = snap["equity_hours_glance"]
     assert g["ready"] is True
-    assert g["tone"] in {"open", "closed", "split"}
+    assert g["tone"] in {"open", "closed", "split", "warn"}
     assert g["line"].startswith("active · ")
     assert "crypto" in g["line"]
     assert "inactive_line" in g
@@ -135,7 +136,7 @@ def test_equity_hours_glance_in_chart_payload(tmp_path) -> None:
     (tmp_path / "trades.jsonl").write_text("", encoding="utf-8")
     g = load_chart_payload(tmp_path)["equity_hours_glance"]
     assert g["ready"] is True
-    assert g["tone"] in {"open", "closed", "split"}
+    assert g["tone"] in {"open", "closed", "split", "warn"}
     assert g["line"].startswith("active · ")
     assert "crypto" in g["line"]
     assert "inactive_line" in g

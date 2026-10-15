@@ -19386,7 +19386,12 @@ def build_equity_hours_glance(
     ``clash · attention hot · open strong`` (soft-allow gap vs other lean
     / Screener junk vs ok lean parity; attention hot ≥75% · quiet ≤25%;
     half-cash mid stays silent so the Hours line is not cluttered; clash
-    warns when attention hot or open thin).
+    warns when attention hot or open thin). Adverse align ``hot|thin``
+    (all cash dark + open thin) escalates the Hours chip to ``warn`` —
+    silent-confirm hid that dual dark agreement is not a calm closed
+    session (soft-allow share/lean both-clash warn + RyanJHamby age
+    severity + portfolio AI speak-both-sides); favorable ``quiet|strong``
+    align stays session-toned.
     """
     from stock_checker.market_hours import (
         is_us_cash_session_closed,
@@ -19483,6 +19488,12 @@ def build_equity_hours_glance(
                     f"align · {attention_cash_share_severity}|"
                     f"{attention_open_share_severity}"
                 )
+                # Adverse hot|thin align ≠ calm confirm (both-clash warn).
+                if (
+                    attention_cash_share_severity == "hot"
+                    and attention_open_share_severity == "thin"
+                ):
+                    attention_vs_open_warn = True
             else:
                 attention_vs_open = (
                     f"clash · attention {attention_cash_share_severity} · "
@@ -19512,6 +19523,9 @@ def build_equity_hours_glance(
     else:
         cash_open = True
         line = f"{line} · cash open"
+    # Session open/closed/split alone stayed clay flat when lean warn spoke.
+    if attention_vs_open_warn:
+        tone = "warn"
     if len(line) > 96:
         line = line[:95] + "…"
     if len(inactive_line) > 96:
