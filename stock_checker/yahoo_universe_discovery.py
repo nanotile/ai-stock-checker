@@ -223,6 +223,27 @@ def yahoo_discovery_error_class(meta: Any) -> str:
     return ""
 
 
+def yahoo_fail_error_vs_seed(error: str, seed_freshness: str) -> str:
+    """Typed last-error vs reused-seed extremes (xang1234 #639 + portfolio AI).
+
+    Allowlisted ``empty|thin|timeout|http|error`` alone hid a still-fresh
+    reused list on the *first* fail (N× / streak/seed stay silent until ≥2).
+    Same polarity as ``yahoo_fail_streak_vs_seed``: fresh seed clashes with a
+    typed dead Yahoo; stale seed aligns. Mid ``aging`` / missing class /
+    never|unknown stay silent. Returns ``clash · fresh`` / ``align · stale``
+    / ``""``.
+    """
+    klass = str(error or "").strip().lower()
+    if klass not in YAHOO_FAIL_ERROR_CLASSES:
+        return ""
+    band = str(seed_freshness or "").strip().lower()
+    if band == "fresh":
+        return "clash · fresh"
+    if band == "stale":
+        return "align · stale"
+    return ""
+
+
 def yahoo_fail_streak_vs_seed(streak: int, seed_freshness: str) -> str:
     """Streak vs reused-seed extremes when N× already spoke (xang1234 #639).
 

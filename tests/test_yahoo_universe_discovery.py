@@ -13,6 +13,7 @@ from stock_checker.yahoo_universe_discovery import (
     screens_bundle_failed,
     set_yahoo_discovery_error,
     yahoo_discovery_error_class,
+    yahoo_fail_error_vs_seed,
     yahoo_fail_streak,
     yahoo_fail_streak_seed_fail_vs_budget,
     yahoo_fail_streak_seed_vs_fail,
@@ -77,6 +78,17 @@ def test_yahoo_fail_streak_bump_and_clear():
     assert yahoo_fail_streak(meta) == 2
     clear_yahoo_fail_streak(meta)
     assert yahoo_fail_streak(meta) == 0
+
+
+def test_yahoo_fail_error_vs_seed_extremes():
+    """Typed last-error vs seed: fresh clash / stale align (first-fail honesty)."""
+    assert yahoo_fail_error_vs_seed("timeout", "fresh") == "clash · fresh"
+    assert yahoo_fail_error_vs_seed("empty", "stale") == "align · stale"
+    assert yahoo_fail_error_vs_seed("http", "aging") == ""
+    assert yahoo_fail_error_vs_seed("thin", "never") == ""
+    assert yahoo_fail_error_vs_seed("", "fresh") == ""
+    assert yahoo_fail_error_vs_seed("DROP TABLE;", "fresh") == ""
+    assert yahoo_fail_error_vs_seed("error", "unknown") == ""
 
 
 def test_yahoo_fail_streak_vs_seed_extremes():

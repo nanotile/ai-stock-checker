@@ -19880,6 +19880,12 @@ def build_universe_discovery_glance(
     screen fraction (xang1234 #639 report source failures by kind — N× +
     fail age alone hid *why*; Manage Sources / last-error tooltip panel
     still deferred).
+    When last-error class already spoke, also speak error vs seed extremes
+    ``error/seed clash · fresh`` / ``align · stale`` on the first fail
+    (portfolio AI speak-both-sides — typed death alone hid a still-fresh
+    reused list before N×/streak/seed can speak; mid aging silent; sits
+    after class · before fraction). When streak/seed already spoke, omit
+    error/seed (same polarity; N× owns the lean).
     When N× already spoke, also speak streak vs seed extremes
     ``streak/seed clash · fresh`` / ``align · stale`` (portfolio AI
     speak-both-sides after N× alone hid a still-fresh reused list beside
@@ -19906,6 +19912,7 @@ def build_universe_discovery_glance(
         yahoo_discovery_due_from_meta,
         yahoo_fail_retry_remaining_sec,
         yahoo_discovery_error_class,
+        yahoo_fail_error_vs_seed,
         yahoo_fail_streak,
         yahoo_fail_streak_seed_fail_vs_budget,
         yahoo_fail_streak_seed_vs_fail,
@@ -20061,12 +20068,21 @@ def build_universe_discovery_glance(
             seed_vs_fail_lean_vs_delta = "align"
         else:
             seed_vs_fail_lean_vs_delta = "clash"
+    # xang1234 #639 + portfolio AI: typed error alone hid fresh seed on first fail.
+    error_vs_seed = (
+        yahoo_fail_error_vs_seed(fail_error, seed_freshness)
+        if yahoo_failed and fail_error
+        else ""
+    )
     # xang1234 #639 + portfolio AI: N× alone hid fresh seed beside chronic dead.
     streak_vs_seed = (
         yahoo_fail_streak_vs_seed(fail_streak, seed_freshness)
         if yahoo_failed
         else ""
     )
+    # Same polarity as streak/seed — omit error/seed when N× already owns it.
+    if streak_vs_seed:
+        error_vs_seed = ""
     # xang1234 #639 + portfolio AI: N× alone hid stale fail stamp beside streak.
     streak_vs_fail = (
         yahoo_fail_streak_vs_fail(fail_streak, fail_freshness)
@@ -20101,6 +20117,10 @@ def build_universe_discovery_glance(
         tone = "warn"
         # xang1234 #639: last-error class before fraction (why ≠ how many).
         err_bit = f" · {fail_error}" if fail_error else ""
+        # First-fail typed death vs seed (before N× can speak streak/seed).
+        error_vs_seed_bit = (
+            f" · error/seed {error_vs_seed}" if error_vs_seed else ""
+        )
         frac = f" · {screens_bit}" if screens_bit else ""
         # xang1234 #639: repeated fails ≥2 speak N× (first fail silent).
         streak_bit = f" · {fail_streak}×" if fail_streak >= 2 else ""
@@ -20198,15 +20218,17 @@ def build_universe_discovery_glance(
         # Full join keeps streak before retry (test order).
         full_core = (
             f"US+DE · Yahoo ≤{per} · "
-            f"Yahoo fail{err_bit}{frac}{streak_bit}{streak_vs_seed_bit}"
+            f"Yahoo fail{err_bit}{error_vs_seed_bit}{frac}{streak_bit}"
+            f"{streak_vs_seed_bit}"
             f"{streak_vs_fail_bit}{streak_seed_vs_fail_bit}"
             f"{streak_vs_budget_bit}{streak_seed_fail_vs_budget_bit}"
             f"{retry} · {seed_bit}{fail_bit}"
         )
         # Desk primary: omit streak lean so retry / ages survive the eye.
+        # Keep error/seed on core (first-fail honesty; not a streak lean bit).
         line_core = (
             f"US+DE · Yahoo ≤{per} · "
-            f"Yahoo fail{err_bit}{frac}{streak_bit}"
+            f"Yahoo fail{err_bit}{error_vs_seed_bit}{frac}{streak_bit}"
             f"{retry} · {seed_bit}{fail_bit}"
         )
         line = full_core + lag
@@ -20259,6 +20281,7 @@ def build_universe_discovery_glance(
         "last_yahoo_discovery_status": yahoo_status or "unknown",
         "yahoo_failed": yahoo_failed,
         "yahoo_fail_error": fail_error,
+        "yahoo_fail_error_vs_seed": error_vs_seed,
         "yahoo_fail_streak": fail_streak,
         "yahoo_fail_streak_vs_seed": streak_vs_seed,
         "yahoo_fail_streak_vs_fail": streak_vs_fail,
