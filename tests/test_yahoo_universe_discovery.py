@@ -15,6 +15,7 @@ from stock_checker.yahoo_universe_discovery import (
     yahoo_discovery_error_class,
     yahoo_fail_error_also_bit,
     yahoo_fail_error_also_share,
+    yahoo_fail_error_also_vs_lean,
     yahoo_fail_error_also_vs_winner,
     yahoo_fail_error_seed_fail_vs_budget,
     yahoo_fail_error_seed_vs_fail,
@@ -162,6 +163,24 @@ def test_yahoo_fail_error_also_vs_winner_named_share():
     assert yahoo_fail_error_also_vs_winner(
         "timeout", timeout_fails="x", inflight_fails=1
     ) == ("", None, "")
+
+
+def test_yahoo_fail_error_also_vs_lean_extremes():
+    """Hidden % beside winner % hid quiet-agrees-strong and a 50/50 overclaim."""
+    assert yahoo_fail_error_also_vs_lean("quiet", "strong") == (
+        "align · quiet|strong",
+        False,
+    )
+    assert yahoo_fail_error_also_vs_lean("hot", "ok") == (
+        "clash · hidden hot · winner ok",
+        True,
+    )
+    assert yahoo_fail_error_also_vs_lean("ok", "ok") == ("", False)
+    assert yahoo_fail_error_also_vs_lean("", "strong") == ("", False)
+    assert yahoo_fail_error_also_vs_lean("quiet", "ok") == (
+        "clash · hidden quiet · winner ok",
+        False,
+    )
 
 
 def test_yahoo_discovery_error_meta_allowlist():

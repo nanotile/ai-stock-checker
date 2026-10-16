@@ -19938,6 +19938,7 @@ def build_universe_discovery_glance(
         yahoo_discovery_error_sides,
         yahoo_fail_error_also_bit,
         yahoo_fail_error_also_share,
+        yahoo_fail_error_also_vs_lean,
         yahoo_fail_error_also_vs_winner,
         yahoo_fail_error_seed_fail_vs_budget,
         yahoo_fail_error_seed_vs_fail,
@@ -20083,6 +20084,15 @@ def build_universe_discovery_glance(
             timeout_fails=timeout_fails_n,
             inflight_fails=inflight_fails_n,
         )
+    fail_error_also_vs_lean = ""
+    fail_error_also_vs_lean_warn = False
+    if fail_error_also_share and fail_error_also_vs:
+        fail_error_also_vs_lean, fail_error_also_vs_lean_warn = (
+            yahoo_fail_error_also_vs_lean(
+                fail_error_also_share_severity,
+                fail_error_also_vs_severity,
+            )
+        )
     retry_due = yahoo_discovery_due_from_meta(
         uni_meta,
         now=now,
@@ -20221,12 +20231,20 @@ def build_universe_discovery_glance(
         # xang1234 #639: last-error class before fraction (why ≠ how many).
         # When timeout↔inflight both failed, speak the side the winner hid,
         # that side's share, and the named class's share (hidden % ≠ ownership).
+        # When those severities disagree or agree at the extremes, the lean
+        # replaces the two percents on the line (they stay in fields).
         if fail_error and fail_error_also:
-            share = (
-                f" · {fail_error_also_share}" if fail_error_also_share else ""
-            )
-            vs = f" · {fail_error_also_vs}" if fail_error_also_vs else ""
-            err_bit = f" · {fail_error} · {fail_error_also}{share}{vs}"
+            if fail_error_also_vs_lean:
+                share = ""
+                vs = ""
+                lean = f" · {fail_error_also_vs_lean}"
+            else:
+                share = (
+                    f" · {fail_error_also_share}" if fail_error_also_share else ""
+                )
+                vs = f" · {fail_error_also_vs}" if fail_error_also_vs else ""
+                lean = ""
+            err_bit = f" · {fail_error} · {fail_error_also}{share}{vs}{lean}"
         elif fail_error:
             err_bit = f" · {fail_error}"
         else:
@@ -20448,6 +20466,8 @@ def build_universe_discovery_glance(
         "yahoo_fail_error_also_vs": fail_error_also_vs,
         "yahoo_fail_error_also_vs_pct": fail_error_also_vs_pct,
         "yahoo_fail_error_also_vs_severity": fail_error_also_vs_severity,
+        "yahoo_fail_error_also_vs_lean": fail_error_also_vs_lean,
+        "yahoo_fail_error_also_vs_lean_warn": bool(fail_error_also_vs_lean_warn),
         "yahoo_fail_timeout_fails": timeout_fails_n if yahoo_failed else 0,
         "yahoo_fail_inflight_fails": inflight_fails_n if yahoo_failed else 0,
         "yahoo_fail_error_vs_seed": error_vs_seed,

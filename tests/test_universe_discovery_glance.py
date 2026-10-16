@@ -195,6 +195,8 @@ def test_universe_discovery_glance_yahoo_fail_error_also_mix(tmp_path) -> None:
     assert g["yahoo_fail_error_also_vs"] == "vs inflight · 67%"
     assert g["yahoo_fail_error_also_vs_pct"] == 67
     assert g["yahoo_fail_error_also_vs_severity"] == "ok"
+    assert g["yahoo_fail_error_also_vs_lean"] == ""
+    assert g["yahoo_fail_error_also_vs_lean_warn"] is False
     assert g["yahoo_fail_timeout_fails"] == 1
     assert g["yahoo_fail_inflight_fails"] == 2
     assert (
@@ -217,6 +219,39 @@ def test_universe_discovery_glance_yahoo_fail_error_also_mix(tmp_path) -> None:
     assert "Yahoo fail · timeout · +held · 33% · vs timeout · 67% · 0/3 · 2×" in timed[
         "line_core"
     ]
+    assert timed["yahoo_fail_error_also_vs_lean"] == ""
+
+    meta["meta"]["last_yahoo_timeout_fails"] = 1
+    meta["meta"]["last_yahoo_inflight_fails"] = 1
+    (tmp_path / "stock_universe.json").write_text(
+        json.dumps(meta), encoding="utf-8"
+    )
+    half = build_universe_discovery_glance(tmp_path, now=now)
+    assert half["yahoo_fail_error_also_share_severity"] == "hot"
+    assert half["yahoo_fail_error_also_vs_severity"] == "ok"
+    assert half["yahoo_fail_error_also_vs_lean"] == (
+        "clash · hidden hot · winner ok"
+    )
+    assert half["yahoo_fail_error_also_vs_lean_warn"] is True
+    assert "33%" not in half["line_core"]
+    assert (
+        "Yahoo fail · timeout · +held · clash · hidden hot · winner ok · 0/3 · 2×"
+        in half["line_core"]
+    )
+
+    meta["meta"]["last_yahoo_discovery_error"] = "inflight"
+    meta["meta"]["last_yahoo_timeout_fails"] = 1
+    meta["meta"]["last_yahoo_inflight_fails"] = 3
+    (tmp_path / "stock_universe.json").write_text(
+        json.dumps(meta), encoding="utf-8"
+    )
+    owned = build_universe_discovery_glance(tmp_path, now=now)
+    assert owned["yahoo_fail_error_also_vs_lean"] == "align · quiet|strong"
+    assert owned["yahoo_fail_error_also_vs_lean_warn"] is False
+    assert (
+        "Yahoo fail · inflight · +timeout · align · quiet|strong · 0/3 · 2×"
+        in owned["line_core"]
+    )
 
 
 def test_universe_discovery_glance_yahoo_fail_error_vs_seed_first_fail(

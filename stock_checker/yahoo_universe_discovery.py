@@ -390,6 +390,29 @@ def yahoo_fail_error_also_vs_winner(
     return f"vs {k} · {pct}%", pct, "ok"
 
 
+def yahoo_fail_error_also_vs_lean(
+    hidden_severity: str,
+    winner_severity: str,
+) -> tuple[str, bool]:
+    """Hidden share vs named-class share when both sides already spoke.
+
+    Side-by-side percents hid a quiet sliver that agrees with a strong
+    winner, and a hot half-mix whose class label does not own the spend.
+    Mid/mid stays silent. ``align · quiet|strong`` does not warn.
+    ``clash · hidden hot · winner ok`` (50/50) warns. Returns ``(bit, warn)``.
+    """
+    hidden = str(hidden_severity or "").strip().lower()
+    winner = str(winner_severity or "").strip().lower()
+    if hidden not in {"hot", "quiet", "ok"} or winner not in {"strong", "ok"}:
+        return "", False
+    if hidden not in {"hot", "quiet"} and winner != "strong":
+        return "", False
+    if hidden == "quiet" and winner == "strong":
+        return "align · quiet|strong", False
+    warn = hidden == "hot"
+    return f"clash · hidden {hidden} · winner {winner}", warn
+
+
 def yahoo_fail_error_vs_seed(error: str, seed_freshness: str) -> str:
     """Typed last-error vs reused-seed extremes (xang1234 #639 + portfolio AI).
 
