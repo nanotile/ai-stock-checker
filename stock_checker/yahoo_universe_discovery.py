@@ -244,6 +244,27 @@ def yahoo_fail_error_vs_seed(error: str, seed_freshness: str) -> str:
     return ""
 
 
+def yahoo_fail_error_vs_fail(error: str, fail_freshness: str) -> str:
+    """Typed last-error vs fail-stamp extremes (xang1234 #639 + portfolio AI).
+
+    Allowlisted class alone hid a stale fail stamp on the *first* fail
+    (N× / streak/fail stay silent until ≥2). Same polarity as
+    ``yahoo_fail_streak_vs_fail``: fresh fail aligns with typed death; stale
+    fail clashes (class printed without a live death clock). Mid ``aging`` /
+    missing class / never|unknown stay silent. Returns ``align · fresh`` /
+    ``clash · stale`` / ``""``.
+    """
+    klass = str(error or "").strip().lower()
+    if klass not in YAHOO_FAIL_ERROR_CLASSES:
+        return ""
+    band = str(fail_freshness or "").strip().lower()
+    if band == "fresh":
+        return "align · fresh"
+    if band == "stale":
+        return "clash · stale"
+    return ""
+
+
 def yahoo_fail_streak_vs_seed(streak: int, seed_freshness: str) -> str:
     """Streak vs reused-seed extremes when N× already spoke (xang1234 #639).
 

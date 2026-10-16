@@ -133,9 +133,11 @@ def test_universe_discovery_glance_yahoo_fail_error_class(tmp_path) -> None:
     assert "Yahoo fail · empty · 0/3 · 2×" in g["line_core"]
     assert g["line_core"].index("empty") < g["line_core"].index("0/3")
     assert g["line_core"].index("0/3") < g["line_core"].index("2×")
-    # N× owns streak/seed — error/seed stays off the line (same polarity).
+    # N× owns streak/seed + streak/fail — error/* stays off the line.
     assert g["yahoo_fail_error_vs_seed"] == ""
+    assert g["yahoo_fail_error_vs_fail"] == ""
     assert "error/seed" not in g["line_core"]
+    assert "error/fail" not in g["line_core"]
     # Junk class stays silent (allowlist).
     meta = json.loads((tmp_path / "stock_universe.json").read_text(encoding="utf-8"))
     meta["meta"]["last_yahoo_discovery_error"] = "DROP TABLE;"
@@ -174,9 +176,14 @@ def test_universe_discovery_glance_yahoo_fail_error_vs_seed_first_fail(
     g = build_universe_discovery_glance(tmp_path, now=now)
     assert g["yahoo_fail_error"] == "timeout"
     assert g["yahoo_fail_error_vs_seed"] == "clash · fresh"
-    assert "Yahoo fail · timeout · error/seed clash · fresh · 0/3" in g["line_core"]
+    assert g["yahoo_fail_error_vs_fail"] == "align · fresh"
+    assert (
+        "Yahoo fail · timeout · error/seed clash · fresh · "
+        "error/fail align · fresh · 0/3"
+    ) in g["line_core"]
     assert "1×" not in g["line_core"]
     assert "streak/seed" not in g["line"]
+    assert "streak/fail" not in g["line"]
     # Stale seed aligns (typed death + old list; stale ≥ 2×24h throttle).
     last_stale = (now - timedelta(hours=50)).replace(tzinfo=None).isoformat()
     meta = json.loads((tmp_path / "stock_universe.json").read_text(encoding="utf-8"))
@@ -187,6 +194,17 @@ def test_universe_discovery_glance_yahoo_fail_error_vs_seed_first_fail(
     stale = build_universe_discovery_glance(tmp_path, now=now)
     assert stale["yahoo_fail_error_vs_seed"] == "align · stale"
     assert "error/seed align · stale" in stale["line_core"]
+    assert stale["yahoo_fail_error_vs_fail"] == "align · fresh"
+    # Stale fail stamp clashes (typed death without a live death clock).
+    fail_stale = (now - timedelta(hours=50)).replace(tzinfo=None).isoformat()
+    meta = json.loads((tmp_path / "stock_universe.json").read_text(encoding="utf-8"))
+    meta["meta"]["last_yahoo_discovery_fail"] = fail_stale
+    (tmp_path / "stock_universe.json").write_text(
+        json.dumps(meta), encoding="utf-8"
+    )
+    fail_stale_g = build_universe_discovery_glance(tmp_path, now=now)
+    assert fail_stale_g["yahoo_fail_error_vs_fail"] == "clash · stale"
+    assert "error/fail clash · stale" in fail_stale_g["line_core"]
 
 
 def test_universe_discovery_glance_yahoo_fail_streak_speaks(tmp_path) -> None:
