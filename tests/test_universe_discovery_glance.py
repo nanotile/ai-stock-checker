@@ -247,6 +247,7 @@ def test_universe_discovery_glance_yahoo_fail_error_also_mix(tmp_path) -> None:
     assert half["yahoo_fail_error_also_vs_delta"] == "Δ thin · 0pp"
     assert half["yahoo_fail_error_also_vs_delta_pp"] == 0
     assert half["yahoo_fail_error_also_vs_delta_severity"] == "thin"
+    assert half["yahoo_fail_error_also_vs_delta_lead"] == ""
     assert "33%" not in half["line_core"]
     assert "+held" not in half["line_core"]
     assert half["yahoo_fail_error_also_counts"] == "1 timeout · 1 held"
@@ -272,15 +273,17 @@ def test_universe_discovery_glance_yahoo_fail_error_also_mix(tmp_path) -> None:
     assert owned["yahoo_fail_error_also_vs_delta"] == "Δ wide · -50pp"
     assert owned["yahoo_fail_error_also_vs_delta_pp"] == -50
     assert owned["yahoo_fail_error_also_vs_delta_severity"] == "wide"
+    assert owned["yahoo_fail_error_also_vs_delta_lead"] == "Δ lead · held"
     assert "+timeout" not in owned["line_core"]
     assert owned["yahoo_fail_error_also_counts"] == "1 timeout · 3 held"
     assert owned["mix_lean"] == (
         "+timeout · 1 timeout · 3 held · align · quiet|strong · Δ wide · -50pp"
+        " · Δ lead · held"
     )
     assert owned["mix_lean_warn"] is False
     assert (
         "Yahoo fail · inflight · +timeout · 1 timeout · 3 held"
-        " · align · quiet|strong · Δ wide · -50pp · 0/3 · 2×"
+        " · align · quiet|strong · Δ wide · -50pp · Δ lead · held · 0/3 · 2×"
     ) in owned["line"]
 
 

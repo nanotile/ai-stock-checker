@@ -19926,9 +19926,9 @@ def build_universe_discovery_glance(
     fail · N× · retry · seed/fail ages (MonsterDeveloper + Screener weight
     lean declutter — full ``line`` join kept for tests). Warn opens the fold.
     timeout↔inflight mix (hidden side · absolute counts · share or lean ·
-    Δ when the spread is wide or thin) sits in ``mix_lean``; ``line_core``
-    keeps the winning class. Counts stay when lean drops the percents.
-    Warn opens that fold too. Mid Δ stays silent.
+    Δ when the spread is wide or thin · Δ lead when ±pp ≠ 0) sits in
+    ``mix_lean``; ``line_core`` keeps the winning class. Counts stay when
+    lean drops the percents. Warn opens that fold too. Mid Δ stays silent.
     Buys still need regime/RS/breadth/fees. Not a new gate.
     """
     from stock_checker.yahoo_universe_discovery import (
@@ -19944,6 +19944,7 @@ def build_universe_discovery_glance(
         yahoo_fail_error_also_counts,
         yahoo_fail_error_also_share,
         yahoo_fail_error_also_vs_delta,
+        yahoo_fail_error_also_vs_delta_lead,
         yahoo_fail_error_also_vs_lean,
         yahoo_fail_error_also_vs_winner,
         yahoo_fail_error_seed_fail_vs_budget,
@@ -20120,6 +20121,13 @@ def build_universe_discovery_glance(
             fail_error_also_share_pct,
             fail_error_also_vs_pct,
         )
+    fail_error_also_vs_delta_lead = ""
+    if fail_error_also_vs_delta:
+        fail_error_also_vs_delta_lead = yahoo_fail_error_also_vs_delta_lead(
+            fail_error,
+            fail_error_also_vs_delta_pp,
+            fail_error_also_vs_delta_severity,
+        )
     retry_due = yahoo_discovery_due_from_meta(
         uni_meta,
         now=now,
@@ -20260,7 +20268,8 @@ def build_universe_discovery_glance(
         # sits in ``mix_lean`` under a desk fold. ``line_core`` keeps the
         # class. Full ``line`` still joins the mix (tests). Counts stay when
         # lean drops the percents (they stay in fields too). Wide/thin Δ
-        # appends after lean; mid Δ stays silent.
+        # appends after lean; a nonzero spread names Δ lead. Mid Δ stays
+        # silent (no lean-vs-Δ nest).
         mix_lean = ""
         mix_lean_warn = False
         if fail_error and fail_error_also:
@@ -20276,6 +20285,11 @@ def build_universe_discovery_glance(
                     if fail_error_also_vs_delta
                     else ""
                 )
+                lead = (
+                    f" · {fail_error_also_vs_delta_lead}"
+                    if fail_error_also_vs_delta_lead
+                    else ""
+                )
             else:
                 share = (
                     f" · {fail_error_also_share}" if fail_error_also_share else ""
@@ -20283,8 +20297,11 @@ def build_universe_discovery_glance(
                 vs = f" · {fail_error_also_vs}" if fail_error_also_vs else ""
                 lean = ""
                 delta = ""
+                lead = ""
             mix_lean = (
-                f"{fail_error_also}{counts}{share}{vs}{lean}{delta}".strip(" ·")
+                f"{fail_error_also}{counts}{share}{vs}{lean}{delta}{lead}".strip(
+                    " ·"
+                )
             )
             mix_lean_warn = bool(fail_error_also_vs_lean_warn)
             err_bit = f" · {fail_error} · {mix_lean}"
@@ -20482,6 +20499,7 @@ def build_universe_discovery_glance(
         error_lean_warn = False
         mix_lean = ""
         mix_lean_warn = False
+        fail_error_also_vs_delta_lead = ""
     return {
         "ready": True,
         "tone": tone,
@@ -20520,6 +20538,7 @@ def build_universe_discovery_glance(
         "yahoo_fail_error_also_vs_delta": fail_error_also_vs_delta,
         "yahoo_fail_error_also_vs_delta_pp": fail_error_also_vs_delta_pp,
         "yahoo_fail_error_also_vs_delta_severity": fail_error_also_vs_delta_severity,
+        "yahoo_fail_error_also_vs_delta_lead": fail_error_also_vs_delta_lead,
         "yahoo_fail_timeout_fails": timeout_fails_n if yahoo_failed else 0,
         "yahoo_fail_inflight_fails": inflight_fails_n if yahoo_failed else 0,
         "yahoo_fail_error_vs_seed": error_vs_seed,

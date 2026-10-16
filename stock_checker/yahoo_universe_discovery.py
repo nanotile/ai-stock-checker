@@ -471,6 +471,38 @@ def yahoo_fail_error_also_vs_delta(
     return f"Δ {severity} · {sign}pp", delta, severity
 
 
+def yahoo_fail_error_also_vs_delta_lead(
+    klass: str,
+    delta_pp: int | None,
+    severity: str,
+) -> str:
+    """Name which spend side owns a spoken mix Δ (xang1234 + portfolio AI).
+
+    ``Δ wide · -50pp`` is hidden%−winner%. The sign alone hid whether
+    ``timeout`` or ``held`` is louder. Zero pp and a silent mid band stay
+    quiet (no lean-vs-Δ nest). Returns ``Δ lead · timeout|held`` / ``\"\"``.
+    """
+    if str(severity or "").strip().lower() not in {"wide", "thin"}:
+        return ""
+    if delta_pp is None:
+        return ""
+    try:
+        delta = int(delta_pp)
+    except (TypeError, ValueError):
+        return ""
+    if delta == 0:
+        return ""
+    k = str(klass or "").strip().lower()
+    if k == "inflight":
+        winner, hidden = "held", "timeout"
+    elif k == "timeout":
+        winner, hidden = "timeout", "held"
+    else:
+        return ""
+    lead = winner if delta < 0 else hidden
+    return f"Δ lead · {lead}"
+
+
 def yahoo_fail_error_vs_seed(error: str, seed_freshness: str) -> str:
     """Typed last-error vs reused-seed extremes (xang1234 #639 + portfolio AI).
 

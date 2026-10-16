@@ -17,6 +17,7 @@ from stock_checker.yahoo_universe_discovery import (
     yahoo_fail_error_also_counts,
     yahoo_fail_error_also_share,
     yahoo_fail_error_also_vs_delta,
+    yahoo_fail_error_also_vs_delta_lead,
     yahoo_fail_error_also_vs_lean,
     yahoo_fail_error_also_vs_winner,
     yahoo_fail_error_seed_fail_vs_budget,
@@ -228,6 +229,22 @@ def test_yahoo_fail_error_also_vs_delta_spread():
     )
     assert yahoo_fail_error_also_vs_delta(55, 45) == ("", None, "")
     assert yahoo_fail_error_also_vs_delta(None, 75) == ("", None, "")
+
+
+def test_yahoo_fail_error_also_vs_delta_lead_names_louder_side():
+    """Signed Δ hid whether timeout or held owns the spread."""
+    assert yahoo_fail_error_also_vs_delta_lead("inflight", -50, "wide") == (
+        "Δ lead · held"
+    )
+    assert yahoo_fail_error_also_vs_delta_lead("timeout", 20, "wide") == (
+        "Δ lead · held"
+    )
+    assert yahoo_fail_error_also_vs_delta_lead("timeout", -50, "wide") == (
+        "Δ lead · timeout"
+    )
+    assert yahoo_fail_error_also_vs_delta_lead("timeout", 0, "thin") == ""
+    assert yahoo_fail_error_also_vs_delta_lead("timeout", 15, "") == ""
+    assert yahoo_fail_error_also_vs_delta_lead("empty", -50, "wide") == ""
 
 
 def test_yahoo_discovery_error_meta_allowlist():
