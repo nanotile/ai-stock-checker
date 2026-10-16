@@ -19919,6 +19919,7 @@ def build_universe_discovery_glance(
         yahoo_discovery_due_from_meta,
         yahoo_fail_retry_remaining_sec,
         yahoo_discovery_error_class,
+        yahoo_fail_error_seed_vs_fail,
         yahoo_fail_error_vs_fail,
         yahoo_fail_error_vs_seed,
         yahoo_fail_streak,
@@ -20106,6 +20107,12 @@ def build_universe_discovery_glance(
     # Same polarity as streak/fail — omit error/fail when N× already owns it.
     if streak_vs_fail:
         error_vs_fail = ""
+    # portfolio AI: error/seed ≠ error/fail — speak when both first-fail bits agree.
+    error_seed_vs_fail, error_seed_vs_fail_warn = (
+        yahoo_fail_error_seed_vs_fail(error_vs_seed, error_vs_fail)
+        if yahoo_failed
+        else ("", False)
+    )
     # xang1234 #640: N× alone hid whether backoff holds unused fetch budget.
     streak_vs_budget = (
         yahoo_fail_streak_vs_budget(
@@ -20141,6 +20148,12 @@ def build_universe_discovery_glance(
         error_vs_fail_bit = (
             f" · error/fail {error_vs_fail}" if error_vs_fail else ""
         )
+        # When error seed/fail meta spoke, drop error/fail from the line
+        # (stays in fields) so the clip keeps the relationship bit.
+        error_seed_vs_fail_bit = ""
+        if error_seed_vs_fail:
+            error_vs_fail_bit = ""
+            error_seed_vs_fail_bit = f" · error seed/fail {error_seed_vs_fail}"
         frac = f" · {screens_bit}" if screens_bit else ""
         # xang1234 #639: repeated fails ≥2 speak N× (first fail silent).
         streak_bit = f" · {fail_streak}×" if fail_streak >= 2 else ""
@@ -20239,6 +20252,7 @@ def build_universe_discovery_glance(
         full_core = (
             f"US+DE · Yahoo ≤{per} · "
             f"Yahoo fail{err_bit}{error_vs_seed_bit}{error_vs_fail_bit}"
+            f"{error_seed_vs_fail_bit}"
             f"{frac}{streak_bit}"
             f"{streak_vs_seed_bit}"
             f"{streak_vs_fail_bit}{streak_seed_vs_fail_bit}"
@@ -20246,10 +20260,11 @@ def build_universe_discovery_glance(
             f"{retry} · {seed_bit}{fail_bit}"
         )
         # Desk primary: omit streak lean so retry / ages survive the eye.
-        # Keep error/seed + error/fail on core (first-fail honesty).
+        # Keep error/seed + error seed/fail (or error/fail) on core.
         line_core = (
             f"US+DE · Yahoo ≤{per} · "
             f"Yahoo fail{err_bit}{error_vs_seed_bit}{error_vs_fail_bit}"
+            f"{error_seed_vs_fail_bit}"
             f"{frac}{streak_bit}"
             f"{retry} · {seed_bit}{fail_bit}"
         )
@@ -20305,6 +20320,8 @@ def build_universe_discovery_glance(
         "yahoo_fail_error": fail_error,
         "yahoo_fail_error_vs_seed": error_vs_seed,
         "yahoo_fail_error_vs_fail": error_vs_fail,
+        "yahoo_fail_error_seed_vs_fail": error_seed_vs_fail,
+        "yahoo_fail_error_seed_vs_fail_warn": bool(error_seed_vs_fail_warn),
         "yahoo_fail_streak": fail_streak,
         "yahoo_fail_streak_vs_seed": streak_vs_seed,
         "yahoo_fail_streak_vs_fail": streak_vs_fail,

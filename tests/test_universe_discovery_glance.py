@@ -136,8 +136,10 @@ def test_universe_discovery_glance_yahoo_fail_error_class(tmp_path) -> None:
     # N× owns streak/seed + streak/fail — error/* stays off the line.
     assert g["yahoo_fail_error_vs_seed"] == ""
     assert g["yahoo_fail_error_vs_fail"] == ""
+    assert g["yahoo_fail_error_seed_vs_fail"] == ""
     assert "error/seed" not in g["line_core"]
     assert "error/fail" not in g["line_core"]
+    assert "error seed/fail" not in g["line_core"]
     # Junk class stays silent (allowlist).
     meta = json.loads((tmp_path / "stock_universe.json").read_text(encoding="utf-8"))
     meta["meta"]["last_yahoo_discovery_error"] = "DROP TABLE;"
@@ -177,10 +179,15 @@ def test_universe_discovery_glance_yahoo_fail_error_vs_seed_first_fail(
     assert g["yahoo_fail_error"] == "timeout"
     assert g["yahoo_fail_error_vs_seed"] == "clash · fresh"
     assert g["yahoo_fail_error_vs_fail"] == "align · fresh"
+    assert g["yahoo_fail_error_seed_vs_fail"] == (
+        "clash · seed clash · fail align"
+    )
+    assert g["yahoo_fail_error_seed_vs_fail_warn"] is True
     assert (
         "Yahoo fail · timeout · error/seed clash · fresh · "
-        "error/fail align · fresh · 0/3"
+        "error seed/fail clash · seed clash · fail align · 0/3"
     ) in g["line_core"]
+    assert "error/fail" not in g["line_core"]
     assert "1×" not in g["line_core"]
     assert "streak/seed" not in g["line"]
     assert "streak/fail" not in g["line"]
@@ -193,8 +200,12 @@ def test_universe_discovery_glance_yahoo_fail_error_vs_seed_first_fail(
     )
     stale = build_universe_discovery_glance(tmp_path, now=now)
     assert stale["yahoo_fail_error_vs_seed"] == "align · stale"
-    assert "error/seed align · stale" in stale["line_core"]
     assert stale["yahoo_fail_error_vs_fail"] == "align · fresh"
+    assert stale["yahoo_fail_error_seed_vs_fail"] == "align · both align"
+    assert stale["yahoo_fail_error_seed_vs_fail_warn"] is False
+    assert "error/seed align · stale" in stale["line_core"]
+    assert "error seed/fail align · both align" in stale["line_core"]
+    assert "error/fail" not in stale["line_core"]
     # Stale fail stamp clashes (typed death without a live death clock).
     fail_stale = (now - timedelta(hours=50)).replace(tzinfo=None).isoformat()
     meta = json.loads((tmp_path / "stock_universe.json").read_text(encoding="utf-8"))
@@ -204,7 +215,14 @@ def test_universe_discovery_glance_yahoo_fail_error_vs_seed_first_fail(
     )
     fail_stale_g = build_universe_discovery_glance(tmp_path, now=now)
     assert fail_stale_g["yahoo_fail_error_vs_fail"] == "clash · stale"
-    assert "error/fail clash · stale" in fail_stale_g["line_core"]
+    assert fail_stale_g["yahoo_fail_error_seed_vs_fail"] == (
+        "clash · seed align · fail clash"
+    )
+    assert fail_stale_g["yahoo_fail_error_seed_vs_fail_warn"] is True
+    assert "error seed/fail clash · seed align · fail clash" in fail_stale_g[
+        "line_core"
+    ]
+    assert "error/fail" not in fail_stale_g["line_core"]
 
 
 def test_universe_discovery_glance_yahoo_fail_streak_speaks(tmp_path) -> None:

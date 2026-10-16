@@ -13,6 +13,7 @@ from stock_checker.yahoo_universe_discovery import (
     screens_bundle_failed,
     set_yahoo_discovery_error,
     yahoo_discovery_error_class,
+    yahoo_fail_error_seed_vs_fail,
     yahoo_fail_error_vs_fail,
     yahoo_fail_error_vs_seed,
     yahoo_fail_streak,
@@ -101,6 +102,21 @@ def test_yahoo_fail_error_vs_fail_extremes():
     assert yahoo_fail_error_vs_fail("", "fresh") == ""
     assert yahoo_fail_error_vs_fail("DROP TABLE;", "fresh") == ""
     assert yahoo_fail_error_vs_fail("error", "unknown") == ""
+
+
+def test_yahoo_fail_error_seed_vs_fail_extremes():
+    """error seed/fail meta reuses streak helper (same verb grammar)."""
+    bit, warn = yahoo_fail_error_seed_vs_fail("clash · fresh", "align · fresh")
+    assert bit == "clash · seed clash · fail align"
+    assert warn is True
+    bit, warn = yahoo_fail_error_seed_vs_fail("align · stale", "align · fresh")
+    assert bit == "align · both align"
+    assert warn is False
+    bit, warn = yahoo_fail_error_seed_vs_fail("clash · fresh", "clash · stale")
+    assert bit == "align · both clash"
+    assert warn is True
+    assert yahoo_fail_error_seed_vs_fail("", "align · fresh") == ("", False)
+    assert yahoo_fail_error_seed_vs_fail("clash · fresh", "") == ("", False)
 
 
 def test_yahoo_fail_streak_vs_seed_extremes():

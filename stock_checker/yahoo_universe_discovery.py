@@ -378,6 +378,20 @@ def yahoo_fail_streak_seed_vs_fail(
     return f"clash · seed {seed_verb} · fail {fail_verb}", True
 
 
+def yahoo_fail_error_seed_vs_fail(
+    error_vs_seed: str,
+    error_vs_fail: str,
+) -> tuple[str, bool]:
+    """Error/seed vs error/fail relationship on first fail (display only).
+
+    Same bit grammar as ``yahoo_fail_streak_seed_vs_fail`` — typed death vs
+    seed ≠ typed death vs fail stamp. Side-by-side ``error/seed`` +
+    ``error/fail`` alone hid whether the two relationships agree before
+    N×≥2. Reuses the streak helper (identical verbs). Not a gate.
+    """
+    return yahoo_fail_streak_seed_vs_fail(error_vs_seed, error_vs_fail)
+
+
 def yahoo_fail_streak_seed_fail_vs_budget(
     seed_vs_fail: str,
     streak_vs_budget: str,
