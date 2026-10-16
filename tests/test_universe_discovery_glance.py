@@ -152,6 +152,13 @@ def test_universe_discovery_glance_yahoo_fail_error_class(tmp_path) -> None:
     junk = build_universe_discovery_glance(tmp_path, now=now)
     assert junk["yahoo_fail_error"] == ""
     assert "DROP" not in junk["line_core"]
+    meta["meta"]["last_yahoo_discovery_error"] = "inflight"
+    (tmp_path / "stock_universe.json").write_text(
+        json.dumps(meta), encoding="utf-8"
+    )
+    held = build_universe_discovery_glance(tmp_path, now=now)
+    assert held["yahoo_fail_error"] == "inflight"
+    assert "Yahoo fail · inflight · 0/3 · 2×" in held["line_core"]
 
 
 def test_universe_discovery_glance_yahoo_fail_error_vs_seed_first_fail(

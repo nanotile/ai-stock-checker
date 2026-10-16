@@ -53,7 +53,31 @@ def test_classify_yahoo_discovery_error_bundle_and_exc():
         )
         == "empty"
     )
+    assert (
+        classify_yahoo_discovery_error(
+            screens_ok=0, screens_failed=3, inflight_fails=3
+        )
+        == "inflight"
+    )
+    assert (
+        classify_yahoo_discovery_error(
+            screens_ok=0, screens_failed=3, timeout_fails=1, inflight_fails=2
+        )
+        == "inflight"
+    )
+    assert (
+        classify_yahoo_discovery_error(
+            screens_ok=0, screens_failed=3, timeout_fails=2, inflight_fails=1
+        )
+        == "timeout"
+    )
     assert classify_yahoo_discovery_error(TimeoutError("timed out")) == "timeout"
+    assert (
+        classify_yahoo_discovery_error(
+            TimeoutError("yahoo screen day_gainers still in flight — timed out")
+        )
+        == "inflight"
+    )
     assert classify_yahoo_discovery_error(RuntimeError("HTTP 403")) == "http"
     assert classify_yahoo_discovery_error(YahooScreenEmptyError("empty")) == "empty"
     assert classify_yahoo_discovery_error(RuntimeError("boom")) == "error"
@@ -313,13 +337,14 @@ def test_discover_yahoo_mover_report_all_empty_is_failed(monkeypatch):
         "stock_checker.yahoo_universe_discovery.fetch_yahoo_screen_symbols",
         boom,
     )
-    symbols, ok, failed, timeouts = discover_yahoo_mover_report(
+    symbols, ok, failed, timeouts, inflight = discover_yahoo_mover_report(
         screens=("day_gainers", "day_losers"), per_screen=5
     )
     assert symbols == []
     assert ok == 0
     assert failed == 2
     assert timeouts == 0
+    assert inflight == 0
     assert screens_bundle_failed(ok, failed) is True
 
 
@@ -333,13 +358,14 @@ def test_discover_yahoo_mover_report_counts_timeouts(monkeypatch):
         "stock_checker.yahoo_universe_discovery.fetch_yahoo_screen_symbols",
         hang,
     )
-    symbols, ok, failed, timeouts = discover_yahoo_mover_report(
+    symbols, ok, failed, timeouts, inflight = discover_yahoo_mover_report(
         screens=("day_gainers", "day_losers"), per_screen=5
     )
     assert symbols == []
     assert ok == 0
     assert failed == 2
     assert timeouts == 2
+    assert inflight == 0
     assert (
         classify_yahoo_discovery_error(
             screens_ok=ok, screens_failed=failed, timeout_fails=timeouts

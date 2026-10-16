@@ -144,7 +144,7 @@ def clear_yahoo_fail_streak(meta: dict[str, Any]) -> None:
 # Compact fail reasons for desk (xang1234 #639 last-error chip — not a full
 # Manage Sources tooltip). Allowlist only so junk meta cannot inflate the line.
 YAHOO_FAIL_ERROR_CLASSES: frozenset[str] = frozenset(
-    ("timeout", "http", "empty", "thin", "error")
+    ("timeout", "inflight", "http", "empty", "thin", "error")
 )
 
 
@@ -154,6 +154,7 @@ def classify_yahoo_discovery_error(
     screens_ok: int | None = None,
     screens_failed: int | None = None,
     timeout_fails: int = 0,
+    inflight_fails: int = 0,
 ) -> str:
     """Map a dead Yahoo movers fetch to a compact error class.
 
@@ -161,20 +162,30 @@ def classify_yahoo_discovery_error(
     *why* movers stayed dead — not only N× / fail age. Bundle path:
     ``empty`` when no screen answered; ``thin`` when majority failed but
     some answered. Transport timeouts own the class when they are the
-    majority of failed screens (hung ≠ quiet empty). Exception path:
-    ``timeout`` / ``http`` / ``error``.
+    majority of failed screens (hung ≠ quiet empty). A still-live worker
+    that refused a second ``yf.screen`` is ``inflight`` (held ≠ a new hang).
+    Exception path: ``inflight`` / ``timeout`` / ``http`` / ``error``.
     """
     try:
         timed_out = max(0, int(timeout_fails))
     except (TypeError, ValueError):
         timed_out = 0
+    try:
+        held = max(0, int(inflight_fails))
+    except (TypeError, ValueError):
+        held = 0
     if screens_ok is not None and screens_failed is not None:
         ok_n = max(0, int(screens_ok))
         fail_n = max(0, int(screens_failed))
-        other_fails = max(0, fail_n - timed_out)
-        # Prefer timeout when transport death owns (or ties) the fail side.
+        other_fails = max(0, fail_n - timed_out - held)
+        dead = ok_n <= 0 or screens_bundle_failed(ok_n, fail_n)
+        # Prefer inflight when a refused second spend owns (or ties) timeouts.
+        if held > 0 and held >= max(1, timed_out) and held >= max(1, other_fails):
+            if dead:
+                return "inflight"
+        # Prefer timeout when a fresh hang owns (or ties) the remaining fails.
         if timed_out > 0 and timed_out >= max(1, other_fails):
-            if ok_n <= 0 or screens_bundle_failed(ok_n, fail_n):
+            if dead:
                 return "timeout"
         if ok_n <= 0:
             return "empty"
@@ -184,6 +195,8 @@ def classify_yahoo_discovery_error(
         return "error"
     name = type(exc).__name__.lower()
     msg = str(exc).lower()
+    if "still in flight" in msg:
+        return "inflight"
     if (
         isinstance(exc, TimeoutError)
         or "timeout" in name
@@ -651,22 +664,26 @@ def discover_yahoo_mover_report(
     screens: Sequence[str] = DEFAULT_SCREENS,
     per_screen: int = DEFAULT_MOVER_COUNT,
     timeout_sec: int | None = None,
-) -> tuple[List[str], int, int, int]:
-    """Symbols plus screens ok / failed / timed-out (empty/blocked/hang)."""
+) -> tuple[List[str], int, int, int, int]:
+    """Symbols plus ok / failed / fresh-timeout / still-in-flight counts."""
     out: list[str] = []
     seen: set[str] = set()
     ok = 0
     failed = 0
     timeouts = 0
+    inflight = 0
     for name in screens:
         try:
             batch = fetch_yahoo_screen_symbols(
                 name, count=per_screen, timeout_sec=timeout_sec
             )
             ok += 1
-        except TimeoutError:
+        except TimeoutError as e:
             failed += 1
-            timeouts += 1
+            if "still in flight" in str(e).lower():
+                inflight += 1
+            else:
+                timeouts += 1
             continue
         except Exception:
             failed += 1
@@ -678,7 +695,7 @@ def discover_yahoo_mover_report(
                 continue
             seen.add(sym)
             out.append(sym)
-    return out, ok, failed, timeouts
+    return out, ok, failed, timeouts, inflight
 
 
 def discover_yahoo_mover_symbols(
@@ -687,7 +704,7 @@ def discover_yahoo_mover_symbols(
     per_screen: int = DEFAULT_MOVER_COUNT,
 ) -> List[str]:
     """Union of symbols across screens, stable order, de-duplicated."""
-    symbols, _ok, _failed, _timeouts = discover_yahoo_mover_report(
+    symbols, _ok, _failed, _timeouts, _inflight = discover_yahoo_mover_report(
         screens=screens, per_screen=per_screen
     )
     return symbols

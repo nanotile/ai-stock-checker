@@ -122,6 +122,24 @@ def test_discover_yahoo_movers_timeout_class(tmp_path: Path, monkeypatch):
     assert meta.get("last_yahoo_discovery_error") == "timeout"
 
 
+def test_discover_yahoo_movers_inflight_class(tmp_path: Path, monkeypatch):
+    """Refused second Yahoo spend speaks inflight, not a fresh timeout."""
+    mgr = StockUniverseManager(data_dir=str(tmp_path))
+    mgr.universe.setdefault("meta", {})
+    mgr.universe["meta"]["last_yahoo_discovery"] = "2026-09-01T00:00:00"
+    mgr._save_universe()
+
+    def held_report(*, per_screen: int = 25):
+        return [], 0, 3, 0, 3
+
+    monkeypatch.setattr(
+        "stock_checker.yahoo_universe_discovery.discover_yahoo_mover_report",
+        held_report,
+    )
+    assert mgr.discover_yahoo_movers() == 0
+    assert mgr.universe["meta"].get("last_yahoo_discovery_error") == "inflight"
+
+
 def test_discover_yahoo_movers_403_does_not_raise(tmp_path: Path, monkeypatch):
     mgr = StockUniverseManager(data_dir=str(tmp_path))
     prior = "2026-09-01T00:00:00"

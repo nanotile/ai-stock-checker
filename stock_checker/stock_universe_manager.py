@@ -409,13 +409,15 @@ class StockUniverseManager:
         screens_ok = 0
         screens_failed = 0
         timeout_fails = 0
+        inflight_fails = 0
         try:
-            (
-                symbols,
-                screens_ok,
-                screens_failed,
-                timeout_fails,
-            ) = discover_yahoo_mover_report(per_screen=per_screen)
+            report = discover_yahoo_mover_report(per_screen=per_screen)
+            symbols = report[0]
+            screens_ok = report[1]
+            screens_failed = report[2]
+            timeout_fails = report[3]
+            if len(report) > 4:
+                inflight_fails = report[4]
         except Exception as e:
             print(f"   ⚠️ Yahoo movers discovery failed: {str(e)[:120]}")
             meta["last_yahoo_discovery_status"] = "failed"
@@ -424,7 +426,7 @@ class StockUniverseManager:
             meta["last_yahoo_screens_failed"] = 0
             meta["last_yahoo_prune_skipped"] = False
             # xang1234 #639: fail stamp alone hid repeated dead fetches;
-            # last-error class names why (timeout/http/empty/error).
+            # last-error class names why (inflight/timeout/http/empty/error).
             set_yahoo_discovery_error(meta, classify_yahoo_discovery_error(e))
             bump_yahoo_fail_streak(meta)
             self.ensure_curated_seed()
@@ -445,6 +447,7 @@ class StockUniverseManager:
                     screens_ok=screens_ok,
                     screens_failed=screens_failed,
                     timeout_fails=timeout_fails,
+                    inflight_fails=inflight_fails,
                 ),
             )
             bump_yahoo_fail_streak(meta)
