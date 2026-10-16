@@ -20311,12 +20311,26 @@ def build_universe_discovery_glance(
             f"{streak_vs_budget_bit}{streak_seed_fail_vs_budget_bit}"
             f"{retry} · {seed_bit}{fail_bit}"
         )
-        # Desk primary: omit streak lean so retry / ages survive the eye.
-        # Keep error/seed + error sf/budget (seed/fail + budget stay in fields).
+        # Desk primary: omit streak lean and first-fail error lean so retry /
+        # ages survive the eye (MonsterDeveloper fold; full ``line`` keeps both).
+        error_lean_bits: list[str] = []
+        for bit in (
+            error_vs_seed_bit,
+            error_vs_fail_bit,
+            error_seed_vs_fail_bit,
+            error_vs_budget_bit,
+            error_sf_budget_bit,
+        ):
+            cleaned = str(bit or "").strip(" ·")
+            if cleaned:
+                error_lean_bits.append(cleaned)
+        error_lean = " · ".join(error_lean_bits)
+        error_lean_warn = bool(
+            error_seed_vs_fail_warn or error_seed_fail_vs_budget_warn
+        )
         line_core = (
             f"US+DE · Yahoo ≤{per} · "
-            f"Yahoo fail{err_bit}{error_vs_seed_bit}{error_vs_fail_bit}"
-            f"{error_seed_vs_fail_bit}{error_vs_budget_bit}{error_sf_budget_bit}"
+            f"Yahoo fail{err_bit}"
             f"{frac}{streak_bit}"
             f"{retry} · {seed_bit}{fail_bit}"
         )
@@ -20349,6 +20363,8 @@ def build_universe_discovery_glance(
         line_core = line
         streak_lean = ""
         streak_lean_warn = False
+        error_lean = ""
+        error_lean_warn = False
     return {
         "ready": True,
         "tone": tone,
@@ -20356,6 +20372,8 @@ def build_universe_discovery_glance(
         "line_core": line_core,
         "streak_lean": streak_lean,
         "streak_lean_warn": bool(streak_lean_warn),
+        "error_lean": error_lean,
+        "error_lean_warn": bool(error_lean_warn),
         "mover_count": per,
         "discovery_only": True,
         "auto_buy": False,

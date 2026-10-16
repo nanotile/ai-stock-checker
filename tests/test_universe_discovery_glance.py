@@ -191,16 +191,18 @@ def test_universe_discovery_glance_yahoo_fail_error_vs_seed_first_fail(
     # seed/fail clash + budget clash → error sf/budget align · both clash.
     assert g["yahoo_fail_error_seed_fail_vs_budget"] == "align · both clash"
     assert g["yahoo_fail_error_seed_fail_vs_budget_warn"] is True
-    assert (
-        "Yahoo fail · timeout · error/seed clash · fresh · "
-        "error sf/budget align · both clash · 0/3"
-    ) in g["line_core"]
-    # seed/fail + budget stay in fields; relationship owns the clip.
-    assert "error seed/fail" not in g["line_core"]
+    assert g["error_lean_warn"] is True
+    assert "Yahoo fail · timeout · 0/3" in g["line_core"]
+    assert "error/" not in g["line_core"]
+    assert "error/seed clash · fresh" in g["error_lean"]
+    assert "error sf/budget align · both clash" in g["error_lean"]
+    # seed/fail + budget stay in fields; relationship owns the fold.
+    assert "error seed/fail" not in g["error_lean"]
     assert "error seed/fail" not in g["line"]
-    assert "error/budget" not in g["line_core"]
+    assert "error/budget" not in g["error_lean"]
     assert "error/budget" not in g["line"]
-    assert "error/fail" not in g["line_core"]
+    assert "error/fail" not in g["error_lean"]
+    assert "error sf/budget align · both clash" in g["line"]
     assert "1×" not in g["line_core"]
     assert "streak/seed" not in g["line"]
     assert "streak/fail" not in g["line"]
@@ -221,13 +223,15 @@ def test_universe_discovery_glance_yahoo_fail_error_vs_seed_first_fail(
         "clash · seed/fail align · budget clash"
     )
     assert stale["yahoo_fail_error_seed_fail_vs_budget_warn"] is True
-    assert "error/seed align · stale" in stale["line_core"]
+    assert stale["error_lean_warn"] is True
+    assert "error/" not in stale["line_core"]
+    assert "error/seed align · stale" in stale["error_lean"]
     assert "error sf/budget clash · seed/fail align · budget clash" in stale[
-        "line_core"
+        "error_lean"
     ]
-    assert "error seed/fail" not in stale["line_core"]
-    assert "error/budget" not in stale["line_core"]
-    assert "error/fail" not in stale["line_core"]
+    assert "error seed/fail" not in stale["error_lean"]
+    assert "error/budget" not in stale["error_lean"]
+    assert "error/fail" not in stale["error_lean"]
     # Stale fail stamp clashes (typed death without a live death clock).
     fail_stale = (now - timedelta(hours=50)).replace(tzinfo=None).isoformat()
     meta = json.loads((tmp_path / "stock_universe.json").read_text(encoding="utf-8"))
@@ -247,11 +251,13 @@ def test_universe_discovery_glance_yahoo_fail_error_vs_seed_first_fail(
         "clash · seed/fail clash · budget align"
     )
     assert fail_stale_g["yahoo_fail_error_seed_fail_vs_budget_warn"] is True
+    assert "error/" not in fail_stale_g["line_core"]
+    assert "retry due" in fail_stale_g["line_core"]
     assert "error sf/budget clash · seed/fail clash · budget align" in fail_stale_g[
-        "line_core"
+        "error_lean"
     ]
-    assert "error/budget" not in fail_stale_g["line_core"]
-    assert "error/fail" not in fail_stale_g["line_core"]
+    assert "error/budget" not in fail_stale_g["error_lean"]
+    assert "error/fail" not in fail_stale_g["error_lean"]
     # Fresh seed + stale fail → both clash under retry-due (about to spend).
     meta = json.loads((tmp_path / "stock_universe.json").read_text(encoding="utf-8"))
     meta["meta"]["last_yahoo_discovery"] = last
@@ -263,7 +269,9 @@ def test_universe_discovery_glance_yahoo_fail_error_vs_seed_first_fail(
     assert due_clash["yahoo_fail_error_vs_budget"] == "align · due"
     assert due_clash["yahoo_fail_error_seed_fail_vs_budget"] == "align · both align"
     assert due_clash["yahoo_fail_error_seed_fail_vs_budget_warn"] is True
-    assert "error sf/budget align · both align" in due_clash["line_core"]
+    assert "error/" not in due_clash["line_core"]
+    assert "error sf/budget align · both align" in due_clash["error_lean"]
+    assert due_clash["error_lean_warn"] is True
     assert "retry due" in due_clash["line_core"]
 
 

@@ -2665,31 +2665,42 @@
     link.textContent = "Screener →";
     line.appendChild(link);
     wrap.appendChild(line);
-    var streakLean = glance.streak_lean ? String(glance.streak_lean) : "";
-    if (streakLean) {
-      var leanWarn = !!glance.streak_lean_warn;
+    function appendLean(label, text, warn, foldClass, bodyClass) {
+      if (!text) return;
       var details = document.createElement("details");
-      details.className =
-        "universe-streak-lean" + (leanWarn ? " warn" : "");
-      if (leanWarn) details.open = true;
+      details.className = foldClass + (warn ? " warn" : "");
+      if (warn) details.open = true;
       var summary = document.createElement("summary");
-      summary.appendChild(document.createTextNode("streak lean "));
+      summary.appendChild(document.createTextNode(label + " "));
       var meta = document.createElement("span");
       meta.className = "meta";
       meta.textContent = "cascade";
       summary.appendChild(meta);
       details.appendChild(summary);
       var leanBody = document.createElement("p");
-      leanBody.className =
-        "universe-streak-lean-body" + (leanWarn ? " warn" : "");
-      leanBody.textContent = streakLean;
+      leanBody.className = bodyClass + (warn ? " warn" : "");
+      leanBody.textContent = text;
       details.appendChild(leanBody);
       wrap.appendChild(details);
     }
+    appendLean(
+      "error lean",
+      glance.error_lean ? String(glance.error_lean) : "",
+      !!glance.error_lean_warn,
+      "universe-error-lean",
+      "universe-error-lean-body"
+    );
+    appendLean(
+      "streak lean",
+      glance.streak_lean ? String(glance.streak_lean) : "",
+      !!glance.streak_lean_warn,
+      "universe-streak-lean",
+      "universe-streak-lean-body"
+    );
     var sub = document.createElement("p");
     sub.className = "sub";
     sub.textContent =
-      "Universe discovery beside charts — Yahoo movers cache age vs 24h; empty/blocked Yahoo reuses seed, names fail age, and retries next scan; streak lean folds under the primary line; not auto-buy.";
+      "Universe discovery beside charts — Yahoo movers cache age vs 24h; empty/blocked Yahoo reuses seed, names fail age, and retries next scan; error lean and streak lean fold under the primary line; not auto-buy.";
     wrap.appendChild(sub);
     appendGlance(wrap);
   }
