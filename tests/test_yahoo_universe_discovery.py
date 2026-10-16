@@ -15,6 +15,7 @@ from stock_checker.yahoo_universe_discovery import (
     yahoo_discovery_error_class,
     yahoo_fail_error_also_bit,
     yahoo_fail_error_also_share,
+    yahoo_fail_error_also_vs_winner,
     yahoo_fail_error_seed_fail_vs_budget,
     yahoo_fail_error_seed_vs_fail,
     yahoo_fail_error_vs_budget,
@@ -139,6 +140,28 @@ def test_yahoo_fail_error_also_share_hidden_side():
         None,
         "",
     )
+
+
+def test_yahoo_fail_error_also_vs_winner_named_share():
+    """Hidden % alone hid the named class's ownership of the mix."""
+    assert yahoo_fail_error_also_vs_winner(
+        "inflight", timeout_fails=1, inflight_fails=2
+    ) == ("vs inflight · 67%", 67, "ok")
+    assert yahoo_fail_error_also_vs_winner(
+        "timeout", timeout_fails=3, inflight_fails=1
+    ) == ("vs timeout · strong · 75%", 75, "strong")
+    assert yahoo_fail_error_also_vs_winner(
+        "inflight", timeout_fails=1, inflight_fails=1
+    ) == ("vs inflight · 50%", 50, "ok")
+    assert yahoo_fail_error_also_vs_winner(
+        "inflight", timeout_fails=0, inflight_fails=3
+    ) == ("", None, "")
+    assert yahoo_fail_error_also_vs_winner(
+        "empty", timeout_fails=1, inflight_fails=1
+    ) == ("", None, "")
+    assert yahoo_fail_error_also_vs_winner(
+        "timeout", timeout_fails="x", inflight_fails=1
+    ) == ("", None, "")
 
 
 def test_yahoo_discovery_error_meta_allowlist():

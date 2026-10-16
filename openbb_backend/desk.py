@@ -19938,6 +19938,7 @@ def build_universe_discovery_glance(
         yahoo_discovery_error_sides,
         yahoo_fail_error_also_bit,
         yahoo_fail_error_also_share,
+        yahoo_fail_error_also_vs_winner,
         yahoo_fail_error_seed_fail_vs_budget,
         yahoo_fail_error_seed_vs_fail,
         yahoo_fail_error_vs_budget,
@@ -20065,6 +20066,19 @@ def build_universe_discovery_glance(
             fail_error_also_share_pct,
             fail_error_also_share_severity,
         ) = yahoo_fail_error_also_share(
+            fail_error,
+            timeout_fails=timeout_fails_n,
+            inflight_fails=inflight_fails_n,
+        )
+    fail_error_also_vs = ""
+    fail_error_also_vs_pct: int | None = None
+    fail_error_also_vs_severity = ""
+    if yahoo_failed and fail_error and fail_error_also_share:
+        (
+            fail_error_also_vs,
+            fail_error_also_vs_pct,
+            fail_error_also_vs_severity,
+        ) = yahoo_fail_error_also_vs_winner(
             fail_error,
             timeout_fails=timeout_fails_n,
             inflight_fails=inflight_fails_n,
@@ -20205,13 +20219,14 @@ def build_universe_discovery_glance(
     if yahoo_failed:
         tone = "warn"
         # xang1234 #639: last-error class before fraction (why ≠ how many).
-        # When timeout↔inflight both failed, speak the side the winner hid
-        # and that side's share (flag ≠ how large the other spend is).
+        # When timeout↔inflight both failed, speak the side the winner hid,
+        # that side's share, and the named class's share (hidden % ≠ ownership).
         if fail_error and fail_error_also:
             share = (
                 f" · {fail_error_also_share}" if fail_error_also_share else ""
             )
-            err_bit = f" · {fail_error} · {fail_error_also}{share}"
+            vs = f" · {fail_error_also_vs}" if fail_error_also_vs else ""
+            err_bit = f" · {fail_error} · {fail_error_also}{share}{vs}"
         elif fail_error:
             err_bit = f" · {fail_error}"
         else:
@@ -20430,6 +20445,9 @@ def build_universe_discovery_glance(
         "yahoo_fail_error_also_share": fail_error_also_share,
         "yahoo_fail_error_also_share_pct": fail_error_also_share_pct,
         "yahoo_fail_error_also_share_severity": fail_error_also_share_severity,
+        "yahoo_fail_error_also_vs": fail_error_also_vs,
+        "yahoo_fail_error_also_vs_pct": fail_error_also_vs_pct,
+        "yahoo_fail_error_also_vs_severity": fail_error_also_vs_severity,
         "yahoo_fail_timeout_fails": timeout_fails_n if yahoo_failed else 0,
         "yahoo_fail_inflight_fails": inflight_fails_n if yahoo_failed else 0,
         "yahoo_fail_error_vs_seed": error_vs_seed,

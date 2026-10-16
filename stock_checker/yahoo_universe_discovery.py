@@ -149,6 +149,8 @@ YAHOO_FAIL_ERROR_CLASSES: frozenset[str] = frozenset(
 # Hidden spend side of a timeout↔inflight mix (count flag ≠ ownership).
 YAHOO_FAIL_ALSO_SHARE_HOT = 50
 YAHOO_FAIL_ALSO_SHARE_QUIET = 25
+# Named class owns the mix when its share of timeout+inflight is this high.
+YAHOO_FAIL_ALSO_WINNER_STRONG = 75
 
 
 def classify_yahoo_discovery_error(
@@ -347,6 +349,45 @@ def yahoo_fail_error_also_share(
     if pct <= YAHOO_FAIL_ALSO_SHARE_QUIET:
         return f"quiet · {pct}%", pct, "quiet"
     return f"{pct}%", pct, "ok"
+
+
+def yahoo_fail_error_also_vs_winner(
+    klass: str,
+    *,
+    timeout_fails: int = 0,
+    inflight_fails: int = 0,
+) -> tuple[str, int | None, str]:
+    """Named class's share of timeout+inflight when hidden share already spoke.
+
+    Hidden % alone hid the winning spend's ownership (friends invert
+    100−hidden). ``strong`` ≥75 · mid shows the percent only. The winning
+    count is at least the hidden count, so this share is ≥50 and there is
+    no thin band. Returns ``(bit, pct, severity)``.
+    """
+    _bit, hidden_pct, _sev = yahoo_fail_error_also_share(
+        klass, timeout_fails=timeout_fails, inflight_fails=inflight_fails
+    )
+    if hidden_pct is None:
+        return "", None, ""
+    k = str(klass or "").strip().lower()
+    if k not in ("timeout", "inflight"):
+        return "", None, ""
+    try:
+        timed = max(0, int(timeout_fails))
+    except (TypeError, ValueError):
+        timed = 0
+    try:
+        held = max(0, int(inflight_fails))
+    except (TypeError, ValueError):
+        held = 0
+    total = timed + held
+    if total <= 0:
+        return "", None, ""
+    winner_n = held if k == "inflight" else timed
+    pct = int(round(100.0 * winner_n / total))
+    if pct >= YAHOO_FAIL_ALSO_WINNER_STRONG:
+        return f"vs {k} · strong · {pct}%", pct, "strong"
+    return f"vs {k} · {pct}%", pct, "ok"
 
 
 def yahoo_fail_error_vs_seed(error: str, seed_freshness: str) -> str:
