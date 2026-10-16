@@ -19925,9 +19925,10 @@ def build_universe_discovery_glance(
     sf/budget) sits in ``streak_lean`` under a desk fold; ``line_core`` keeps
     fail · N× · retry · seed/fail ages (MonsterDeveloper + Screener weight
     lean declutter — full ``line`` join kept for tests). Warn opens the fold.
-    timeout↔inflight mix (hidden side · share or lean · Δ when the spread
-    is wide or thin) sits in ``mix_lean``; ``line_core`` keeps the winning
-    class. Warn opens that fold too. Mid Δ stays silent.
+    timeout↔inflight mix (hidden side · absolute counts · share or lean ·
+    Δ when the spread is wide or thin) sits in ``mix_lean``; ``line_core``
+    keeps the winning class. Counts stay when lean drops the percents.
+    Warn opens that fold too. Mid Δ stays silent.
     Buys still need regime/RS/breadth/fees. Not a new gate.
     """
     from stock_checker.yahoo_universe_discovery import (
@@ -19940,6 +19941,7 @@ def build_universe_discovery_glance(
         yahoo_discovery_error_class,
         yahoo_discovery_error_sides,
         yahoo_fail_error_also_bit,
+        yahoo_fail_error_also_counts,
         yahoo_fail_error_also_share,
         yahoo_fail_error_also_vs_delta,
         yahoo_fail_error_also_vs_lean,
@@ -20060,6 +20062,15 @@ def build_universe_discovery_glance(
             inflight_fails=inflight_fails_n,
         )
         if yahoo_failed and fail_error
+        else ""
+    )
+    fail_error_also_counts = (
+        yahoo_fail_error_also_counts(
+            fail_error,
+            timeout_fails=timeout_fails_n,
+            inflight_fails=inflight_fails_n,
+        )
+        if yahoo_failed and fail_error and fail_error_also
         else ""
     )
     fail_error_also_share = ""
@@ -20245,14 +20256,17 @@ def build_universe_discovery_glance(
     if yahoo_failed:
         tone = "warn"
         # xang1234 #639: last-error class before fraction (why ≠ how many).
-        # timeout↔inflight mix (hidden side · share · winner · lean) sits in
-        # ``mix_lean`` under a desk fold. ``line_core`` keeps the class.
-        # Full ``line`` still joins the mix (tests). Lean replaces the two
-        # percents in that join (they stay in fields). Wide/thin Δ appends
-        # after lean; mid Δ stays silent.
+        # timeout↔inflight mix (hidden side · counts · share · winner · lean)
+        # sits in ``mix_lean`` under a desk fold. ``line_core`` keeps the
+        # class. Full ``line`` still joins the mix (tests). Counts stay when
+        # lean drops the percents (they stay in fields too). Wide/thin Δ
+        # appends after lean; mid Δ stays silent.
         mix_lean = ""
         mix_lean_warn = False
         if fail_error and fail_error_also:
+            counts = (
+                f" · {fail_error_also_counts}" if fail_error_also_counts else ""
+            )
             if fail_error_also_vs_lean:
                 share = ""
                 vs = ""
@@ -20269,7 +20283,9 @@ def build_universe_discovery_glance(
                 vs = f" · {fail_error_also_vs}" if fail_error_also_vs else ""
                 lean = ""
                 delta = ""
-            mix_lean = f"{fail_error_also}{share}{vs}{lean}{delta}".strip(" ·")
+            mix_lean = (
+                f"{fail_error_also}{counts}{share}{vs}{lean}{delta}".strip(" ·")
+            )
             mix_lean_warn = bool(fail_error_also_vs_lean_warn)
             err_bit = f" · {fail_error} · {mix_lean}"
         elif fail_error:
@@ -20492,6 +20508,7 @@ def build_universe_discovery_glance(
         "yahoo_failed": yahoo_failed,
         "yahoo_fail_error": fail_error,
         "yahoo_fail_error_also": fail_error_also,
+        "yahoo_fail_error_also_counts": fail_error_also_counts,
         "yahoo_fail_error_also_share": fail_error_also_share,
         "yahoo_fail_error_also_share_pct": fail_error_also_share_pct,
         "yahoo_fail_error_also_share_severity": fail_error_also_share_severity,

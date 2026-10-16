@@ -14,6 +14,7 @@ from stock_checker.yahoo_universe_discovery import (
     set_yahoo_discovery_error,
     yahoo_discovery_error_class,
     yahoo_fail_error_also_bit,
+    yahoo_fail_error_also_counts,
     yahoo_fail_error_also_share,
     yahoo_fail_error_also_vs_delta,
     yahoo_fail_error_also_vs_lean,
@@ -164,6 +165,34 @@ def test_yahoo_fail_error_also_vs_winner_named_share():
     assert yahoo_fail_error_also_vs_winner(
         "timeout", timeout_fails="x", inflight_fails=1
     ) == ("", None, "")
+
+
+def test_yahoo_fail_error_also_counts_scale():
+    """Mix % hid one hung screen versus a wide timeout/inflight outage."""
+    assert (
+        yahoo_fail_error_also_counts(
+            "inflight", timeout_fails=1, inflight_fails=2
+        )
+        == "1 timeout · 2 held"
+    )
+    assert (
+        yahoo_fail_error_also_counts(
+            "timeout", timeout_fails=8, inflight_fails=8
+        )
+        == "8 timeout · 8 held"
+    )
+    assert (
+        yahoo_fail_error_also_counts("timeout", timeout_fails=2, inflight_fails=0)
+        == ""
+    )
+    assert (
+        yahoo_fail_error_also_counts("empty", timeout_fails=1, inflight_fails=1)
+        == ""
+    )
+    assert (
+        yahoo_fail_error_also_counts("timeout", timeout_fails="x", inflight_fails=1)
+        == ""
+    )
 
 
 def test_yahoo_fail_error_also_vs_lean_extremes():

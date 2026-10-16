@@ -189,6 +189,7 @@ def test_universe_discovery_glance_yahoo_fail_error_also_mix(tmp_path) -> None:
     g = build_universe_discovery_glance(tmp_path, now=now)
     assert g["yahoo_fail_error"] == "inflight"
     assert g["yahoo_fail_error_also"] == "+timeout"
+    assert g["yahoo_fail_error_also_counts"] == "1 timeout · 2 held"
     assert g["yahoo_fail_error_also_share"] == "33%"
     assert g["yahoo_fail_error_also_share_pct"] == 33
     assert g["yahoo_fail_error_also_share_severity"] == "ok"
@@ -203,9 +204,13 @@ def test_universe_discovery_glance_yahoo_fail_error_also_mix(tmp_path) -> None:
     assert g["yahoo_fail_inflight_fails"] == 2
     assert "Yahoo fail · inflight · 0/3 · 2×" in g["line_core"]
     assert "+timeout" not in g["line_core"]
-    assert g["mix_lean"] == "+timeout · 33% · vs inflight · 67%"
+    assert g["mix_lean"] == (
+        "+timeout · 1 timeout · 2 held · 33% · vs inflight · 67%"
+    )
     assert g["mix_lean_warn"] is False
-    assert "+timeout · 33% · vs inflight · 67%" in g["line"]
+    assert (
+        "+timeout · 1 timeout · 2 held · 33% · vs inflight · 67%"
+    ) in g["line"]
 
     meta = json.loads((tmp_path / "stock_universe.json").read_text(encoding="utf-8"))
     meta["meta"]["last_yahoo_discovery_error"] = "timeout"
@@ -221,7 +226,10 @@ def test_universe_discovery_glance_yahoo_fail_error_also_mix(tmp_path) -> None:
     assert timed["yahoo_fail_error_also_vs"] == "vs timeout · 67%"
     assert "Yahoo fail · timeout · 0/3 · 2×" in timed["line_core"]
     assert "+held" not in timed["line_core"]
-    assert timed["mix_lean"] == "+held · 33% · vs timeout · 67%"
+    assert timed["yahoo_fail_error_also_counts"] == "2 timeout · 1 held"
+    assert timed["mix_lean"] == (
+        "+held · 2 timeout · 1 held · 33% · vs timeout · 67%"
+    )
     assert timed["yahoo_fail_error_also_vs_lean"] == ""
 
     meta["meta"]["last_yahoo_timeout_fails"] = 1
@@ -241,13 +249,15 @@ def test_universe_discovery_glance_yahoo_fail_error_also_mix(tmp_path) -> None:
     assert half["yahoo_fail_error_also_vs_delta_severity"] == "thin"
     assert "33%" not in half["line_core"]
     assert "+held" not in half["line_core"]
+    assert half["yahoo_fail_error_also_counts"] == "1 timeout · 1 held"
     assert half["mix_lean"] == (
-        "+held · clash · hidden hot · winner ok · Δ thin · 0pp"
+        "+held · 1 timeout · 1 held · clash · hidden hot · winner ok"
+        " · Δ thin · 0pp"
     )
     assert half["mix_lean_warn"] is True
     assert (
-        "Yahoo fail · timeout · +held · clash · hidden hot · winner ok"
-        " · Δ thin · 0pp · 0/3 · 2×"
+        "Yahoo fail · timeout · +held · 1 timeout · 1 held"
+        " · clash · hidden hot · winner ok · Δ thin · 0pp · 0/3 · 2×"
     ) in half["line"]
 
     meta["meta"]["last_yahoo_discovery_error"] = "inflight"
@@ -263,13 +273,14 @@ def test_universe_discovery_glance_yahoo_fail_error_also_mix(tmp_path) -> None:
     assert owned["yahoo_fail_error_also_vs_delta_pp"] == -50
     assert owned["yahoo_fail_error_also_vs_delta_severity"] == "wide"
     assert "+timeout" not in owned["line_core"]
+    assert owned["yahoo_fail_error_also_counts"] == "1 timeout · 3 held"
     assert owned["mix_lean"] == (
-        "+timeout · align · quiet|strong · Δ wide · -50pp"
+        "+timeout · 1 timeout · 3 held · align · quiet|strong · Δ wide · -50pp"
     )
     assert owned["mix_lean_warn"] is False
     assert (
-        "Yahoo fail · inflight · +timeout · align · quiet|strong"
-        " · Δ wide · -50pp · 0/3 · 2×"
+        "Yahoo fail · inflight · +timeout · 1 timeout · 3 held"
+        " · align · quiet|strong · Δ wide · -50pp · 0/3 · 2×"
     ) in owned["line"]
 
 

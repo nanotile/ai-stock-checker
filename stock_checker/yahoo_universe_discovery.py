@@ -316,6 +316,34 @@ def yahoo_fail_error_also_bit(
     return ""
 
 
+def yahoo_fail_error_also_counts(
+    klass: str,
+    *,
+    timeout_fails: int = 0,
+    inflight_fails: int = 0,
+) -> str:
+    """Absolute timeout and inflight counts when the mix bit already spoke.
+
+    Hidden share and Δ hid whether a 50/50 is one hung screen plus one held
+    worker or a wide outage (xang1234 #639 + portfolio AI count ≠ share).
+    Sole-side and other classes stay silent.
+    """
+    also = yahoo_fail_error_also_bit(
+        klass, timeout_fails=timeout_fails, inflight_fails=inflight_fails
+    )
+    if not also:
+        return ""
+    try:
+        timed = max(0, int(timeout_fails))
+    except (TypeError, ValueError):
+        timed = 0
+    try:
+        held = max(0, int(inflight_fails))
+    except (TypeError, ValueError):
+        held = 0
+    return f"{timed} timeout · {held} held"
+
+
 def yahoo_fail_error_also_share(
     klass: str,
     *,
