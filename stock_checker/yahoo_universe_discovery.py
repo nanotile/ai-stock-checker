@@ -25,6 +25,11 @@ DEFAULT_YAHOO_FAIL_BACKOFF_HOURS = 1
 # xang1234 #639: bound hung Yahoo screens (feedparser/requests had no timeout
 # and looked like quiet empty forever). Per-screen join ceiling for yf.screen.
 DEFAULT_YAHOO_SCREEN_TIMEOUT_SEC = 20
+# Join ceiling does not kill a hung yf.screen thread. One live worker per
+# screen name — a later scan must not start a second fetch while the first
+# is still blocked (xang1234 #639 bound hung requests + #642 not-spent).
+_yahoo_screen_inflight: dict[str, threading.Thread] = {}
+_yahoo_screen_inflight_lock = threading.Lock()
 DEFAULT_SCREENS: tuple[str, ...] = ("day_gainers", "day_losers", "most_actives")
 # xang1234: a mostly empty snapshot is a failed fetch, not a quiet day.
 EMPTY_SCREEN_FRACTION = 0.2
@@ -573,7 +578,8 @@ def fetch_yahoo_screen_symbols(
 
     Network call — wrap in try/except at call sites. Offline tests should mock.
     xang1234 #639: join ceiling so a hung Yahoo cannot stall the scan loop;
-    timeout raises ``TimeoutError`` (not quiet empty).
+    timeout raises ``TimeoutError`` (not quiet empty). A still-live worker
+    blocks a second dispatch for the same screen (hung ≠ another spend).
     """
     import yfinance as yf
 
@@ -583,6 +589,7 @@ def fetch_yahoo_screen_symbols(
         if timeout_sec is None
         else max(1, int(timeout_sec))
     )
+    screen_key = str(screen or "").strip() or "screen"
     box: dict[str, Any] = {}
 
     def _call() -> None:
@@ -591,11 +598,28 @@ def fetch_yahoo_screen_symbols(
         except Exception as e:
             box["error"] = e
 
-    worker = threading.Thread(target=_call, name=f"yahoo-screen-{screen}", daemon=True)
+    worker = threading.Thread(
+        target=_call, name=f"yahoo-screen-{screen_key}", daemon=True
+    )
+    with _yahoo_screen_inflight_lock:
+        prev = _yahoo_screen_inflight.get(screen_key)
+        if prev is not None and prev.is_alive():
+            raise TimeoutError(
+                f"yahoo screen {screen_key} still in flight — timed out"
+            )
+        _yahoo_screen_inflight[screen_key] = worker
     worker.start()
-    worker.join(timeout=float(limit))
-    if worker.is_alive():
-        raise TimeoutError(f"yahoo screen {screen} timed out after {limit}s")
+    try:
+        worker.join(timeout=float(limit))
+        if worker.is_alive():
+            raise TimeoutError(
+                f"yahoo screen {screen_key} timed out after {limit}s"
+            )
+    finally:
+        if not worker.is_alive():
+            with _yahoo_screen_inflight_lock:
+                if _yahoo_screen_inflight.get(screen_key) is worker:
+                    _yahoo_screen_inflight.pop(screen_key, None)
     if "error" in box:
         err = box["error"]
         if isinstance(err, TimeoutError):

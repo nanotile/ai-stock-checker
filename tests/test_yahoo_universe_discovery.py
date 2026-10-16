@@ -466,4 +466,33 @@ def test_fetch_yahoo_screen_timeout_raises(monkeypatch):
 
     monkeypatch.setitem(__import__("sys").modules, "yfinance", _YF)
     with pytest.raises(TimeoutError, match="timed out"):
-        fetch_yahoo_screen_symbols("day_gainers", count=5, timeout_sec=1)
+        fetch_yahoo_screen_symbols("hang_probe", count=5, timeout_sec=1)
+
+
+def test_fetch_yahoo_screen_refuses_second_while_hung(monkeypatch):
+    """Hung screen stays one worker — a retry must not start another spend."""
+    import threading
+
+    import pytest
+
+    from stock_checker.yahoo_universe_discovery import fetch_yahoo_screen_symbols
+
+    release = threading.Event()
+    calls = {"n": 0}
+
+    class _YF:
+        @staticmethod
+        def screen(screen, count=25):
+            calls["n"] += 1
+            release.wait(5)
+            return {"quotes": [{"symbol": "AAPL"}]}
+
+    monkeypatch.setitem(__import__("sys").modules, "yfinance", _YF)
+    try:
+        with pytest.raises(TimeoutError, match="timed out after"):
+            fetch_yahoo_screen_symbols("held_screen", count=5, timeout_sec=1)
+        with pytest.raises(TimeoutError, match="still in flight"):
+            fetch_yahoo_screen_symbols("held_screen", count=5, timeout_sec=1)
+        assert calls["n"] == 1
+    finally:
+        release.set()
