@@ -507,23 +507,41 @@ def yahoo_fail_error_also_vs_delta_lead_size(
     lead: str,
     hidden_pct: int | None,
     winner_pct: int | None,
+    *,
+    timeout_fails: int | None = None,
+    inflight_fails: int | None = None,
 ) -> tuple[str, float | None]:
     """How many times the louder mix side owns the quieter one.
 
     ``Δ lead · held`` names the side. It hid a 3× ownership gap versus a
-    near tie. Speaks only after lead already spoke and the quieter share
-    is above zero. Returns ``(Δ lead size · N×, ratio)`` / ``(\"\", None)``.
+    near tie. Rounded percents also hid a 7-to-1 screen mix as ``7.33×``
+    (1 and 7 → 12% and 88%). When both screen counts are known, the ratio
+    uses those counts. Otherwise it uses the percents. Speaks only after
+    lead already spoke and the quieter side is above zero. Returns
+    ``(Δ lead size · N×, ratio)`` / ``(\"\", None)``.
     """
     if not str(lead or "").strip():
         return "", None
-    if hidden_pct is None or winner_pct is None:
-        return "", None
-    try:
-        louder = max(int(hidden_pct), int(winner_pct))
-        quieter = min(int(hidden_pct), int(winner_pct))
-    except (TypeError, ValueError):
-        return "", None
-    if quieter <= 0:
+    louder: int | None = None
+    quieter: int | None = None
+    if timeout_fails is not None and inflight_fails is not None:
+        try:
+            timed = max(0, int(timeout_fails))
+            held = max(0, int(inflight_fails))
+        except (TypeError, ValueError):
+            timed = held = 0
+        if timed > 0 and held > 0:
+            louder = max(timed, held)
+            quieter = min(timed, held)
+    if louder is None:
+        if hidden_pct is None or winner_pct is None:
+            return "", None
+        try:
+            louder = max(int(hidden_pct), int(winner_pct))
+            quieter = min(int(hidden_pct), int(winner_pct))
+        except (TypeError, ValueError):
+            return "", None
+    if quieter is None or quieter <= 0:
         return "", None
     size = round(louder / quieter, 2)
     return f"Δ lead size · {size:g}×", size

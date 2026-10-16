@@ -264,6 +264,13 @@ def test_yahoo_fail_error_also_vs_delta_lead_size_ratio():
     assert yahoo_fail_error_also_vs_delta_lead_size(
         "Δ lead · held", None, 75
     ) == ("", None)
+    # 1 and 7 round to 13% and 88% → 6.77×; counts are 7×.
+    assert yahoo_fail_error_also_vs_delta_lead_size(
+        "Δ lead · held", 13, 88, timeout_fails=1, inflight_fails=7
+    ) == ("Δ lead size · 7×", 7.0)
+    assert yahoo_fail_error_also_vs_delta_lead_size(
+        "Δ lead · held", 13, 88, timeout_fails=0, inflight_fails=0
+    ) == ("Δ lead size · 6.77×", 6.77)
 
 
 def test_yahoo_fail_error_also_vs_delta_lead_size_sides_both_shares():

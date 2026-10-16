@@ -20146,6 +20146,8 @@ def build_universe_discovery_glance(
             fail_error_also_vs_delta_lead,
             fail_error_also_share_pct,
             fail_error_also_vs_pct,
+            timeout_fails=timeout_fails_n,
+            inflight_fails=inflight_fails_n,
         )
     if fail_error_also_vs_delta_lead_size:
         (
@@ -20299,8 +20301,9 @@ def build_universe_discovery_glance(
         # class. Full ``line`` still joins the mix (tests). Counts stay when
         # lean drops the percents (they stay in fields too). Wide/thin Δ
         # appends after lean; a nonzero spread names Δ lead and, when the
-        # quieter share is above zero, how many times louder owns it, then
-        # both named percents (held vs timeout; ratio ≠ the two shares).
+        # quieter share is above zero, how many times louder owns it (raw
+        # screen counts, not rounded percents), then both named percents
+        # (held vs timeout; ratio ≠ the two shares).
         # Mid Δ stays silent (no lean-vs-Δ nest).
         mix_lean = ""
         mix_lean_warn = False

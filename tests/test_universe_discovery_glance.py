@@ -299,6 +299,21 @@ def test_universe_discovery_glance_yahoo_fail_error_also_mix(tmp_path) -> None:
     ) in owned["line"]
     assert owned["line"].endswith("…")
 
+    meta["meta"]["last_yahoo_timeout_fails"] = 1
+    meta["meta"]["last_yahoo_inflight_fails"] = 7
+    (tmp_path / "stock_universe.json").write_text(
+        json.dumps(meta), encoding="utf-8"
+    )
+    counted = build_universe_discovery_glance(tmp_path, now=now)
+    assert counted["yahoo_fail_error_also_share_pct"] == 12
+    assert counted["yahoo_fail_error_also_vs_pct"] == 88
+    assert counted["yahoo_fail_error_also_vs_delta_lead_size"] == (
+        "Δ lead size · 7×"
+    )
+    assert counted["yahoo_fail_error_also_vs_delta_lead_size_x"] == 7.0
+    assert "Δ lead size · 7×" in counted["mix_lean"]
+    assert "6.77×" not in counted["mix_lean"]
+
 
 def test_universe_discovery_glance_yahoo_fail_error_vs_seed_first_fail(
     tmp_path,
