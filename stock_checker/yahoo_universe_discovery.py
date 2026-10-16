@@ -529,6 +529,35 @@ def yahoo_fail_error_also_vs_delta_lead_size(
     return f"Δ lead size · {size:g}×", size
 
 
+def yahoo_fail_error_also_vs_delta_lead_size_sides(
+    size: float | None,
+    hidden_pct: int | None,
+    winner_pct: int | None,
+) -> tuple[str, int | None, int | None]:
+    """Both spend shares once mix Δ lead size already spoke.
+
+    ``Δ lead size · 3×`` hid 75% versus 25%. Speaks only after a positive
+    size and two finite shares. Returns
+    ``(Δ lead size sides · louder N% · quieter M%, louder, quieter)``
+    / ``(\"\", None, None)``.
+    """
+    try:
+        ratio = float(size) if size is not None else 0.0
+    except (TypeError, ValueError):
+        return "", None, None
+    if ratio <= 0 or hidden_pct is None or winner_pct is None:
+        return "", None, None
+    try:
+        louder = max(int(hidden_pct), int(winner_pct))
+        quieter = min(int(hidden_pct), int(winner_pct))
+    except (TypeError, ValueError):
+        return "", None, None
+    if quieter <= 0:
+        return "", None, None
+    bit = f"Δ lead size sides · louder {louder}% · quieter {quieter}%"
+    return bit, louder, quieter
+
+
 def yahoo_fail_error_vs_seed(error: str, seed_freshness: str) -> str:
     """Typed last-error vs reused-seed extremes (xang1234 #639 + portfolio AI).
 

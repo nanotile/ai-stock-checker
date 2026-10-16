@@ -19,6 +19,7 @@ from stock_checker.yahoo_universe_discovery import (
     yahoo_fail_error_also_vs_delta,
     yahoo_fail_error_also_vs_delta_lead,
     yahoo_fail_error_also_vs_delta_lead_size,
+    yahoo_fail_error_also_vs_delta_lead_size_sides,
     yahoo_fail_error_also_vs_lean,
     yahoo_fail_error_also_vs_winner,
     yahoo_fail_error_seed_fail_vs_budget,
@@ -263,6 +264,30 @@ def test_yahoo_fail_error_also_vs_delta_lead_size_ratio():
     assert yahoo_fail_error_also_vs_delta_lead_size(
         "Δ lead · held", None, 75
     ) == ("", None)
+
+
+def test_yahoo_fail_error_also_vs_delta_lead_size_sides_both_shares():
+    """A 3× ratio hid 75% versus 25%."""
+    assert yahoo_fail_error_also_vs_delta_lead_size_sides(3.0, 25, 75) == (
+        "Δ lead size sides · louder 75% · quieter 25%",
+        75,
+        25,
+    )
+    assert yahoo_fail_error_also_vs_delta_lead_size_sides(1.5, 40, 60) == (
+        "Δ lead size sides · louder 60% · quieter 40%",
+        60,
+        40,
+    )
+    assert yahoo_fail_error_also_vs_delta_lead_size_sides(None, 25, 75) == (
+        "",
+        None,
+        None,
+    )
+    assert yahoo_fail_error_also_vs_delta_lead_size_sides(3.0, 0, 100) == (
+        "",
+        None,
+        None,
+    )
 
 
 def test_yahoo_discovery_error_meta_allowlist():
