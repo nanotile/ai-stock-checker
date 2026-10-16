@@ -19935,6 +19935,8 @@ def build_universe_discovery_glance(
         yahoo_discovery_due_from_meta,
         yahoo_fail_retry_remaining_sec,
         yahoo_discovery_error_class,
+        yahoo_discovery_error_sides,
+        yahoo_fail_error_also_bit,
         yahoo_fail_error_seed_fail_vs_budget,
         yahoo_fail_error_seed_vs_fail,
         yahoo_fail_error_vs_budget,
@@ -20041,6 +20043,18 @@ def build_universe_discovery_glance(
     yahoo_failed = yahoo_status == "failed"
     fail_streak = yahoo_fail_streak(uni_meta)
     fail_error = yahoo_discovery_error_class(uni_meta) if yahoo_failed else ""
+    timeout_fails_n, inflight_fails_n = (
+        yahoo_discovery_error_sides(uni_meta) if yahoo_failed else (0, 0)
+    )
+    fail_error_also = (
+        yahoo_fail_error_also_bit(
+            fail_error,
+            timeout_fails=timeout_fails_n,
+            inflight_fails=inflight_fails_n,
+        )
+        if yahoo_failed and fail_error
+        else ""
+    )
     retry_due = yahoo_discovery_due_from_meta(
         uni_meta,
         now=now,
@@ -20177,7 +20191,13 @@ def build_universe_discovery_glance(
     if yahoo_failed:
         tone = "warn"
         # xang1234 #639: last-error class before fraction (why ≠ how many).
-        err_bit = f" · {fail_error}" if fail_error else ""
+        # When timeout↔inflight both failed, speak the side the winner hid.
+        if fail_error and fail_error_also:
+            err_bit = f" · {fail_error} · {fail_error_also}"
+        elif fail_error:
+            err_bit = f" · {fail_error}"
+        else:
+            err_bit = ""
         # First-fail typed death vs seed/fail (before N× can speak streak/*).
         error_vs_seed_bit = (
             f" · error/seed {error_vs_seed}" if error_vs_seed else ""
@@ -20388,6 +20408,9 @@ def build_universe_discovery_glance(
         "last_yahoo_discovery_status": yahoo_status or "unknown",
         "yahoo_failed": yahoo_failed,
         "yahoo_fail_error": fail_error,
+        "yahoo_fail_error_also": fail_error_also,
+        "yahoo_fail_timeout_fails": timeout_fails_n if yahoo_failed else 0,
+        "yahoo_fail_inflight_fails": inflight_fails_n if yahoo_failed else 0,
         "yahoo_fail_error_vs_seed": error_vs_seed,
         "yahoo_fail_error_vs_fail": error_vs_fail,
         "yahoo_fail_error_seed_vs_fail": error_seed_vs_fail,

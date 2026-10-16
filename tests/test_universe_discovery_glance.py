@@ -158,7 +158,52 @@ def test_universe_discovery_glance_yahoo_fail_error_class(tmp_path) -> None:
     )
     held = build_universe_discovery_glance(tmp_path, now=now)
     assert held["yahoo_fail_error"] == "inflight"
+    assert held["yahoo_fail_error_also"] == ""
     assert "Yahoo fail · inflight · 0/3 · 2×" in held["line_core"]
+
+
+def test_universe_discovery_glance_yahoo_fail_error_also_mix(tmp_path) -> None:
+    """timeout↔inflight both failed → glance speaks the hidden spend side."""
+    now = datetime(2026, 9, 11, 10, 0, tzinfo=timezone.utc)
+    last = (now - timedelta(hours=6)).replace(tzinfo=None).isoformat()
+    fail = (now - timedelta(minutes=10)).replace(tzinfo=None).isoformat()
+    (tmp_path / "stock_universe.json").write_text(
+        json.dumps(
+            {
+                "stocks": {"AAPL": {}},
+                "meta": {
+                    "last_yahoo_discovery": last,
+                    "last_yahoo_discovery_status": "failed",
+                    "last_yahoo_discovery_fail": fail,
+                    "last_yahoo_screens_ok": 0,
+                    "last_yahoo_screens_failed": 3,
+                    "last_yahoo_discovery_error": "inflight",
+                    "last_yahoo_timeout_fails": 1,
+                    "last_yahoo_inflight_fails": 2,
+                    "yahoo_discovery_fail_streak": 2,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    g = build_universe_discovery_glance(tmp_path, now=now)
+    assert g["yahoo_fail_error"] == "inflight"
+    assert g["yahoo_fail_error_also"] == "+timeout"
+    assert g["yahoo_fail_timeout_fails"] == 1
+    assert g["yahoo_fail_inflight_fails"] == 2
+    assert "Yahoo fail · inflight · +timeout · 0/3 · 2×" in g["line_core"]
+
+    meta = json.loads((tmp_path / "stock_universe.json").read_text(encoding="utf-8"))
+    meta["meta"]["last_yahoo_discovery_error"] = "timeout"
+    meta["meta"]["last_yahoo_timeout_fails"] = 2
+    meta["meta"]["last_yahoo_inflight_fails"] = 1
+    (tmp_path / "stock_universe.json").write_text(
+        json.dumps(meta), encoding="utf-8"
+    )
+    timed = build_universe_discovery_glance(tmp_path, now=now)
+    assert timed["yahoo_fail_error"] == "timeout"
+    assert timed["yahoo_fail_error_also"] == "+held"
+    assert "Yahoo fail · timeout · +held · 0/3 · 2×" in timed["line_core"]
 
 
 def test_universe_discovery_glance_yahoo_fail_error_vs_seed_first_fail(

@@ -138,6 +138,31 @@ def test_discover_yahoo_movers_inflight_class(tmp_path: Path, monkeypatch):
     )
     assert mgr.discover_yahoo_movers() == 0
     assert mgr.universe["meta"].get("last_yahoo_discovery_error") == "inflight"
+    assert mgr.universe["meta"].get("last_yahoo_inflight_fails") == 3
+    assert mgr.universe["meta"].get("last_yahoo_timeout_fails") == 0
+
+
+def test_discover_yahoo_movers_timeout_inflight_mix_sides(
+    tmp_path: Path, monkeypatch
+):
+    """Persist both spend sides when mix fails (winner alone hid the other)."""
+    mgr = StockUniverseManager(data_dir=str(tmp_path))
+    mgr.universe.setdefault("meta", {})
+    mgr.universe["meta"]["last_yahoo_discovery"] = "2026-09-01T00:00:00"
+    mgr._save_universe()
+
+    def mix_report(*, per_screen: int = 25):
+        return [], 0, 3, 1, 2
+
+    monkeypatch.setattr(
+        "stock_checker.yahoo_universe_discovery.discover_yahoo_mover_report",
+        mix_report,
+    )
+    assert mgr.discover_yahoo_movers() == 0
+    meta = mgr.universe["meta"]
+    assert meta.get("last_yahoo_discovery_error") == "inflight"
+    assert meta.get("last_yahoo_timeout_fails") == 1
+    assert meta.get("last_yahoo_inflight_fails") == 2
 
 
 def test_discover_yahoo_movers_403_does_not_raise(tmp_path: Path, monkeypatch):

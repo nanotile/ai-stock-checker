@@ -13,6 +13,7 @@ from stock_checker.yahoo_universe_discovery import (
     screens_bundle_failed,
     set_yahoo_discovery_error,
     yahoo_discovery_error_class,
+    yahoo_fail_error_also_bit,
     yahoo_fail_error_seed_fail_vs_budget,
     yahoo_fail_error_seed_vs_fail,
     yahoo_fail_error_vs_budget,
@@ -81,6 +82,38 @@ def test_classify_yahoo_discovery_error_bundle_and_exc():
     assert classify_yahoo_discovery_error(RuntimeError("HTTP 403")) == "http"
     assert classify_yahoo_discovery_error(YahooScreenEmptyError("empty")) == "empty"
     assert classify_yahoo_discovery_error(RuntimeError("boom")) == "error"
+
+
+def test_yahoo_fail_error_also_bit_timeout_inflight_mix():
+    """Winning class alone hid the other spend side (xang1234 #639)."""
+    assert (
+        yahoo_fail_error_also_bit(
+            "inflight", timeout_fails=1, inflight_fails=2
+        )
+        == "+timeout"
+    )
+    assert (
+        yahoo_fail_error_also_bit(
+            "timeout", timeout_fails=2, inflight_fails=1
+        )
+        == "+held"
+    )
+    assert (
+        yahoo_fail_error_also_bit(
+            "inflight", timeout_fails=0, inflight_fails=3
+        )
+        == ""
+    )
+    assert (
+        yahoo_fail_error_also_bit(
+            "timeout", timeout_fails=3, inflight_fails=0
+        )
+        == ""
+    )
+    assert (
+        yahoo_fail_error_also_bit("empty", timeout_fails=1, inflight_fails=1)
+        == ""
+    )
 
 
 def test_yahoo_discovery_error_meta_allowlist():

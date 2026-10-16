@@ -382,6 +382,7 @@ class StockUniverseManager:
             screens_bundle_failed,
             screens_bundle_partial,
             set_yahoo_discovery_error,
+            set_yahoo_discovery_error_sides,
             yahoo_fail_retry_remaining_sec,
         )
 
@@ -428,6 +429,8 @@ class StockUniverseManager:
             # xang1234 #639: fail stamp alone hid repeated dead fetches;
             # last-error class names why (inflight/timeout/http/empty/error).
             set_yahoo_discovery_error(meta, classify_yahoo_discovery_error(e))
+            # Exception path has no per-screen mix — clear stale sides.
+            set_yahoo_discovery_error_sides(meta, timeout_fails=0, inflight_fails=0)
             bump_yahoo_fail_streak(meta)
             self.ensure_curated_seed()
             self._save_universe()
@@ -449,6 +452,12 @@ class StockUniverseManager:
                     timeout_fails=timeout_fails,
                     inflight_fails=inflight_fails,
                 ),
+            )
+            # Winning class alone hid the other spend side (timeout↔held).
+            set_yahoo_discovery_error_sides(
+                meta,
+                timeout_fails=timeout_fails,
+                inflight_fails=inflight_fails,
             )
             bump_yahoo_fail_streak(meta)
             self.ensure_curated_seed()

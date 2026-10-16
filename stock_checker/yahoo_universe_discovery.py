@@ -226,9 +226,30 @@ def set_yahoo_discovery_error(meta: dict[str, Any], klass: str) -> str:
     return clean
 
 
+def set_yahoo_discovery_error_sides(
+    meta: dict[str, Any],
+    *,
+    timeout_fails: int = 0,
+    inflight_fails: int = 0,
+) -> None:
+    """Persist timeout/inflight screen counts for glance mix honesty."""
+    try:
+        timed = max(0, int(timeout_fails))
+    except (TypeError, ValueError):
+        timed = 0
+    try:
+        held = max(0, int(inflight_fails))
+    except (TypeError, ValueError):
+        held = 0
+    meta["last_yahoo_timeout_fails"] = timed
+    meta["last_yahoo_inflight_fails"] = held
+
+
 def clear_yahoo_discovery_error(meta: dict[str, Any]) -> None:
     """Drop last-error class after a successful movers snapshot."""
     meta.pop("last_yahoo_discovery_error", None)
+    meta.pop("last_yahoo_timeout_fails", None)
+    meta.pop("last_yahoo_inflight_fails", None)
 
 
 def yahoo_discovery_error_class(meta: Any) -> str:
@@ -238,6 +259,52 @@ def yahoo_discovery_error_class(meta: Any) -> str:
     raw = str(meta.get("last_yahoo_discovery_error") or "").strip().lower()
     if raw in YAHOO_FAIL_ERROR_CLASSES:
         return raw
+    return ""
+
+
+def yahoo_discovery_error_sides(meta: Any) -> tuple[int, int]:
+    """Read persisted timeout/inflight fail counts; junk → ``(0, 0)``."""
+    if not isinstance(meta, dict):
+        return 0, 0
+    try:
+        timed = max(0, int(meta.get("last_yahoo_timeout_fails") or 0))
+    except (TypeError, ValueError):
+        timed = 0
+    try:
+        held = max(0, int(meta.get("last_yahoo_inflight_fails") or 0))
+    except (TypeError, ValueError):
+        held = 0
+    return timed, held
+
+
+def yahoo_fail_error_also_bit(
+    klass: str,
+    *,
+    timeout_fails: int = 0,
+    inflight_fails: int = 0,
+) -> str:
+    """Speak the spend side the winning class hid (xang1234 #639 + portfolio AI).
+
+    ``classify_yahoo_discovery_error`` picks one of ``timeout`` / ``inflight``
+    when both screen sides failed. Bare ``inflight`` hid a fresh hang;
+    bare ``timeout`` hid a refused second spend. Returns ``+timeout`` /
+    ``+held`` / ``\"\"`` (both sides must be >0; other classes stay silent).
+    """
+    k = str(klass or "").strip().lower()
+    try:
+        timed = max(0, int(timeout_fails))
+    except (TypeError, ValueError):
+        timed = 0
+    try:
+        held = max(0, int(inflight_fails))
+    except (TypeError, ValueError):
+        held = 0
+    if timed <= 0 or held <= 0:
+        return ""
+    if k == "inflight":
+        return "+timeout"
+    if k == "timeout":
+        return "+held"
     return ""
 
 
