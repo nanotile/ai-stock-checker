@@ -432,6 +432,23 @@ def yahoo_fail_error_seed_vs_fail(
     return yahoo_fail_streak_seed_vs_fail(error_vs_seed, error_vs_fail)
 
 
+def yahoo_fail_error_seed_fail_vs_budget(
+    error_seed_vs_fail: str,
+    error_vs_budget: str,
+) -> tuple[str, bool]:
+    """Error seed/fail vs error/budget on the first fail (display only).
+
+    Same bit grammar as ``yahoo_fail_streak_seed_fail_vs_budget``.
+    Side-by-side ``error seed/fail`` + ``error/budget`` alone hid whether
+    typed-death relationships agree with fetch-budget hold before N×≥2
+    (including dual-clash under retry-due). Callers omit this when streak
+    sf/budget already owns the lean. Not a gate.
+    """
+    return yahoo_fail_streak_seed_fail_vs_budget(
+        error_seed_vs_fail, error_vs_budget
+    )
+
+
 def yahoo_fail_streak_seed_fail_vs_budget(
     seed_vs_fail: str,
     streak_vs_budget: str,

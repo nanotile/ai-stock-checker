@@ -138,6 +138,7 @@ def test_universe_discovery_glance_yahoo_fail_error_class(tmp_path) -> None:
     assert g["yahoo_fail_error_vs_fail"] == ""
     assert g["yahoo_fail_error_seed_vs_fail"] == ""
     assert g["yahoo_fail_error_vs_budget"] == ""
+    assert g["yahoo_fail_error_seed_fail_vs_budget"] == ""
     assert "error/seed" not in g["line_core"]
     assert "error/fail" not in g["line_core"]
     assert "error seed/fail" not in g["line_core"]
@@ -187,13 +188,18 @@ def test_universe_discovery_glance_yahoo_fail_error_vs_seed_first_fail(
     assert g["yahoo_fail_error_seed_vs_fail_warn"] is True
     # Fail 10m ago → still inside 1h backoff → first-fail budget held.
     assert g["yahoo_fail_error_vs_budget"] == "clash · held · not spent"
+    # seed/fail clash + budget clash → error sf/budget align · both clash.
+    assert g["yahoo_fail_error_seed_fail_vs_budget"] == "align · both clash"
+    assert g["yahoo_fail_error_seed_fail_vs_budget_warn"] is True
     assert (
         "Yahoo fail · timeout · error/seed clash · fresh · "
-        "error/budget clash · held · not spent · 0/3"
+        "error sf/budget align · both clash · 0/3"
     ) in g["line_core"]
-    # seed/fail stays in fields; budget owns the 160-char clip.
+    # seed/fail + budget stay in fields; relationship owns the clip.
     assert "error seed/fail" not in g["line_core"]
     assert "error seed/fail" not in g["line"]
+    assert "error/budget" not in g["line_core"]
+    assert "error/budget" not in g["line"]
     assert "error/fail" not in g["line_core"]
     assert "1×" not in g["line_core"]
     assert "streak/seed" not in g["line"]
@@ -211,9 +217,16 @@ def test_universe_discovery_glance_yahoo_fail_error_vs_seed_first_fail(
     assert stale["yahoo_fail_error_seed_vs_fail"] == "align · both align"
     assert stale["yahoo_fail_error_seed_vs_fail_warn"] is False
     assert stale["yahoo_fail_error_vs_budget"] == "clash · held · not spent"
+    assert stale["yahoo_fail_error_seed_fail_vs_budget"] == (
+        "clash · seed/fail align · budget clash"
+    )
+    assert stale["yahoo_fail_error_seed_fail_vs_budget_warn"] is True
     assert "error/seed align · stale" in stale["line_core"]
-    assert "error/budget clash · held · not spent" in stale["line_core"]
+    assert "error sf/budget clash · seed/fail align · budget clash" in stale[
+        "line_core"
+    ]
     assert "error seed/fail" not in stale["line_core"]
+    assert "error/budget" not in stale["line_core"]
     assert "error/fail" not in stale["line_core"]
     # Stale fail stamp clashes (typed death without a live death clock).
     fail_stale = (now - timedelta(hours=50)).replace(tzinfo=None).isoformat()
@@ -230,9 +243,28 @@ def test_universe_discovery_glance_yahoo_fail_error_vs_seed_first_fail(
     assert fail_stale_g["yahoo_fail_error_seed_vs_fail_warn"] is True
     # Fail 50h ago → backoff elapsed → first-fail budget about to spend.
     assert fail_stale_g["yahoo_fail_error_vs_budget"] == "align · due"
-    assert "error/budget align · due" in fail_stale_g["line_core"]
-    assert "error seed/fail" not in fail_stale_g["line_core"]
+    assert fail_stale_g["yahoo_fail_error_seed_fail_vs_budget"] == (
+        "clash · seed/fail clash · budget align"
+    )
+    assert fail_stale_g["yahoo_fail_error_seed_fail_vs_budget_warn"] is True
+    assert "error sf/budget clash · seed/fail clash · budget align" in fail_stale_g[
+        "line_core"
+    ]
+    assert "error/budget" not in fail_stale_g["line_core"]
     assert "error/fail" not in fail_stale_g["line_core"]
+    # Fresh seed + stale fail → both clash under retry-due (about to spend).
+    meta = json.loads((tmp_path / "stock_universe.json").read_text(encoding="utf-8"))
+    meta["meta"]["last_yahoo_discovery"] = last
+    (tmp_path / "stock_universe.json").write_text(
+        json.dumps(meta), encoding="utf-8"
+    )
+    due_clash = build_universe_discovery_glance(tmp_path, now=now)
+    assert due_clash["yahoo_fail_error_seed_vs_fail"] == "align · both clash"
+    assert due_clash["yahoo_fail_error_vs_budget"] == "align · due"
+    assert due_clash["yahoo_fail_error_seed_fail_vs_budget"] == "align · both align"
+    assert due_clash["yahoo_fail_error_seed_fail_vs_budget_warn"] is True
+    assert "error sf/budget align · both align" in due_clash["line_core"]
+    assert "retry due" in due_clash["line_core"]
 
 
 def test_universe_discovery_glance_yahoo_fail_streak_speaks(tmp_path) -> None:

@@ -13,6 +13,7 @@ from stock_checker.yahoo_universe_discovery import (
     screens_bundle_failed,
     set_yahoo_discovery_error,
     yahoo_discovery_error_class,
+    yahoo_fail_error_seed_fail_vs_budget,
     yahoo_fail_error_seed_vs_fail,
     yahoo_fail_error_vs_budget,
     yahoo_fail_error_vs_fail,
@@ -138,6 +139,25 @@ def test_yahoo_fail_streak_vs_fail_extremes():
     assert yahoo_fail_streak_vs_fail(3, "aging") == ""
     assert yahoo_fail_streak_vs_fail(3, "never") == ""
     assert yahoo_fail_streak_vs_fail("nope", "fresh") == ""
+
+
+def test_yahoo_fail_error_seed_fail_vs_budget_extremes():
+    """error sf/budget reuses streak helper (same verb + both-clash-due warn)."""
+    bit, warn = yahoo_fail_error_seed_fail_vs_budget(
+        "align · both clash", "align · due"
+    )
+    assert bit == "align · both align"
+    assert warn is True
+    bit, warn = yahoo_fail_error_seed_fail_vs_budget(
+        "clash · seed clash · fail align", "clash · held · not spent"
+    )
+    assert bit == "align · both clash"
+    assert warn is True
+    assert yahoo_fail_error_seed_fail_vs_budget("", "align · due") == ("", False)
+    assert yahoo_fail_error_seed_fail_vs_budget("align · both align", "") == (
+        "",
+        False,
+    )
 
 
 def test_yahoo_fail_error_vs_budget_extremes():
