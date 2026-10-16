@@ -15,6 +15,7 @@ from stock_checker.yahoo_universe_discovery import (
     yahoo_discovery_error_class,
     yahoo_fail_error_also_bit,
     yahoo_fail_error_also_share,
+    yahoo_fail_error_also_vs_delta,
     yahoo_fail_error_also_vs_lean,
     yahoo_fail_error_also_vs_winner,
     yahoo_fail_error_seed_fail_vs_budget,
@@ -181,6 +182,23 @@ def test_yahoo_fail_error_also_vs_lean_extremes():
         "clash · hidden quiet · winner ok",
         False,
     )
+
+
+def test_yahoo_fail_error_also_vs_delta_spread():
+    """Lean labels hid a wide quiet|strong gap and a 50/50 that sits together."""
+    assert yahoo_fail_error_also_vs_delta(25, 75) == (
+        "Δ wide · -50pp",
+        -50,
+        "wide",
+    )
+    assert yahoo_fail_error_also_vs_delta(50, 50) == ("Δ thin · 0pp", 0, "thin")
+    assert yahoo_fail_error_also_vs_delta(60, 40) == (
+        "Δ wide · +20pp",
+        20,
+        "wide",
+    )
+    assert yahoo_fail_error_also_vs_delta(55, 45) == ("", None, "")
+    assert yahoo_fail_error_also_vs_delta(None, 75) == ("", None, "")
 
 
 def test_yahoo_discovery_error_meta_allowlist():

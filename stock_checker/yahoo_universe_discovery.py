@@ -151,6 +151,9 @@ YAHOO_FAIL_ALSO_SHARE_HOT = 50
 YAHOO_FAIL_ALSO_SHARE_QUIET = 25
 # Named class owns the mix when its share of timeout+inflight is this high.
 YAHOO_FAIL_ALSO_WINNER_STRONG = 75
+# Hidden% − winner% after mix lean spoke (labels ≠ how far the shares sit).
+YAHOO_FAIL_ALSO_DELTA_WIDE_PP = 20
+YAHOO_FAIL_ALSO_DELTA_THIN_PP = 10
 
 
 def classify_yahoo_discovery_error(
@@ -411,6 +414,33 @@ def yahoo_fail_error_also_vs_lean(
         return "align · quiet|strong", False
     warn = hidden == "hot"
     return f"clash · hidden {hidden} · winner {winner}", warn
+
+
+def yahoo_fail_error_also_vs_delta(
+    hidden_pct: int | None,
+    winner_pct: int | None,
+) -> tuple[str, int | None, str]:
+    """Hidden% − winner% once mix lean already spoke (xang1234 + portfolio AI).
+
+    ``align · quiet|strong`` / ``clash · hidden hot`` hid whether the spend
+    shares sit on top of each other or a wide gap. ``wide`` ≥20pp · ``thin``
+    <10pp. Mid stays silent (no lean-vs-Δ nest). Returns ``(bit, pp, severity)``.
+    """
+    if hidden_pct is None or winner_pct is None:
+        return "", None, ""
+    try:
+        delta = int(hidden_pct) - int(winner_pct)
+    except (TypeError, ValueError):
+        return "", None, ""
+    abs_delta = abs(delta)
+    if abs_delta >= YAHOO_FAIL_ALSO_DELTA_WIDE_PP:
+        severity = "wide"
+    elif abs_delta < YAHOO_FAIL_ALSO_DELTA_THIN_PP:
+        severity = "thin"
+    else:
+        return "", None, ""
+    sign = f"+{delta}" if delta > 0 else str(delta)
+    return f"Δ {severity} · {sign}pp", delta, severity
 
 
 def yahoo_fail_error_vs_seed(error: str, seed_freshness: str) -> str:
