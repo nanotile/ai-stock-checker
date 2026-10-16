@@ -622,6 +622,41 @@ def yahoo_fail_error_also_vs_delta_lead_size_sides(
     return bit, louder, quieter
 
 
+def yahoo_fail_error_also_vs_delta_lead_size_sides_delta(
+    sides: str,
+    louder: int | None,
+    quieter: int | None,
+) -> tuple[str, int | None, str]:
+    """Additive screen gap once mix Δ lead size sides named counts.
+
+    ``Δ wide · -20pp`` is hidden%−winner% on rounded shares. A 3-vs-2 mix
+    is one extra hung screen and still reads wide. ``held 3 · timeout 2``
+    plus ``1.5×`` does not say that. Speak only after count sides (no
+    ``%`` — percent sides already have the pp Δ). One extra screen is
+    ``thin``; two or more is ``wide``. Returns
+    ``(Δ lead size sides Δ wide|thin · N screens, gap, severity)``
+    / ``(\"\", None, \"\")``.
+    """
+    text = str(sides or "")
+    if not text.strip() or "%" in text:
+        return "", None, ""
+    if louder is None or quieter is None:
+        return "", None, ""
+    try:
+        gap = int(louder) - int(quieter)
+    except (TypeError, ValueError):
+        return "", None, ""
+    if gap <= 0:
+        return "", None, ""
+    severity = "thin" if gap == 1 else "wide"
+    unit = "screen" if gap == 1 else "screens"
+    return (
+        f"Δ lead size sides Δ {severity} · {gap} {unit}",
+        gap,
+        severity,
+    )
+
+
 def yahoo_fail_error_vs_seed(error: str, seed_freshness: str) -> str:
     """Typed last-error vs reused-seed extremes (xang1234 #639 + portfolio AI).
 

@@ -287,12 +287,21 @@ def test_universe_discovery_glance_yahoo_fail_error_also_mix(tmp_path) -> None:
     assert owned["yahoo_fail_error_also_vs_delta_lead_size_quieter_pct"] is None
     assert owned["yahoo_fail_error_also_vs_delta_lead_size_louder_n"] == 3
     assert owned["yahoo_fail_error_also_vs_delta_lead_size_quieter_n"] == 1
+    assert owned["yahoo_fail_error_also_vs_delta_lead_size_sides_delta"] == (
+        "Δ lead size sides Δ wide · 2 screens"
+    )
+    assert owned["yahoo_fail_error_also_vs_delta_lead_size_sides_delta_n"] == 2
+    assert (
+        owned["yahoo_fail_error_also_vs_delta_lead_size_sides_delta_severity"]
+        == "wide"
+    )
     assert "+timeout" not in owned["line_core"]
     assert owned["yahoo_fail_error_also_counts"] == "1 timeout · 3 held"
     assert owned["mix_lean"] == (
         "+timeout · 1 timeout · 3 held · align · quiet|strong · Δ wide · -50pp"
         " · Δ lead · held · Δ lead size · 3×"
         " · Δ lead size sides · held 3 · timeout 1"
+        " · Δ lead size sides Δ wide · 2 screens"
     )
     assert owned["mix_lean_warn"] is False
     assert (
@@ -320,6 +329,11 @@ def test_universe_discovery_glance_yahoo_fail_error_also_mix(tmp_path) -> None:
     )
     assert "88%" not in counted["mix_lean"]
     assert "12%" not in counted["mix_lean"]
+    assert counted["yahoo_fail_error_also_vs_delta_lead_size_sides_delta"] == (
+        "Δ lead size sides Δ wide · 6 screens"
+    )
+    assert "Δ lead size sides Δ wide · 6 screens" in counted["mix_lean"]
+    assert half["yahoo_fail_error_also_vs_delta_lead_size_sides_delta"] == ""
 
 
 def test_universe_discovery_glance_yahoo_fail_error_vs_seed_first_fail(

@@ -19928,8 +19928,9 @@ def build_universe_discovery_glance(
     timeout↔inflight mix (hidden side · absolute counts · share or lean ·
     Δ when the spread is wide or thin · Δ lead when ±pp ≠ 0 · Δ lead size
     when the quieter share is above zero · Δ lead size sides names held
-    and timeout with both percents) sits in ``mix_lean``; ``line_core``
-    keeps the winning class.
+    and timeout in counts or percents · count sides also speak the
+    additive screen gap so a 1-screen mix is not read as a wide pp band)
+    sits in ``mix_lean``; ``line_core`` keeps the winning class.
     Counts stay when lean drops the percents. Warn opens that fold too.
     Mid Δ stays silent.
     Buys still need regime/RS/breadth/fees. Not a new gate.
@@ -19950,6 +19951,7 @@ def build_universe_discovery_glance(
         yahoo_fail_error_also_vs_delta_lead,
         yahoo_fail_error_also_vs_delta_lead_size,
         yahoo_fail_error_also_vs_delta_lead_size_sides,
+        yahoo_fail_error_also_vs_delta_lead_size_sides_delta,
         yahoo_fail_error_also_vs_lean,
         yahoo_fail_error_also_vs_winner,
         yahoo_fail_error_seed_fail_vs_budget,
@@ -20132,6 +20134,9 @@ def build_universe_discovery_glance(
     fail_error_also_vs_delta_lead_size_sides = ""
     fail_error_also_vs_delta_lead_size_louder: int | None = None
     fail_error_also_vs_delta_lead_size_quieter: int | None = None
+    fail_error_also_vs_delta_lead_size_sides_delta = ""
+    fail_error_also_vs_delta_lead_size_sides_delta_n: int | None = None
+    fail_error_also_vs_delta_lead_size_sides_delta_severity = ""
     if fail_error_also_vs_delta:
         fail_error_also_vs_delta_lead = yahoo_fail_error_also_vs_delta_lead(
             fail_error,
@@ -20161,6 +20166,16 @@ def build_universe_discovery_glance(
             fail_error_also_vs_pct,
             timeout_fails=timeout_fails_n,
             inflight_fails=inflight_fails_n,
+        )
+    if fail_error_also_vs_delta_lead_size_sides:
+        (
+            fail_error_also_vs_delta_lead_size_sides_delta,
+            fail_error_also_vs_delta_lead_size_sides_delta_n,
+            fail_error_also_vs_delta_lead_size_sides_delta_severity,
+        ) = yahoo_fail_error_also_vs_delta_lead_size_sides_delta(
+            fail_error_also_vs_delta_lead_size_sides,
+            fail_error_also_vs_delta_lead_size_louder,
+            fail_error_also_vs_delta_lead_size_quieter,
         )
     retry_due = yahoo_discovery_due_from_meta(
         uni_meta,
@@ -20306,8 +20321,11 @@ def build_universe_discovery_glance(
         # quieter share is above zero, how many times louder owns it (raw
         # screen counts, not rounded percents), then both named sides in
         # the same units (counts when both screens are known; percents
-        # otherwise — 7× must not sit beside 88% / 12%).
-        # Mid Δ stays silent (no lean-vs-Δ nest).
+        # otherwise — 7× must not sit beside 88% / 12%). Count sides also
+        # speak the additive screen gap (1 screen thin · ≥2 wide) so a
+        # rounded pp band does not overstate one extra hung screen.
+        # Percent sides stay silent here. Mid pp Δ stays silent (no
+        # lean-vs-Δ nest).
         mix_lean = ""
         mix_lean_warn = False
         if fail_error and fail_error_also:
@@ -20338,6 +20356,11 @@ def build_universe_discovery_glance(
                     if fail_error_also_vs_delta_lead_size_sides
                     else ""
                 )
+                sides_delta = (
+                    f" · {fail_error_also_vs_delta_lead_size_sides_delta}"
+                    if fail_error_also_vs_delta_lead_size_sides_delta
+                    else ""
+                )
             else:
                 share = (
                     f" · {fail_error_also_share}" if fail_error_also_share else ""
@@ -20348,9 +20371,10 @@ def build_universe_discovery_glance(
                 lead = ""
                 size = ""
                 sides = ""
+                sides_delta = ""
             mix_body = (
                 f"{fail_error_also}{counts}{share}{vs}{lean}"
-                f"{delta}{lead}{size}{sides}"
+                f"{delta}{lead}{size}{sides}{sides_delta}"
             )
             mix_lean = mix_body.strip(" ·")
             mix_lean_warn = bool(fail_error_also_vs_lean_warn)
@@ -20615,6 +20639,15 @@ def build_universe_discovery_glance(
         ),
         "yahoo_fail_error_also_vs_delta_lead_size_quieter_n": (
             None if sides_are_pct else fail_error_also_vs_delta_lead_size_quieter
+        ),
+        "yahoo_fail_error_also_vs_delta_lead_size_sides_delta": (
+            fail_error_also_vs_delta_lead_size_sides_delta
+        ),
+        "yahoo_fail_error_also_vs_delta_lead_size_sides_delta_n": (
+            fail_error_also_vs_delta_lead_size_sides_delta_n
+        ),
+        "yahoo_fail_error_also_vs_delta_lead_size_sides_delta_severity": (
+            fail_error_also_vs_delta_lead_size_sides_delta_severity
         ),
         "yahoo_fail_timeout_fails": timeout_fails_n if yahoo_failed else 0,
         "yahoo_fail_inflight_fails": inflight_fails_n if yahoo_failed else 0,

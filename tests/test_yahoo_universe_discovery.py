@@ -20,6 +20,7 @@ from stock_checker.yahoo_universe_discovery import (
     yahoo_fail_error_also_vs_delta_lead,
     yahoo_fail_error_also_vs_delta_lead_size,
     yahoo_fail_error_also_vs_delta_lead_size_sides,
+    yahoo_fail_error_also_vs_delta_lead_size_sides_delta,
     yahoo_fail_error_also_vs_lean,
     yahoo_fail_error_also_vs_winner,
     yahoo_fail_error_seed_fail_vs_budget,
@@ -333,6 +334,32 @@ def test_yahoo_fail_error_also_vs_delta_lead_size_sides_both_shares():
         "",
         None,
         None,
+    )
+
+
+def test_yahoo_fail_error_also_vs_delta_lead_size_sides_delta_count_gap():
+    """Rounded pp width hid a one-screen gap; percent sides stay silent."""
+    assert yahoo_fail_error_also_vs_delta_lead_size_sides_delta(
+        "Δ lead size sides · held 3 · timeout 2", 3, 2
+    ) == (
+        "Δ lead size sides Δ thin · 1 screen",
+        1,
+        "thin",
+    )
+    assert yahoo_fail_error_also_vs_delta_lead_size_sides_delta(
+        "Δ lead size sides · held 7 · timeout 1", 7, 1
+    ) == (
+        "Δ lead size sides Δ wide · 6 screens",
+        6,
+        "wide",
+    )
+    assert yahoo_fail_error_also_vs_delta_lead_size_sides_delta(
+        "Δ lead size sides · held 75% · timeout 25%", 75, 25
+    ) == ("", None, "")
+    assert yahoo_fail_error_also_vs_delta_lead_size_sides_delta("", 7, 1) == (
+        "",
+        None,
+        "",
     )
 
 
