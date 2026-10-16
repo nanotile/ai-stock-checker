@@ -2665,7 +2665,7 @@
     link.textContent = "Screener →";
     line.appendChild(link);
     wrap.appendChild(line);
-    function appendLean(label, text, warn, foldClass, bodyClass) {
+    function appendLean(label, text, warn, foldClass, bodyClass, metaLabel) {
       if (!text) return;
       var details = document.createElement("details");
       details.className = foldClass + (warn ? " warn" : "");
@@ -2674,7 +2674,7 @@
       summary.appendChild(document.createTextNode(label + " "));
       var meta = document.createElement("span");
       meta.className = "meta";
-      meta.textContent = "cascade";
+      meta.textContent = metaLabel || "cascade";
       summary.appendChild(meta);
       details.appendChild(summary);
       var leanBody = document.createElement("p");
@@ -2683,6 +2683,14 @@
       details.appendChild(leanBody);
       wrap.appendChild(details);
     }
+    appendLean(
+      "mix lean",
+      glance.mix_lean ? String(glance.mix_lean) : "",
+      !!glance.mix_lean_warn,
+      "universe-mix-lean",
+      "universe-mix-lean-body",
+      "timeout · held"
+    );
     appendLean(
       "error lean",
       glance.error_lean ? String(glance.error_lean) : "",
@@ -2700,7 +2708,7 @@
     var sub = document.createElement("p");
     sub.className = "sub";
     sub.textContent =
-      "Universe discovery beside charts — Yahoo movers cache age vs 24h; empty/blocked Yahoo reuses seed, names fail age, and retries next scan; error lean and streak lean fold under the primary line; not auto-buy.";
+      "Universe discovery beside charts — Yahoo movers cache age vs 24h; empty/blocked Yahoo reuses seed, names fail age, and retries next scan; mix lean, error lean, and streak lean fold under the primary line; not auto-buy.";
     wrap.appendChild(sub);
     appendGlance(wrap);
   }

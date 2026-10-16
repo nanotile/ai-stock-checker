@@ -653,6 +653,21 @@ def test_from_buy_short_crypto_uses_intraday_cache(tmp_path: Path, monkeypatch):
     assert len(btc["points"]) > 5
 
 
+def test_charts_js_universe_mix_lean_fold() -> None:
+    """Charts must fold timeout↔inflight mix the same way the desk template does."""
+    src = (
+        Path(__file__).resolve().parents[1] / "openbb_backend" / "static" / "charts.js"
+    ).read_text()
+    assert "glance.mix_lean" in src
+    assert "glance.mix_lean_warn" in src
+    assert '"universe-mix-lean"' in src
+    assert '"universe-mix-lean-body"' in src
+    mix_at = src.find('"universe-mix-lean"')
+    error_at = src.find('"universe-error-lean"')
+    streak_at = src.find('"universe-streak-lean"')
+    assert 0 < mix_at < error_at < streak_at
+
+
 def test_charts_js_escapes_tip_free_text() -> None:
     """tradermonty #440 — tip.innerHTML must escape symbol/name/label."""
     src = (Path(__file__).resolve().parents[1] / "openbb_backend" / "static" / "charts.js").read_text()
