@@ -14,6 +14,7 @@ from stock_checker.yahoo_universe_discovery import (
     set_yahoo_discovery_error,
     yahoo_discovery_error_class,
     yahoo_fail_error_seed_vs_fail,
+    yahoo_fail_error_vs_budget,
     yahoo_fail_error_vs_fail,
     yahoo_fail_error_vs_seed,
     yahoo_fail_streak,
@@ -137,6 +138,26 @@ def test_yahoo_fail_streak_vs_fail_extremes():
     assert yahoo_fail_streak_vs_fail(3, "aging") == ""
     assert yahoo_fail_streak_vs_fail(3, "never") == ""
     assert yahoo_fail_streak_vs_fail("nope", "fresh") == ""
+
+
+def test_yahoo_fail_error_vs_budget_extremes():
+    """First-fail typed death vs fetch budget (streak/budget stays silent)."""
+    held = dict(retry_due=False, retry_remain_sec=1800)
+    due = dict(retry_due=True, retry_remain_sec=0)
+    assert yahoo_fail_error_vs_budget("timeout", **held) == (
+        "clash · held · not spent"
+    )
+    assert yahoo_fail_error_vs_budget("empty", **due) == "align · due"
+    assert yahoo_fail_error_vs_budget("", **held) == ""
+    assert yahoo_fail_error_vs_budget("DROP TABLE;", **due) == ""
+    assert (
+        yahoo_fail_error_vs_budget("http", retry_due=False, retry_remain_sec=None)
+        == ""
+    )
+    assert (
+        yahoo_fail_error_vs_budget("error", retry_due=False, retry_remain_sec=0)
+        == ""
+    )
 
 
 def test_yahoo_fail_streak_vs_budget_extremes():

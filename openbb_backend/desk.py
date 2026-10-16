@@ -19893,6 +19893,14 @@ def build_universe_discovery_glance(
     error/seed; mid aging silent; sits after error/seed · before fraction).
     When streak/fail already spoke, omit error/fail (same polarity; N× owns
     the lean).
+    When last-error class already spoke, also speak error vs fetch-budget
+    ``error/budget clash · held · not spent`` / ``align · due`` on the first
+    fail (xang1234 #640/#642 — typed death alone hid whether backoff is
+    holding unused Yahoo capacity before N×/streak/budget can speak; sits
+    after error seed/fail · before fraction). When streak/budget already
+    spoke, omit error/budget (N× owns the spend bit). When error/budget
+    spoke, drop error seed/fail from the line (stays in fields) so the
+    160-char clip keeps held|due beside the screen fraction.
     When N× already spoke, also speak streak vs seed extremes
     ``streak/seed clash · fresh`` / ``align · stale`` (portfolio AI
     speak-both-sides after N× alone hid a still-fresh reused list beside
@@ -19920,6 +19928,7 @@ def build_universe_discovery_glance(
         yahoo_fail_retry_remaining_sec,
         yahoo_discovery_error_class,
         yahoo_fail_error_seed_vs_fail,
+        yahoo_fail_error_vs_budget,
         yahoo_fail_error_vs_fail,
         yahoo_fail_error_vs_seed,
         yahoo_fail_streak,
@@ -20113,6 +20122,16 @@ def build_universe_discovery_glance(
         if yahoo_failed
         else ("", False)
     )
+    # xang1234 #640: first-fail class alone hid held vs due before N×.
+    error_vs_budget = (
+        yahoo_fail_error_vs_budget(
+            fail_error,
+            retry_due=retry_due,
+            retry_remain_sec=retry_remain_sec,
+        )
+        if yahoo_failed and fail_error
+        else ""
+    )
     # xang1234 #640: N× alone hid whether backoff holds unused fetch budget.
     streak_vs_budget = (
         yahoo_fail_streak_vs_budget(
@@ -20123,6 +20142,9 @@ def build_universe_discovery_glance(
         if yahoo_failed
         else ""
     )
+    # Same spend grammar — omit error/budget when N× already owns it.
+    if streak_vs_budget:
+        error_vs_budget = ""
     # portfolio AI: streak/seed ≠ streak/fail — speak when both relationships agree.
     streak_seed_vs_fail, streak_seed_vs_fail_warn = (
         yahoo_fail_streak_seed_vs_fail(streak_vs_seed, streak_vs_fail)
@@ -20154,6 +20176,13 @@ def build_universe_discovery_glance(
         if error_seed_vs_fail:
             error_vs_fail_bit = ""
             error_seed_vs_fail_bit = f" · error seed/fail {error_seed_vs_fail}"
+        error_vs_budget_bit = (
+            f" · error/budget {error_vs_budget}" if error_vs_budget else ""
+        )
+        # When error/budget spoke, drop error seed/fail from the line (stays
+        # in fields) so the 160-char clip keeps held|due beside the fraction.
+        if error_vs_budget:
+            error_seed_vs_fail_bit = ""
         frac = f" · {screens_bit}" if screens_bit else ""
         # xang1234 #639: repeated fails ≥2 speak N× (first fail silent).
         streak_bit = f" · {fail_streak}×" if fail_streak >= 2 else ""
@@ -20252,7 +20281,7 @@ def build_universe_discovery_glance(
         full_core = (
             f"US+DE · Yahoo ≤{per} · "
             f"Yahoo fail{err_bit}{error_vs_seed_bit}{error_vs_fail_bit}"
-            f"{error_seed_vs_fail_bit}"
+            f"{error_seed_vs_fail_bit}{error_vs_budget_bit}"
             f"{frac}{streak_bit}"
             f"{streak_vs_seed_bit}"
             f"{streak_vs_fail_bit}{streak_seed_vs_fail_bit}"
@@ -20260,11 +20289,11 @@ def build_universe_discovery_glance(
             f"{retry} · {seed_bit}{fail_bit}"
         )
         # Desk primary: omit streak lean so retry / ages survive the eye.
-        # Keep error/seed + error seed/fail (or error/fail) on core.
+        # Keep error/seed + error/budget (seed/fail stays in fields).
         line_core = (
             f"US+DE · Yahoo ≤{per} · "
             f"Yahoo fail{err_bit}{error_vs_seed_bit}{error_vs_fail_bit}"
-            f"{error_seed_vs_fail_bit}"
+            f"{error_seed_vs_fail_bit}{error_vs_budget_bit}"
             f"{frac}{streak_bit}"
             f"{retry} · {seed_bit}{fail_bit}"
         )
@@ -20322,6 +20351,7 @@ def build_universe_discovery_glance(
         "yahoo_fail_error_vs_fail": error_vs_fail,
         "yahoo_fail_error_seed_vs_fail": error_seed_vs_fail,
         "yahoo_fail_error_seed_vs_fail_warn": bool(error_seed_vs_fail_warn),
+        "yahoo_fail_error_vs_budget": error_vs_budget,
         "yahoo_fail_streak": fail_streak,
         "yahoo_fail_streak_vs_seed": streak_vs_seed,
         "yahoo_fail_streak_vs_fail": streak_vs_fail,

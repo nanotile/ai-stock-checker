@@ -309,6 +309,30 @@ def yahoo_fail_streak_vs_fail(streak: int, fail_freshness: str) -> str:
     return ""
 
 
+def _yahoo_fail_budget_spend_bit(
+    *,
+    retry_due: bool,
+    retry_remain_sec: int | None,
+) -> str:
+    """Fetch-budget hold vs about-to-spend (xang1234 #640/#642).
+
+    Cooling (remain > 0) is unused capacity: ``clash · held · not spent``.
+    Retry due aligns: ``align · due``. Missing remain while not due stays
+    silent. Shared by streak (N×≥2) and first-fail typed error.
+    """
+    if retry_due:
+        return "align · due"
+    try:
+        remain = int(retry_remain_sec) if retry_remain_sec is not None else None
+    except (TypeError, ValueError):
+        return ""
+    if remain is not None and remain > 0:
+        # xang1234 #642: cooling = reservation not dispatched — speak not spent
+        # so held backoff ≠ a live fetch that already burned budget.
+        return "clash · held · not spent"
+    return ""
+
+
 def yahoo_fail_streak_vs_budget(
     streak: int,
     *,
@@ -330,17 +354,33 @@ def yahoo_fail_streak_vs_budget(
         return ""
     if n < 2:
         return ""
-    if retry_due:
-        return "align · due"
-    try:
-        remain = int(retry_remain_sec) if retry_remain_sec is not None else None
-    except (TypeError, ValueError):
+    return _yahoo_fail_budget_spend_bit(
+        retry_due=retry_due,
+        retry_remain_sec=retry_remain_sec,
+    )
+
+
+def yahoo_fail_error_vs_budget(
+    error: str,
+    *,
+    retry_due: bool,
+    retry_remain_sec: int | None,
+) -> str:
+    """Typed last-error vs fetch-budget on the first fail (xang1234 #640).
+
+    Allowlisted class alone hid whether the first fail is holding unused
+    Yahoo capacity or about to spend. Same grammar as
+    ``yahoo_fail_streak_vs_budget``. Callers omit this when N× already owns
+    streak/budget. Missing class / missing remain while not due stay silent.
+    Returns ``clash · held · not spent`` / ``align · due`` / ``""``.
+    """
+    klass = str(error or "").strip().lower()
+    if klass not in YAHOO_FAIL_ERROR_CLASSES:
         return ""
-    if remain is not None and remain > 0:
-        # xang1234 #642: cooling = reservation not dispatched — speak not spent
-        # so held backoff ≠ a live fetch that already burned budget.
-        return "clash · held · not spent"
-    return ""
+    return _yahoo_fail_budget_spend_bit(
+        retry_due=retry_due,
+        retry_remain_sec=retry_remain_sec,
+    )
 
 
 def yahoo_fail_streak_seed_vs_fail(
