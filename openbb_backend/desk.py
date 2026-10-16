@@ -20159,6 +20159,8 @@ def build_universe_discovery_glance(
             fail_error,
             fail_error_also_share_pct,
             fail_error_also_vs_pct,
+            timeout_fails=timeout_fails_n,
+            inflight_fails=inflight_fails_n,
         )
     retry_due = yahoo_discovery_due_from_meta(
         uni_meta,
@@ -20302,8 +20304,9 @@ def build_universe_discovery_glance(
         # lean drops the percents (they stay in fields too). Wide/thin Δ
         # appends after lean; a nonzero spread names Δ lead and, when the
         # quieter share is above zero, how many times louder owns it (raw
-        # screen counts, not rounded percents), then both named percents
-        # (held vs timeout; ratio ≠ the two shares).
+        # screen counts, not rounded percents), then both named sides in
+        # the same units (counts when both screens are known; percents
+        # otherwise — 7× must not sit beside 88% / 12%).
         # Mid Δ stays silent (no lean-vs-Δ nest).
         mix_lean = ""
         mix_lean_warn = False
@@ -20552,6 +20555,7 @@ def build_universe_discovery_glance(
         fail_error_also_vs_delta_lead_size_sides = ""
         fail_error_also_vs_delta_lead_size_louder = None
         fail_error_also_vs_delta_lead_size_quieter = None
+    sides_are_pct = "%" in fail_error_also_vs_delta_lead_size_sides
     return {
         "ready": True,
         "tone": tone,
@@ -20601,10 +20605,16 @@ def build_universe_discovery_glance(
             fail_error_also_vs_delta_lead_size_sides
         ),
         "yahoo_fail_error_also_vs_delta_lead_size_louder_pct": (
-            fail_error_also_vs_delta_lead_size_louder
+            fail_error_also_vs_delta_lead_size_louder if sides_are_pct else None
         ),
         "yahoo_fail_error_also_vs_delta_lead_size_quieter_pct": (
-            fail_error_also_vs_delta_lead_size_quieter
+            fail_error_also_vs_delta_lead_size_quieter if sides_are_pct else None
+        ),
+        "yahoo_fail_error_also_vs_delta_lead_size_louder_n": (
+            None if sides_are_pct else fail_error_also_vs_delta_lead_size_louder
+        ),
+        "yahoo_fail_error_also_vs_delta_lead_size_quieter_n": (
+            None if sides_are_pct else fail_error_also_vs_delta_lead_size_quieter
         ),
         "yahoo_fail_timeout_fails": timeout_fails_n if yahoo_failed else 0,
         "yahoo_fail_inflight_fails": inflight_fails_n if yahoo_failed else 0,

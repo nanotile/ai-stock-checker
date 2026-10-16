@@ -274,13 +274,37 @@ def test_yahoo_fail_error_also_vs_delta_lead_size_ratio():
 
 
 def test_yahoo_fail_error_also_vs_delta_lead_size_sides_both_shares():
-    """A 3× ratio hid that held is 75% and timeout is 25%."""
+    """A 3× ratio hid the two spend sides; counts beat rounded percents."""
     assert yahoo_fail_error_also_vs_delta_lead_size_sides(
         3.0, "inflight", 25, 75
     ) == (
         "Δ lead size sides · held 75% · timeout 25%",
         75,
         25,
+    )
+    assert yahoo_fail_error_also_vs_delta_lead_size_sides(
+        7.0,
+        "inflight",
+        12,
+        88,
+        timeout_fails=1,
+        inflight_fails=7,
+    ) == (
+        "Δ lead size sides · held 7 · timeout 1",
+        7,
+        1,
+    )
+    assert yahoo_fail_error_also_vs_delta_lead_size_sides(
+        3.0,
+        "inflight",
+        25,
+        75,
+        timeout_fails=1,
+        inflight_fails=3,
+    ) == (
+        "Δ lead size sides · held 3 · timeout 1",
+        3,
+        1,
     )
     assert yahoo_fail_error_also_vs_delta_lead_size_sides(
         1.5, "timeout", 40, 60
