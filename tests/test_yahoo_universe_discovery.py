@@ -18,6 +18,7 @@ from stock_checker.yahoo_universe_discovery import (
     yahoo_fail_error_also_share,
     yahoo_fail_error_also_vs_delta,
     yahoo_fail_error_also_vs_delta_lead,
+    yahoo_fail_error_also_vs_delta_lead_size,
     yahoo_fail_error_also_vs_lean,
     yahoo_fail_error_also_vs_winner,
     yahoo_fail_error_seed_fail_vs_budget,
@@ -245,6 +246,23 @@ def test_yahoo_fail_error_also_vs_delta_lead_names_louder_side():
     assert yahoo_fail_error_also_vs_delta_lead("timeout", 0, "thin") == ""
     assert yahoo_fail_error_also_vs_delta_lead("timeout", 15, "") == ""
     assert yahoo_fail_error_also_vs_delta_lead("empty", -50, "wide") == ""
+
+
+def test_yahoo_fail_error_also_vs_delta_lead_size_ratio():
+    """Lead name hid a 3× ownership gap versus a near tie."""
+    assert yahoo_fail_error_also_vs_delta_lead_size(
+        "Δ lead · held", 25, 75
+    ) == ("Δ lead size · 3×", 3.0)
+    assert yahoo_fail_error_also_vs_delta_lead_size(
+        "Δ lead · timeout", 40, 60
+    ) == ("Δ lead size · 1.5×", 1.5)
+    assert yahoo_fail_error_also_vs_delta_lead_size("", 25, 75) == ("", None)
+    assert yahoo_fail_error_also_vs_delta_lead_size(
+        "Δ lead · held", 0, 100
+    ) == ("", None)
+    assert yahoo_fail_error_also_vs_delta_lead_size(
+        "Δ lead · held", None, 75
+    ) == ("", None)
 
 
 def test_yahoo_discovery_error_meta_allowlist():

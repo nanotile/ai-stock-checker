@@ -503,6 +503,32 @@ def yahoo_fail_error_also_vs_delta_lead(
     return f"Δ lead · {lead}"
 
 
+def yahoo_fail_error_also_vs_delta_lead_size(
+    lead: str,
+    hidden_pct: int | None,
+    winner_pct: int | None,
+) -> tuple[str, float | None]:
+    """How many times the louder mix side owns the quieter one.
+
+    ``Δ lead · held`` names the side. It hid a 3× ownership gap versus a
+    near tie. Speaks only after lead already spoke and the quieter share
+    is above zero. Returns ``(Δ lead size · N×, ratio)`` / ``(\"\", None)``.
+    """
+    if not str(lead or "").strip():
+        return "", None
+    if hidden_pct is None or winner_pct is None:
+        return "", None
+    try:
+        louder = max(int(hidden_pct), int(winner_pct))
+        quieter = min(int(hidden_pct), int(winner_pct))
+    except (TypeError, ValueError):
+        return "", None
+    if quieter <= 0:
+        return "", None
+    size = round(louder / quieter, 2)
+    return f"Δ lead size · {size:g}×", size
+
+
 def yahoo_fail_error_vs_seed(error: str, seed_freshness: str) -> str:
     """Typed last-error vs reused-seed extremes (xang1234 #639 + portfolio AI).
 
