@@ -19925,6 +19925,8 @@ def build_universe_discovery_glance(
     sf/budget) sits in ``streak_lean`` under a desk fold; ``line_core`` keeps
     fail · N× · retry · seed/fail ages (MonsterDeveloper + Screener weight
     lean declutter — full ``line`` join kept for tests). Warn opens the fold.
+    timeout↔inflight mix (hidden side · share or lean) sits in ``mix_lean``;
+    ``line_core`` keeps the winning class. Warn opens that fold too.
     Buys still need regime/RS/breadth/fees. Not a new gate.
     """
     from stock_checker.yahoo_universe_discovery import (
@@ -20229,10 +20231,12 @@ def build_universe_discovery_glance(
     if yahoo_failed:
         tone = "warn"
         # xang1234 #639: last-error class before fraction (why ≠ how many).
-        # When timeout↔inflight both failed, speak the side the winner hid,
-        # that side's share, and the named class's share (hidden % ≠ ownership).
-        # When those severities disagree or agree at the extremes, the lean
-        # replaces the two percents on the line (they stay in fields).
+        # timeout↔inflight mix (hidden side · share · winner · lean) sits in
+        # ``mix_lean`` under a desk fold. ``line_core`` keeps the class.
+        # Full ``line`` still joins the mix (tests). Lean replaces the two
+        # percents in that join (they stay in fields).
+        mix_lean = ""
+        mix_lean_warn = False
         if fail_error and fail_error_also:
             if fail_error_also_vs_lean:
                 share = ""
@@ -20244,11 +20248,14 @@ def build_universe_discovery_glance(
                 )
                 vs = f" · {fail_error_also_vs}" if fail_error_also_vs else ""
                 lean = ""
-            err_bit = f" · {fail_error} · {fail_error_also}{share}{vs}{lean}"
+            mix_lean = f"{fail_error_also}{share}{vs}{lean}".strip(" ·")
+            mix_lean_warn = bool(fail_error_also_vs_lean_warn)
+            err_bit = f" · {fail_error} · {mix_lean}"
         elif fail_error:
             err_bit = f" · {fail_error}"
         else:
             err_bit = ""
+        err_class = f" · {fail_error}" if fail_error else ""
         # First-fail typed death vs seed/fail (before N× can speak streak/*).
         error_vs_seed_bit = (
             f" · error/seed {error_vs_seed}" if error_vs_seed else ""
@@ -20401,7 +20408,7 @@ def build_universe_discovery_glance(
         )
         line_core = (
             f"US+DE · Yahoo ≤{per} · "
-            f"Yahoo fail{err_bit}"
+            f"Yahoo fail{err_class}"
             f"{frac}{streak_bit}"
             f"{retry} · {seed_bit}{fail_bit}"
         )
@@ -20436,6 +20443,8 @@ def build_universe_discovery_glance(
         streak_lean_warn = False
         error_lean = ""
         error_lean_warn = False
+        mix_lean = ""
+        mix_lean_warn = False
     return {
         "ready": True,
         "tone": tone,
@@ -20445,6 +20454,8 @@ def build_universe_discovery_glance(
         "streak_lean_warn": bool(streak_lean_warn),
         "error_lean": error_lean,
         "error_lean_warn": bool(error_lean_warn),
+        "mix_lean": mix_lean,
+        "mix_lean_warn": bool(mix_lean_warn),
         "mover_count": per,
         "discovery_only": True,
         "auto_buy": False,
