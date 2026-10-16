@@ -19927,8 +19927,9 @@ def build_universe_discovery_glance(
     lean declutter — full ``line`` join kept for tests). Warn opens the fold.
     timeout↔inflight mix (hidden side · absolute counts · share or lean ·
     Δ when the spread is wide or thin · Δ lead when ±pp ≠ 0 · Δ lead size
-    when the quieter share is above zero · Δ lead size sides with both
-    percents) sits in ``mix_lean``; ``line_core`` keeps the winning class.
+    when the quieter share is above zero · Δ lead size sides names held
+    and timeout with both percents) sits in ``mix_lean``; ``line_core``
+    keeps the winning class.
     Counts stay when lean drops the percents. Warn opens that fold too.
     Mid Δ stays silent.
     Buys still need regime/RS/breadth/fees. Not a new gate.
@@ -20153,6 +20154,7 @@ def build_universe_discovery_glance(
             fail_error_also_vs_delta_lead_size_quieter,
         ) = yahoo_fail_error_also_vs_delta_lead_size_sides(
             fail_error_also_vs_delta_lead_size_x,
+            fail_error,
             fail_error_also_share_pct,
             fail_error_also_vs_pct,
         )
@@ -20298,8 +20300,8 @@ def build_universe_discovery_glance(
         # lean drops the percents (they stay in fields too). Wide/thin Δ
         # appends after lean; a nonzero spread names Δ lead and, when the
         # quieter share is above zero, how many times louder owns it, then
-        # both percents (ratio ≠ the two shares). Mid Δ stays silent
-        # (no lean-vs-Δ nest).
+        # both named percents (held vs timeout; ratio ≠ the two shares).
+        # Mid Δ stays silent (no lean-vs-Δ nest).
         mix_lean = ""
         mix_lean_warn = False
         if fail_error and fail_error_also:

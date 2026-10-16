@@ -531,30 +531,47 @@ def yahoo_fail_error_also_vs_delta_lead_size(
 
 def yahoo_fail_error_also_vs_delta_lead_size_sides(
     size: float | None,
+    klass: str,
     hidden_pct: int | None,
     winner_pct: int | None,
 ) -> tuple[str, int | None, int | None]:
-    """Both spend shares once mix Δ lead size already spoke.
+    """Both named spend shares once mix Δ lead size already spoke.
 
-    ``Δ lead size · 3×`` hid 75% versus 25%. Speaks only after a positive
-    size and two finite shares. Returns
-    ``(Δ lead size sides · louder N% · quieter M%, louder, quieter)``
+    ``Δ lead size · 3×`` and anonymous louder/quieter hid that held is 75%
+    and timeout is 25%. Speaks only after a positive size, a known class,
+    and two finite shares. Louder name first. Returns
+    ``(Δ lead size sides · held 75% · timeout 25%, louder, quieter)``
     / ``(\"\", None, None)``.
     """
     try:
         ratio = float(size) if size is not None else 0.0
     except (TypeError, ValueError):
         return "", None, None
+    k = str(klass or "").strip().lower()
+    if k == "inflight":
+        winner_name, hidden_name = "held", "timeout"
+    elif k == "timeout":
+        winner_name, hidden_name = "timeout", "held"
+    else:
+        return "", None, None
     if ratio <= 0 or hidden_pct is None or winner_pct is None:
         return "", None, None
     try:
-        louder = max(int(hidden_pct), int(winner_pct))
-        quieter = min(int(hidden_pct), int(winner_pct))
+        hidden = int(hidden_pct)
+        winner = int(winner_pct)
     except (TypeError, ValueError):
         return "", None, None
+    louder = max(hidden, winner)
+    quieter = min(hidden, winner)
     if quieter <= 0:
         return "", None, None
-    bit = f"Δ lead size sides · louder {louder}% · quieter {quieter}%"
+    if hidden >= winner:
+        loud_name, quiet_name = hidden_name, winner_name
+    else:
+        loud_name, quiet_name = winner_name, hidden_name
+    bit = (
+        f"Δ lead size sides · {loud_name} {louder}% · {quiet_name} {quieter}%"
+    )
     return bit, louder, quieter
 
 

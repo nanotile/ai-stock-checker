@@ -267,23 +267,38 @@ def test_yahoo_fail_error_also_vs_delta_lead_size_ratio():
 
 
 def test_yahoo_fail_error_also_vs_delta_lead_size_sides_both_shares():
-    """A 3× ratio hid 75% versus 25%."""
-    assert yahoo_fail_error_also_vs_delta_lead_size_sides(3.0, 25, 75) == (
-        "Δ lead size sides · louder 75% · quieter 25%",
+    """A 3× ratio hid that held is 75% and timeout is 25%."""
+    assert yahoo_fail_error_also_vs_delta_lead_size_sides(
+        3.0, "inflight", 25, 75
+    ) == (
+        "Δ lead size sides · held 75% · timeout 25%",
         75,
         25,
     )
-    assert yahoo_fail_error_also_vs_delta_lead_size_sides(1.5, 40, 60) == (
-        "Δ lead size sides · louder 60% · quieter 40%",
+    assert yahoo_fail_error_also_vs_delta_lead_size_sides(
+        1.5, "timeout", 40, 60
+    ) == (
+        "Δ lead size sides · timeout 60% · held 40%",
         60,
         40,
     )
-    assert yahoo_fail_error_also_vs_delta_lead_size_sides(None, 25, 75) == (
+    assert yahoo_fail_error_also_vs_delta_lead_size_sides(
+        None, "inflight", 25, 75
+    ) == (
         "",
         None,
         None,
     )
-    assert yahoo_fail_error_also_vs_delta_lead_size_sides(3.0, 0, 100) == (
+    assert yahoo_fail_error_also_vs_delta_lead_size_sides(
+        3.0, "inflight", 0, 100
+    ) == (
+        "",
+        None,
+        None,
+    )
+    assert yahoo_fail_error_also_vs_delta_lead_size_sides(
+        3.0, "empty", 25, 75
+    ) == (
         "",
         None,
         None,
