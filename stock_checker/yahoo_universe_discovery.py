@@ -146,6 +146,9 @@ def clear_yahoo_fail_streak(meta: dict[str, Any]) -> None:
 YAHOO_FAIL_ERROR_CLASSES: frozenset[str] = frozenset(
     ("timeout", "inflight", "http", "empty", "thin", "error")
 )
+# Hidden spend side of a timeout↔inflight mix (count flag ≠ ownership).
+YAHOO_FAIL_ALSO_SHARE_HOT = 50
+YAHOO_FAIL_ALSO_SHARE_QUIET = 25
 
 
 def classify_yahoo_discovery_error(
@@ -306,6 +309,44 @@ def yahoo_fail_error_also_bit(
     if k == "timeout":
         return "+held"
     return ""
+
+
+def yahoo_fail_error_also_share(
+    klass: str,
+    *,
+    timeout_fails: int = 0,
+    inflight_fails: int = 0,
+) -> tuple[str, int | None, str]:
+    """Hidden side's share of timeout+inflight (xang1234 #639 + portfolio AI).
+
+    ``+timeout`` / ``+held`` alone hid whether the other spend is half the
+    mix or a sliver. Share is the side the winning class did not name.
+    ``hot`` ≥50% · ``quiet`` ≤25% · mid shows the percent only. Sole-side
+    and other classes stay silent. Returns ``(bit, pct, severity)``.
+    """
+    also = yahoo_fail_error_also_bit(
+        klass, timeout_fails=timeout_fails, inflight_fails=inflight_fails
+    )
+    if not also:
+        return "", None, ""
+    try:
+        timed = max(0, int(timeout_fails))
+    except (TypeError, ValueError):
+        timed = 0
+    try:
+        held = max(0, int(inflight_fails))
+    except (TypeError, ValueError):
+        held = 0
+    total = timed + held
+    if total <= 0:
+        return "", None, ""
+    hidden = timed if also == "+timeout" else held
+    pct = int(round(100.0 * hidden / total))
+    if pct >= YAHOO_FAIL_ALSO_SHARE_HOT:
+        return f"hot · {pct}%", pct, "hot"
+    if pct <= YAHOO_FAIL_ALSO_SHARE_QUIET:
+        return f"quiet · {pct}%", pct, "quiet"
+    return f"{pct}%", pct, "ok"
 
 
 def yahoo_fail_error_vs_seed(error: str, seed_freshness: str) -> str:

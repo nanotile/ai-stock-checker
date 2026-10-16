@@ -189,9 +189,12 @@ def test_universe_discovery_glance_yahoo_fail_error_also_mix(tmp_path) -> None:
     g = build_universe_discovery_glance(tmp_path, now=now)
     assert g["yahoo_fail_error"] == "inflight"
     assert g["yahoo_fail_error_also"] == "+timeout"
+    assert g["yahoo_fail_error_also_share"] == "33%"
+    assert g["yahoo_fail_error_also_share_pct"] == 33
+    assert g["yahoo_fail_error_also_share_severity"] == "ok"
     assert g["yahoo_fail_timeout_fails"] == 1
     assert g["yahoo_fail_inflight_fails"] == 2
-    assert "Yahoo fail · inflight · +timeout · 0/3 · 2×" in g["line_core"]
+    assert "Yahoo fail · inflight · +timeout · 33% · 0/3 · 2×" in g["line_core"]
 
     meta = json.loads((tmp_path / "stock_universe.json").read_text(encoding="utf-8"))
     meta["meta"]["last_yahoo_discovery_error"] = "timeout"
@@ -203,7 +206,8 @@ def test_universe_discovery_glance_yahoo_fail_error_also_mix(tmp_path) -> None:
     timed = build_universe_discovery_glance(tmp_path, now=now)
     assert timed["yahoo_fail_error"] == "timeout"
     assert timed["yahoo_fail_error_also"] == "+held"
-    assert "Yahoo fail · timeout · +held · 0/3 · 2×" in timed["line_core"]
+    assert timed["yahoo_fail_error_also_share"] == "33%"
+    assert "Yahoo fail · timeout · +held · 33% · 0/3 · 2×" in timed["line_core"]
 
 
 def test_universe_discovery_glance_yahoo_fail_error_vs_seed_first_fail(

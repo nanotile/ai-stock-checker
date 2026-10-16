@@ -14,6 +14,7 @@ from stock_checker.yahoo_universe_discovery import (
     set_yahoo_discovery_error,
     yahoo_discovery_error_class,
     yahoo_fail_error_also_bit,
+    yahoo_fail_error_also_share,
     yahoo_fail_error_seed_fail_vs_budget,
     yahoo_fail_error_seed_vs_fail,
     yahoo_fail_error_vs_budget,
@@ -113,6 +114,30 @@ def test_yahoo_fail_error_also_bit_timeout_inflight_mix():
     assert (
         yahoo_fail_error_also_bit("empty", timeout_fails=1, inflight_fails=1)
         == ""
+    )
+
+
+def test_yahoo_fail_error_also_share_hidden_side():
+    """+timeout / +held alone hid whether the other spend is half or a sliver."""
+    assert yahoo_fail_error_also_share(
+        "inflight", timeout_fails=1, inflight_fails=1
+    ) == ("hot · 50%", 50, "hot")
+    assert yahoo_fail_error_also_share(
+        "timeout", timeout_fails=3, inflight_fails=1
+    ) == ("quiet · 25%", 25, "quiet")
+    assert yahoo_fail_error_also_share(
+        "timeout", timeout_fails=2, inflight_fails=1
+    ) == ("33%", 33, "ok")
+    assert yahoo_fail_error_also_share(
+        "inflight", timeout_fails=0, inflight_fails=3
+    ) == ("", None, "")
+    assert yahoo_fail_error_also_share(
+        "empty", timeout_fails=1, inflight_fails=1
+    ) == ("", None, "")
+    assert yahoo_fail_error_also_share("timeout", timeout_fails="x", inflight_fails=1) == (
+        "",
+        None,
+        "",
     )
 
 

@@ -19937,6 +19937,7 @@ def build_universe_discovery_glance(
         yahoo_discovery_error_class,
         yahoo_discovery_error_sides,
         yahoo_fail_error_also_bit,
+        yahoo_fail_error_also_share,
         yahoo_fail_error_seed_fail_vs_budget,
         yahoo_fail_error_seed_vs_fail,
         yahoo_fail_error_vs_budget,
@@ -20055,6 +20056,19 @@ def build_universe_discovery_glance(
         if yahoo_failed and fail_error
         else ""
     )
+    fail_error_also_share = ""
+    fail_error_also_share_pct: int | None = None
+    fail_error_also_share_severity = ""
+    if yahoo_failed and fail_error and fail_error_also:
+        (
+            fail_error_also_share,
+            fail_error_also_share_pct,
+            fail_error_also_share_severity,
+        ) = yahoo_fail_error_also_share(
+            fail_error,
+            timeout_fails=timeout_fails_n,
+            inflight_fails=inflight_fails_n,
+        )
     retry_due = yahoo_discovery_due_from_meta(
         uni_meta,
         now=now,
@@ -20191,9 +20205,13 @@ def build_universe_discovery_glance(
     if yahoo_failed:
         tone = "warn"
         # xang1234 #639: last-error class before fraction (why ≠ how many).
-        # When timeout↔inflight both failed, speak the side the winner hid.
+        # When timeout↔inflight both failed, speak the side the winner hid
+        # and that side's share (flag ≠ how large the other spend is).
         if fail_error and fail_error_also:
-            err_bit = f" · {fail_error} · {fail_error_also}"
+            share = (
+                f" · {fail_error_also_share}" if fail_error_also_share else ""
+            )
+            err_bit = f" · {fail_error} · {fail_error_also}{share}"
         elif fail_error:
             err_bit = f" · {fail_error}"
         else:
@@ -20409,6 +20427,9 @@ def build_universe_discovery_glance(
         "yahoo_failed": yahoo_failed,
         "yahoo_fail_error": fail_error,
         "yahoo_fail_error_also": fail_error_also,
+        "yahoo_fail_error_also_share": fail_error_also_share,
+        "yahoo_fail_error_also_share_pct": fail_error_also_share_pct,
+        "yahoo_fail_error_also_share_severity": fail_error_also_share_severity,
         "yahoo_fail_timeout_fails": timeout_fails_n if yahoo_failed else 0,
         "yahoo_fail_inflight_fails": inflight_fails_n if yahoo_failed else 0,
         "yahoo_fail_error_vs_seed": error_vs_seed,
