@@ -745,6 +745,40 @@ def yahoo_fail_error_also_vs_delta_lead_size_sides_share_delta(
     )
 
 
+def yahoo_fail_error_also_vs_delta_lead_size_sides_share_vs_gap(
+    share_delta: str,
+    share_severity: str,
+    gap_severity: str,
+) -> tuple[str, str, bool]:
+    """Ownership-spread severity vs screen-gap severity (speak-both-sides).
+
+    ``wide · 6 screens`` beside ``share Δ wide · +76pp`` can still hide a
+    thin 1-screen gap beside a wide ownership spread (2 vs 1 is +34pp).
+    Absolute screens ≠ pp ownership. Speak only when both severities are
+    ``wide|thin`` (share Δ mid stays silent upstream). Same lean →
+    ``align · wide|thin`` (not silent confirm). Crossed →
+    ``clash · screens thin|wide · % wide|thin`` and warns. Returns
+    ``(verb, bit, warn)`` / ``(\"\", \"\", False)``.
+    """
+    if not str(share_delta or "").strip():
+        return "", "", False
+    share = str(share_severity or "").strip().lower()
+    gap = str(gap_severity or "").strip().lower()
+    if share not in ("wide", "thin") or gap not in ("wide", "thin"):
+        return "", "", False
+    if share == gap:
+        return (
+            "align",
+            f"Δ lead size sides share vs gap align · {share}",
+            False,
+        )
+    return (
+        "clash",
+        f"Δ lead size sides share vs gap clash · screens {gap} · % {share}",
+        True,
+    )
+
+
 def yahoo_fail_error_vs_seed(error: str, seed_freshness: str) -> str:
     """Typed last-error vs reused-seed extremes (xang1234 #639 + portfolio AI).
 

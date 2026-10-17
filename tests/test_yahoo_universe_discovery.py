@@ -23,6 +23,7 @@ from stock_checker.yahoo_universe_discovery import (
     yahoo_fail_error_also_vs_delta_lead_size_sides_delta,
     yahoo_fail_error_also_vs_delta_lead_size_sides_share,
     yahoo_fail_error_also_vs_delta_lead_size_sides_share_delta,
+    yahoo_fail_error_also_vs_delta_lead_size_sides_share_vs_gap,
     yahoo_fail_error_also_vs_lean,
     yahoo_fail_error_also_vs_winner,
     yahoo_fail_error_seed_fail_vs_budget,
@@ -417,6 +418,46 @@ def test_yahoo_fail_error_also_vs_delta_lead_size_sides_share_delta_spread():
     assert yahoo_fail_error_also_vs_delta_lead_size_sides_share_delta(
         "", 88, 12
     ) == ("", None, "")
+
+
+def test_yahoo_fail_error_also_vs_delta_lead_size_sides_share_vs_gap():
+    """Screen-gap severity ≠ ownership-spread severity."""
+    share_wide = "Δ lead size sides share Δ wide · +76pp"
+    share_thin = "Δ lead size sides share Δ thin · +4pp"
+    assert yahoo_fail_error_also_vs_delta_lead_size_sides_share_vs_gap(
+        share_wide, "wide", "wide"
+    ) == (
+        "align",
+        "Δ lead size sides share vs gap align · wide",
+        False,
+    )
+    assert yahoo_fail_error_also_vs_delta_lead_size_sides_share_vs_gap(
+        share_thin, "thin", "thin"
+    ) == (
+        "align",
+        "Δ lead size sides share vs gap align · thin",
+        False,
+    )
+    assert yahoo_fail_error_also_vs_delta_lead_size_sides_share_vs_gap(
+        share_wide, "wide", "thin"
+    ) == (
+        "clash",
+        "Δ lead size sides share vs gap clash · screens thin · % wide",
+        True,
+    )
+    assert yahoo_fail_error_also_vs_delta_lead_size_sides_share_vs_gap(
+        share_thin, "thin", "wide"
+    ) == (
+        "clash",
+        "Δ lead size sides share vs gap clash · screens wide · % thin",
+        True,
+    )
+    assert yahoo_fail_error_also_vs_delta_lead_size_sides_share_vs_gap(
+        "", "wide", "wide"
+    ) == ("", "", False)
+    assert yahoo_fail_error_also_vs_delta_lead_size_sides_share_vs_gap(
+        share_wide, "mid", "wide"
+    ) == ("", "", False)
 
 
 def test_yahoo_discovery_error_meta_allowlist():
