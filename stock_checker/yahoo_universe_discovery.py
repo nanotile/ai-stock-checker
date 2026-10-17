@@ -657,6 +657,55 @@ def yahoo_fail_error_also_vs_delta_lead_size_sides_delta(
     )
 
 
+def yahoo_fail_error_also_vs_delta_lead_size_sides_share(
+    sides_delta: str,
+    sides: str,
+    louder: int | None,
+    quieter: int | None,
+) -> tuple[str, int | None, int | None]:
+    """Ownership of the count pair once mix Δ lead size sides Δ spoke.
+
+    ``wide · 6 screens`` on 7 vs 1 is 88/12. The same gap on 20 vs 14 is
+    59/41. Absolute screens ≠ who owns the pair. Percent sides stay silent
+    (they already name %). Quieter percent is the remainder so the two
+    shares sum to 100. Returns
+    ``(Δ lead size sides share · held 88% · timeout 12%, louder%, quieter%)``
+    / ``(\"\", None, None)``.
+    """
+    if not str(sides_delta or "").strip():
+        return "", None, None
+    text = str(sides or "")
+    if not text.strip() or "%" in text:
+        return "", None, None
+    if louder is None or quieter is None:
+        return "", None, None
+    try:
+        loud_n = int(louder)
+        quiet_n = int(quieter)
+    except (TypeError, ValueError):
+        return "", None, None
+    total = loud_n + quiet_n
+    if loud_n <= 0 or quiet_n <= 0 or total <= 0:
+        return "", None, None
+    parts = [part.strip() for part in text.split(" · ")]
+    if len(parts) < 3:
+        return "", None, None
+    loud_bits = parts[1].split()
+    quiet_bits = parts[2].split()
+    if len(loud_bits) < 2 or len(quiet_bits) < 2:
+        return "", None, None
+    loud_name, quiet_name = loud_bits[0], quiet_bits[0]
+    if not loud_name.isalpha() or not quiet_name.isalpha():
+        return "", None, None
+    loud_pct = int(round(100.0 * loud_n / total))
+    quiet_pct = 100 - loud_pct
+    bit = (
+        f"Δ lead size sides share · {loud_name} {loud_pct}%"
+        f" · {quiet_name} {quiet_pct}%"
+    )
+    return bit, loud_pct, quiet_pct
+
+
 def yahoo_fail_error_vs_seed(error: str, seed_freshness: str) -> str:
     """Typed last-error vs reused-seed extremes (xang1234 #639 + portfolio AI).
 
