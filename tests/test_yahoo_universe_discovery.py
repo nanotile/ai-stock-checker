@@ -421,7 +421,10 @@ def test_yahoo_fail_error_also_vs_delta_lead_size_sides_share_delta_spread():
 
 
 def test_yahoo_fail_error_also_vs_delta_lead_size_sides_share_vs_gap():
-    """Screen-gap severity ≠ ownership-spread severity."""
+    """Screen-gap severity ≠ ownership-spread severity.
+
+    Wide agreement warns (lopsided outage confirmed). Thin agreement stays calm.
+    """
     share_wide = "Δ lead size sides share Δ wide · +76pp"
     share_thin = "Δ lead size sides share Δ thin · +4pp"
     assert yahoo_fail_error_also_vs_delta_lead_size_sides_share_vs_gap(
@@ -429,7 +432,7 @@ def test_yahoo_fail_error_also_vs_delta_lead_size_sides_share_vs_gap():
     ) == (
         "align",
         "Δ lead size sides share vs gap align · wide",
-        False,
+        True,
     )
     assert yahoo_fail_error_also_vs_delta_lead_size_sides_share_vs_gap(
         share_thin, "thin", "thin"

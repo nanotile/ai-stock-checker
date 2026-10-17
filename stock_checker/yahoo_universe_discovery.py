@@ -756,9 +756,10 @@ def yahoo_fail_error_also_vs_delta_lead_size_sides_share_vs_gap(
     thin 1-screen gap beside a wide ownership spread (2 vs 1 is +34pp).
     Absolute screens ≠ pp ownership. Speak only when both severities are
     ``wide|thin`` (share Δ mid stays silent upstream). Same lean →
-    ``align · wide|thin`` (not silent confirm). Crossed →
-    ``clash · screens thin|wide · % wide|thin`` and warns. Returns
-    ``(verb, bit, warn)`` / ``(\"\", \"\", False)``.
+    ``align · wide|thin`` (not silent confirm). ``align · wide`` warns
+    (both sides confirm a lopsided outage; ``align · thin`` stays calm).
+    Crossed → ``clash · screens thin|wide · % wide|thin`` and warns.
+    Returns ``(verb, bit, warn)`` / ``(\"\", \"\", False)``.
     """
     if not str(share_delta or "").strip():
         return "", "", False
@@ -770,7 +771,7 @@ def yahoo_fail_error_also_vs_delta_lead_size_sides_share_vs_gap(
         return (
             "align",
             f"Δ lead size sides share vs gap align · {share}",
-            False,
+            share == "wide",
         )
     return (
         "clash",

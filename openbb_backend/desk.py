@@ -20372,8 +20372,10 @@ def build_universe_discovery_glance(
         # the count-pair share (7 vs 1 is 88/12; 20 vs 14 with the same
         # 6-screen gap is 59/41), then the ownership spread (88/12 is
         # +76pp wide; 59/41 is mid silent), then share vs gap when both
-        # severities spoke (same lean align · crossed clash warn). Percent
-        # sides stay silent here. Mid pp Δ stays silent (no lean-vs-Δ nest).
+        # severities spoke (same lean align · crossed clash warn). Wide
+        # align warns too (both sides confirm a lopsided outage; thin
+        # align stays calm). Percent sides stay silent here. Mid pp Δ
+        # stays silent (no lean-vs-Δ nest).
         mix_lean = ""
         mix_lean_warn = False
         if fail_error and fail_error_also:
