@@ -1719,10 +1719,15 @@
           typeof glance.honesty_quiet_fold_count === "number"
             ? glance.honesty_quiet_fold_count
             : quietFolds.length;
-        var quietTail =
-          quietFolds.length > 0
-            ? " · quiet · " + quietN + " folds · " + quietFolds.join(" · ")
-            : "";
+        var quietUnit = quietN === 1 ? " fold" : " folds";
+        var quietTail = "";
+        if (quietFolds.length > 0) {
+          quietTail =
+            " · quiet · " + quietN + quietUnit + " · " + quietFolds.join(" · ");
+        } else if (foldN > 0 && quietN === 0) {
+          // All-hot: empty remainder stays visible (Policy honesty quiet · 0).
+          quietTail = " · quiet · 0 folds";
+        }
         meta.appendChild(
           document.createTextNode(
             " · " +
@@ -1735,10 +1740,12 @@
           )
         );
       } else if (folds.length > 0) {
+        var calmUnit = folds.length === 1 ? " fold" : " folds";
         meta.textContent =
-          "quiet · " + folds.length + " folds · " + folds.join(" · ");
+          "quiet · " + folds.length + calmUnit + " · " + folds.join(" · ");
       } else if (foldN > 0) {
-        meta.textContent = "quiet · " + foldN + " folds";
+        meta.textContent =
+          "quiet · " + foldN + (foldN === 1 ? " fold" : " folds");
       } else {
         meta.textContent = "quiet";
       }

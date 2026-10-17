@@ -152,15 +152,17 @@ def test_promote_honesty_fold_in_macro_and_charts() -> None:
     assert "glance.honesty_warns" in js
     assert "|length }} hot" in macro
     assert "of {{ glance.honesty_fold_count }}" in macro
-    assert "quiet · {{ glance.honesty_fold_count }} folds · {{ glance.honesty_folds | join(' · ') }}" in macro
-    assert "quiet · {{ glance.honesty_quiet_fold_count }} folds · {{ glance.honesty_quiet_folds | join(' · ') }}" in macro
+    assert "quiet · {{ glance.honesty_fold_count }} {% if glance.honesty_fold_count == 1 %}fold{% else %}folds{% endif %} · {{ glance.honesty_folds | join(' · ') }}" in macro
+    assert "quiet · {{ glance.honesty_quiet_fold_count }} {% if glance.honesty_quiet_fold_count == 1 %}fold{% else %}folds{% endif %} · {{ glance.honesty_quiet_folds | join(' · ') }}" in macro
+    assert "{% elif glance.honesty_fold_count %} · quiet · 0 folds{% endif %}" in macro
     assert "honesty_warn_count" in js
     assert "honesty_fold_count" in js
     assert "honesty_folds" in js
     assert "honesty_quiet_folds" in js
     assert "honesty_quiet_fold_count" in js
-    assert '"quiet · " + folds.length + " folds · " + folds.join(" · ")' in js
-    assert '" · quiet · " + quietN + " folds · " + quietFolds.join(" · ")' in js
+    assert '"quiet · " + folds.length + calmUnit + " · " + folds.join(" · ")' in js
+    assert '" · quiet · " + quietN + quietUnit + " · " + quietFolds.join(" · ")' in js
+    assert 'quietTail = " · quiet · 0 folds"' in js
     assert "hotN +" in js and '" hot"' in js
     assert "ofTotal" in js
     assert "warns.join(\" · \")" in js
