@@ -48,7 +48,8 @@ def test_policy_honesty_fold_meta_warn_and_clock() -> None:
     )
     assert warn is True
     assert meta == (
-        "warn · 4 hot of 4 · fees · stuck · LAYA stale · debate aging"
+        "warn · 4 hot of 4 · fees · stuck · LAYA stale · debate aging · "
+        "quiet · 0 folds"
     )
 
 
@@ -117,9 +118,9 @@ def test_policy_honesty_fold_meta_caps_storm() -> None:
     meta, warn = policy_honesty_fold_meta(snap)
     assert warn is True
     assert meta.startswith("warn · 8 hot of 8 · ")
-    assert meta.endswith("+2")
-    # inventory + six named labels + +2
-    assert "fees · stuck · LAYA · debate · Yahoo · Hours · +2" in meta
+    assert meta.endswith("quiet · 0 folds")
+    # inventory + six named labels + +2, then the empty calm remainder
+    assert "fees · stuck · LAYA · debate · Yahoo · Hours · +2 · quiet · 0 folds" in meta
 
 
 def test_policy_honesty_templates_use_fold_meta() -> None:
