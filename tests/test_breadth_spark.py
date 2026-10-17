@@ -1406,8 +1406,8 @@ def test_breadth_tape_summary_flip_cv_streak_replay():
     assert "σ flip 1.2" not in s["line"]
     assert "CV flip 0.7" in s["chop_line"]
     assert "σ flip 1.2" in s["chop_line"]
-    # Mild σ/CV (<2) names spoken bits; does not warn-open the fold.
-    assert s["chop_meta"] == "max · avg · med · min · σ · CV"
+    # Mild σ/CV (<2) is a calm inventory; a six-bit join clips at 4.
+    assert s["chop_meta"] == "quiet · 6 folds · max · avg · med · min · +2"
     assert s["chop_warn"] is False
     # two runs only → hide CV (needs ≥3)
     two = build_breadth_tape_summary(rows[:6])
@@ -1423,21 +1423,31 @@ def test_breadth_chop_fold_meta_names_spoken_bits() -> None:
     meta, warn = breadth_chop_fold_meta(
         ["max flip 3", "avg flip 2.0 (2 runs)", "min flip 1"]
     )
-    assert meta == "max · avg · min"
+    assert meta == "quiet · 3 folds · max · avg · min"
+    assert warn is False
+    meta, warn = breadth_chop_fold_meta(["max flip 3"])
+    assert meta == "quiet · 1 fold · max"
     assert warn is False
     meta, warn = breadth_chop_fold_meta(
         ["σ flip 2.1", "CV flip 0.8"],
         flip_stdev_streak=2.1,
         flip_cv_streak=0.8,
     )
-    assert meta == "σ wide · CV"
+    assert meta == "warn · 1 hot of 2 · σ wide · quiet · 1 fold · CV"
     assert warn is True
     meta, warn = breadth_chop_fold_meta(
         ["σ flip 0.5", "CV flip 2.5"],
         flip_stdev_streak=0.5,
         flip_cv_streak=2.5,
     )
-    assert meta == "σ · CV wide"
+    assert meta == "warn · 1 hot of 2 · CV wide · quiet · 1 fold · σ"
+    assert warn is True
+    meta, warn = breadth_chop_fold_meta(
+        ["σ flip 2.1", "CV flip 2.5"],
+        flip_stdev_streak=2.1,
+        flip_cv_streak=2.5,
+    )
+    assert meta == "warn · 2 hot of 2 · σ wide · CV wide · quiet · 0 folds"
     assert warn is True
 
 

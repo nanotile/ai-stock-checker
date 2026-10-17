@@ -25286,11 +25286,13 @@ def breadth_chop_fold_meta(
 ) -> tuple[str, bool]:
     """Summary chip for Breadth chop fold — which bits spoke / why warn-open.
 
-    Quiet names the spoken inventory (not the full static max·avg·med·min·σ·CV
-    list that lied when only a subset spoke). Wide σ or CV (≥
-    ``CHOP_WIDE_SIGMA`` / ``CHOP_WIDE_CV``, Window A parity) appends ``wide``
-    and returns warn so the fold opens (Hours inactive / Yahoo mix /
-    Screener weight lean fold-meta parity). Display only; not a gate.
+    Quiet names a clipped inventory (``quiet · N folds · max · … · +K``),
+    not the full static max·avg·med·min·σ·CV list and not a bare join of
+    every spoken bit (Book matrix / Policy honesty name clip). Wide σ or CV
+    (≥ ``CHOP_WIDE_SIGMA`` / ``CHOP_WIDE_CV``, Window A parity) leads the
+    chip as ``warn · N hot of M · σ wide · quiet · K folds`` so a six-bit
+    line no longer buries the storm. An all-wide chip still speaks
+    ``quiet · 0 folds``. Display only; not a gate.
     """
     bits = [str(b).strip() for b in (chop_bits or []) if str(b).strip()]
     if not bits:
@@ -25301,24 +25303,40 @@ def breadth_chop_fold_meta(
     cv_wide = (
         flip_cv_streak is not None and float(flip_cv_streak) >= CHOP_WIDE_CV
     )
-    labels: list[str] = []
+    calm: list[str] = []
+    hot: list[str] = []
     for bit in bits:
         low = bit.lower()
         if low.startswith("max flip"):
-            labels.append("max")
+            calm.append("max")
         elif low.startswith("avg flip"):
-            labels.append("avg")
+            calm.append("avg")
         elif low.startswith("med flip"):
-            labels.append("med")
+            calm.append("med")
         elif low.startswith("min flip"):
-            labels.append("min")
+            calm.append("min")
         elif low.startswith("σ flip") or low.startswith("sigma flip"):
-            labels.append("σ wide" if sigma_wide else "σ")
+            (hot if sigma_wide else calm).append("σ wide" if sigma_wide else "σ")
         elif low.startswith("cv flip"):
-            labels.append("CV wide" if cv_wide else "CV")
-    if not labels:
+            (hot if cv_wide else calm).append("CV wide" if cv_wide else "CV")
+    ready = len(calm) + len(hot)
+    if ready <= 0:
         return "quiet", False
-    return " · ".join(labels), bool(sigma_wide or cv_wide)
+    if not hot:
+        unit = "fold" if ready == 1 else "folds"
+        named = cap_honesty_fold_names(calm, cap=_HONESTY_QUIET_NAME_CAP)
+        return f"quiet · {ready} {unit} · " + " · ".join(named), False
+    named_hot = cap_honesty_fold_names(hot, cap=_HONESTY_WARN_NAME_CAP)
+    quiet_n = len(calm)
+    unit = "fold" if quiet_n == 1 else "folds"
+    parts = [
+        f"warn · {len(hot)} hot of {ready}",
+        *named_hot,
+        f"quiet · {quiet_n} {unit}",
+    ]
+    if quiet_n > 0:
+        parts.extend(cap_honesty_fold_names(calm, cap=_HONESTY_QUIET_NAME_CAP))
+    return " · ".join(parts), True
 
 
 def _row_is_thrust(
