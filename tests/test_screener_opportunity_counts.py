@@ -4,7 +4,46 @@ from openbb_backend.desk import (
     build_screener_opportunity_counts,
     scan_list_junk_count,
     scan_list_rows,
+    screener_weight_lean_meta,
 )
+
+
+def test_screener_weight_lean_meta_names_the_open():
+    assert screener_weight_lean_meta() == "cascade"
+    assert screener_weight_lean_meta(n_junk=2) == "junk"
+    assert (
+        screener_weight_lean_meta(
+            junk_vs_ok_lean_vs_delta="align · wide",
+            junk_vs_ok_lean_vs_delta_warn=True,
+            n_junk=2,
+        )
+        == "align · wide"
+    )
+    assert (
+        screener_weight_lean_meta(
+            junk_vs_ok_lean_vs_delta="clash · lean · Δ mid",
+            junk_vs_ok_lean_vs_delta_warn=True,
+            n_junk=1,
+        )
+        == "clash"
+    )
+    assert (
+        screener_weight_lean_meta(
+            junk_list_lead_vs_lean="align · both clash",
+            junk_list_lead_vs_lean_warn=True,
+            junk_vs_ok_lean_vs_delta="align · wide",
+            junk_vs_ok_lean_vs_delta_warn=True,
+            n_junk=3,
+        )
+        == "align · both clash"
+    )
+    assert (
+        screener_weight_lean_meta(
+            unique_vs_dup_lean_vs_delta="align · wide",
+            unique_vs_dup_lean_vs_delta_warn=True,
+        )
+        == "align · wide"
+    )
 
 
 def test_scan_list_rows_keeps_objects_only():
@@ -74,7 +113,8 @@ def test_junk_slots_do_not_inflate_counts():
     assert c["junk_vs_ok_delta_pp"] == 25.0
     assert c["junk_vs_ok_delta_severity"] == "wide"
     assert c["junk_vs_ok_lean_vs_delta"] == "align · wide"
-    assert c["junk_vs_ok_lean_vs_delta_warn"] is False
+    assert c["junk_vs_ok_lean_vs_delta_warn"] is True
+    assert c["weight_lean_meta"] == "align · wide"
     assert c["lists_populated"] == 2
     assert (
         c["weight_core"]
@@ -125,6 +165,7 @@ def test_empty_and_non_mapping():
     assert empty["junk_vs_ok_delta_severity"] == ""
     assert empty["junk_vs_ok_lean_vs_delta"] == ""
     assert empty["junk_vs_ok_lean_vs_delta_warn"] is False
+    assert empty["weight_lean_meta"] == "cascade"
     assert empty["lists_populated"] == 0
     assert empty["weight"] == "row slots"
     assert empty["unique_share_pct"] is None
@@ -244,6 +285,7 @@ def test_overlap_speaks_unique_share_ok():
     assert c["unique_vs_dup_delta_severity"] == "wide"
     assert c["unique_vs_dup_lean_vs_delta"] == "align · wide"
     assert c["unique_vs_dup_lean_vs_delta_warn"] is False
+    assert c["weight_lean_meta"] == "cascade"
     assert c["unique_vs_dup_delta_lead"] == "unique"
     assert c["unique_vs_dup_delta_lead_size"] == 3.0
     assert c["unique_vs_dup_delta_lead_size_louder_pct"] == 75.0
@@ -282,7 +324,8 @@ def test_overlap_unique_share_thin_warns():
     assert c["unique_vs_dup_delta_pp"] == -20.0
     assert c["unique_vs_dup_delta_severity"] == "wide"
     assert c["unique_vs_dup_lean_vs_delta"] == "align · wide"
-    assert c["unique_vs_dup_lean_vs_delta_warn"] is False
+    assert c["unique_vs_dup_lean_vs_delta_warn"] is True
+    assert c["weight_lean_meta"] == "align · wide"
     assert c["unique_vs_dup_delta_lead"] == "dup"
     assert c["unique_vs_dup_delta_lead_size"] == 1.5
     assert c["unique_vs_dup_delta_lead_size_louder_pct"] == 60.0
@@ -405,6 +448,8 @@ def test_string_symbols_and_bad_list_type():
     assert c["junk_vs_ok_delta_pp"] == 33.4
     assert c["junk_vs_ok_delta_severity"] == "wide"
     assert c["junk_vs_ok_lean_vs_delta"] == "align · wide"
+    assert c["junk_vs_ok_lean_vs_delta_warn"] is True
+    assert c["weight_lean_meta"] == "align · wide"
     assert c["overlap"] is False
     assert c["unique_share_pct"] is None
     assert c["dup_share_pct"] is None
@@ -447,6 +492,8 @@ def test_junk_share_quiet_band():
     assert c["junk_vs_ok_delta_pp"] == -75.0
     assert c["junk_vs_ok_delta_severity"] == "wide"
     assert c["junk_vs_ok_lean_vs_delta"] == "align · wide"
+    assert c["junk_vs_ok_lean_vs_delta_warn"] is False
+    assert c["weight_lean_meta"] == "junk"
     assert c["junk_list_sample_gap"] == "n=1"
     assert (
         c["weight_core"]
@@ -501,6 +548,8 @@ def test_junk_all_slots_speaks_zero_ok():
     assert c["junk_vs_ok_delta_pp"] == 100.0
     assert c["junk_vs_ok_delta_severity"] == "wide"
     assert c["junk_vs_ok_lean_vs_delta"] == "align · wide"
+    assert c["junk_vs_ok_lean_vs_delta_warn"] is True
+    assert c["weight_lean_meta"] == "align · wide"
     assert c["junk_list_lead_vs_lean"] == "align · both align"
     assert c["junk_list_lead_vs_lean_warn"] is False
     assert (
@@ -735,6 +784,7 @@ def test_junk_vs_ok_clash_at_half():
     assert c["junk_vs_ok_delta_severity"] == "thin"
     assert c["junk_vs_ok_lean_vs_delta"] == "align · thin"
     assert c["junk_vs_ok_lean_vs_delta_warn"] is False
+    assert c["weight_lean_meta"] == "clash"
     assert c["junk_list_sample_gap"] == "n=1"
     assert (
         c["weight_core"]
@@ -774,6 +824,7 @@ def test_junk_vs_ok_delta_mid_silent():
     assert c["junk_vs_ok_delta_severity"] == ""
     assert c["junk_vs_ok_lean_vs_delta"] == "clash · lean · Δ mid"
     assert c["junk_vs_ok_lean_vs_delta_warn"] is True
+    assert c["weight_lean_meta"] == "clash"
     assert "Δ wide" not in c["weight_lean"]
     assert "Δ thin" not in c["weight_lean"]
     assert "lean vs Δ clash · lean · Δ mid" in c["weight_lean"]

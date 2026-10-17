@@ -751,6 +751,70 @@ def scan_list_junk_count(raw: Any) -> int:
     return sum(1 for item in raw if not isinstance(item, Mapping))
 
 
+def screener_weight_lean_meta(
+    *,
+    junk_list_lead_vs_lean: str = "",
+    junk_list_lead_vs_lean_warn: bool = False,
+    junk_list_lead_vs_share: str = "",
+    junk_list_lead_vs_share_warn: bool = False,
+    junk_vs_ok_lean_vs_delta: str = "",
+    junk_vs_ok_lean_vs_delta_warn: bool = False,
+    junk_vs_ok: str = "",
+    junk_vs_ok_warn: bool = False,
+    unique_vs_dup_lean_vs_delta: str = "",
+    unique_vs_dup_lean_vs_delta_warn: bool = False,
+    unique_vs_dup: str = "",
+    unique_vs_dup_warn: bool = False,
+    n_junk: int = 0,
+) -> str:
+    """Summary chip for Screener weight lean fold — why open, not another body bit.
+
+    Quiet stays ``cascade``. Prefer junk lead/lean → lead/share → lean vs Δ
+    → junk vs ok → unique lean vs Δ → unique vs dup (Yahoo mix/cascade meta
+    parity). Adverse ``align · wide`` and any ``clash`` shorten; bare junk
+    with no warned relationship speaks ``junk`` (damage alone opened the
+    fold). Favorable ``align · quiet|strong`` / ``align · strong|quiet``
+    stay calm upstream so this chip is not consulted for them.
+    """
+
+    def _chip(bit: str) -> str:
+        low = str(bit or "").strip().lower()
+        if not low:
+            return "cascade"
+        if low.startswith("align · both "):
+            tail = low[len("align · both ") :].strip()
+            if tail in ("clash", "align"):
+                return f"align · both {tail}"
+        if low.startswith("align · wide") or low.endswith("· wide"):
+            return "align · wide"
+        if low.startswith("clash"):
+            return "clash"
+        return "clash"
+
+    if junk_list_lead_vs_lean_warn and str(junk_list_lead_vs_lean or "").strip():
+        return _chip(junk_list_lead_vs_lean)
+    if junk_list_lead_vs_share_warn and str(junk_list_lead_vs_share or "").strip():
+        return _chip(junk_list_lead_vs_share)
+    if junk_vs_ok_lean_vs_delta_warn and str(
+        junk_vs_ok_lean_vs_delta or ""
+    ).strip():
+        return _chip(junk_vs_ok_lean_vs_delta)
+    if junk_vs_ok_warn and str(junk_vs_ok or "").strip():
+        return _chip(junk_vs_ok)
+    if unique_vs_dup_lean_vs_delta_warn and str(
+        unique_vs_dup_lean_vs_delta or ""
+    ).strip():
+        return _chip(unique_vs_dup_lean_vs_delta)
+    if unique_vs_dup_warn and str(unique_vs_dup or "").strip():
+        return _chip(unique_vs_dup)
+    try:
+        if int(n_junk or 0) > 0:
+            return "junk"
+    except (TypeError, ValueError):
+        pass
+    return "cascade"
+
+
 def build_screener_opportunity_counts(
     opportunities: Mapping[str, Any] | None,
 ) -> dict[str, Any]:
@@ -849,6 +913,7 @@ def build_screener_opportunity_counts(
         "junk_vs_ok_delta_severity": "",
         "junk_vs_ok_lean_vs_delta": "",
         "junk_vs_ok_lean_vs_delta_warn": False,
+        "weight_lean_meta": "cascade",
         "lists_populated": 0,
         "overlap": False,
         "unique_share_pct": None,
@@ -976,6 +1041,14 @@ def build_screener_opportunity_counts(
                 unique_vs_dup_lean_vs_delta = (
                     f"align · {unique_vs_dup_delta_severity}"
                 )
+                # Adverse dual-wide confirm (Hours attn vs open + Yahoo mix
+                # share vs gap wide-align warn). Favorable strong|quiet stays calm.
+                if (
+                    unique_vs_dup_delta_severity == "wide"
+                    and unique_vs_dup.startswith("align · thin|hot")
+                ):
+                    unique_vs_dup_lean_vs_delta_warn = True
+                    tone = "warn"
                 if unique_vs_dup_delta_pp is not None:
                     if unique_vs_dup_delta_pp > 0:
                         unique_vs_dup_delta_lead = "unique"
@@ -1175,6 +1248,13 @@ def build_screener_opportunity_counts(
                 junk_vs_ok_lean_vs_delta = (
                     f"align · {junk_vs_ok_delta_severity}"
                 )
+                # Adverse dual-wide confirm (Hours + Yahoo mix wide-align warn).
+                # Favorable quiet|strong stays calm on the warn flag.
+                if (
+                    junk_vs_ok_delta_severity == "wide"
+                    and junk_vs_ok.startswith("align · hot|thin")
+                ):
+                    junk_vs_ok_lean_vs_delta_warn = True
             else:
                 junk_vs_ok_lean_vs_delta = "clash · lean · Δ mid"
                 junk_vs_ok_lean_vs_delta_warn = True
@@ -1249,6 +1329,21 @@ def build_screener_opportunity_counts(
             f"{weight_core} · {weight_lean}" if weight_lean else weight_core
         )
         tone = "warn"
+    weight_lean_meta = screener_weight_lean_meta(
+        junk_list_lead_vs_lean=junk_list_lead_vs_lean,
+        junk_list_lead_vs_lean_warn=junk_list_lead_vs_lean_warn,
+        junk_list_lead_vs_share=junk_list_lead_vs_share,
+        junk_list_lead_vs_share_warn=junk_list_lead_vs_share_warn,
+        junk_vs_ok_lean_vs_delta=junk_vs_ok_lean_vs_delta,
+        junk_vs_ok_lean_vs_delta_warn=junk_vs_ok_lean_vs_delta_warn,
+        junk_vs_ok=junk_vs_ok,
+        junk_vs_ok_warn=junk_vs_ok_warn,
+        unique_vs_dup_lean_vs_delta=unique_vs_dup_lean_vs_delta,
+        unique_vs_dup_lean_vs_delta_warn=unique_vs_dup_lean_vs_delta_warn,
+        unique_vs_dup=unique_vs_dup,
+        unique_vs_dup_warn=unique_vs_dup_warn,
+        n_junk=n_junk,
+    )
     return {
         "n_rec": n_rec,
         "n_crypto": n_crypto,
@@ -1309,6 +1404,7 @@ def build_screener_opportunity_counts(
         "weight": weight,
         "weight_core": weight_core,
         "weight_lean": weight_lean,
+        "weight_lean_meta": weight_lean_meta,
     }
 
 
@@ -27090,6 +27186,11 @@ def load_desk_snapshot(
             "title": "Screener Total weight lean fold",
             "from": "MonsterDeveloper + xang1234 (declutter after lean cascade)",
             "note": "Strip shows weight_core (unique/dup/junk shares); unique-vs-dup + junk-vs-ok lean sit under screener-weight-lean details; weight stays full join for tests; warn opens the fold.",
+        },
+        {
+            "title": "Screener weight lean summary + adverse wide-align warn",
+            "from": "RyanJHamby + xang1234 + portfolio AI (Hours adverse-align + Yahoo mix fold meta)",
+            "note": "Summary chip names why the fold opened (align · wide / clash / junk); adverse hot|thin / thin|hot + Δ wide warns; favorable quiet|strong stays calm.",
         },
         {
             "title": "SMA market-regime gate",
