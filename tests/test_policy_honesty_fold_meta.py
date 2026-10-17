@@ -53,7 +53,7 @@ def test_policy_honesty_fold_meta_warn_and_clock() -> None:
 
 
 def test_policy_honesty_fold_meta_inventory_quiet_remainder() -> None:
-    """Hot names + quiet count + calm labels (Close honesty hot quiet folds)."""
+    """Hot names + quiet · K folds + calm labels (Close honesty parity)."""
     meta, warn = policy_honesty_fold_meta(
         {
             "fee_burn_glance": {"ready": True, "tone": "warn"},
@@ -65,8 +65,20 @@ def test_policy_honesty_fold_meta_inventory_quiet_remainder() -> None:
     )
     assert warn is True
     assert meta == (
-        "warn · 2 hot of 5 · fees · stuck · quiet · 3 · LAYA · crypto · AI"
+        "warn · 2 hot of 5 · fees · stuck · quiet · 3 folds · LAYA · crypto · AI"
     )
+
+
+def test_policy_honesty_fold_meta_quiet_one_fold() -> None:
+    """Singular fold unit when exactly one tracked glance stays calm."""
+    meta, warn = policy_honesty_fold_meta(
+        {
+            "fee_burn_glance": {"ready": True, "tone": "warn"},
+            "laya_glance": {"ready": True, "tone": "advisory"},
+        }
+    )
+    assert warn is True
+    assert meta == "warn · 1 hot of 2 · fees · quiet · 1 fold · LAYA"
 
 
 def test_policy_honesty_fold_meta_quiet_names_capped() -> None:
@@ -83,7 +95,7 @@ def test_policy_honesty_fold_meta_quiet_names_capped() -> None:
     meta, warn = policy_honesty_fold_meta(snap)
     assert warn is True
     assert meta == (
-        "warn · 1 hot of 7 · fees · quiet · 6 · LAYA · crypto · book · "
+        "warn · 1 hot of 7 · fees · quiet · 6 folds · LAYA · crypto · book · "
         "allowance · +2"
     )
 
