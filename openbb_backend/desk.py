@@ -25017,6 +25017,11 @@ def breadth_tape_flip_run_count(
     return len(_breadth_tape_flip_run_lengths(labels))
 
 
+# Flip-run σ / CV warn floor — matches Window A loss-streak wide σ (≥2).
+CHOP_WIDE_SIGMA = 2.0
+CHOP_WIDE_CV = 2.0
+
+
 def format_flip_run_chop_bits(
     *,
     flip_streak: int = 0,
@@ -25067,6 +25072,49 @@ def format_flip_run_chop_bits(
     ):
         bits.append(f"CV flip {flip_cv_streak:.1f}")
     return bits
+
+
+def breadth_chop_fold_meta(
+    chop_bits: list[str] | None = None,
+    *,
+    flip_stdev_streak: float | None = None,
+    flip_cv_streak: float | None = None,
+) -> tuple[str, bool]:
+    """Summary chip for Breadth chop fold — which bits spoke / why warn-open.
+
+    Quiet names the spoken inventory (not the full static max·avg·med·min·σ·CV
+    list that lied when only a subset spoke). Wide σ or CV (≥
+    ``CHOP_WIDE_SIGMA`` / ``CHOP_WIDE_CV``, Window A parity) appends ``wide``
+    and returns warn so the fold opens (Hours inactive / Yahoo mix /
+    Screener weight lean fold-meta parity). Display only; not a gate.
+    """
+    bits = [str(b).strip() for b in (chop_bits or []) if str(b).strip()]
+    if not bits:
+        return "quiet", False
+    sigma_wide = (
+        flip_stdev_streak is not None and float(flip_stdev_streak) >= CHOP_WIDE_SIGMA
+    )
+    cv_wide = (
+        flip_cv_streak is not None and float(flip_cv_streak) >= CHOP_WIDE_CV
+    )
+    labels: list[str] = []
+    for bit in bits:
+        low = bit.lower()
+        if low.startswith("max flip"):
+            labels.append("max")
+        elif low.startswith("avg flip"):
+            labels.append("avg")
+        elif low.startswith("med flip"):
+            labels.append("med")
+        elif low.startswith("min flip"):
+            labels.append("min")
+        elif low.startswith("σ flip") or low.startswith("sigma flip"):
+            labels.append("σ wide" if sigma_wide else "σ")
+        elif low.startswith("cv flip"):
+            labels.append("CV wide" if cv_wide else "CV")
+    if not labels:
+        return "quiet", False
+    return " · ".join(labels), bool(sigma_wide or cv_wide)
 
 
 def _row_is_thrust(
@@ -25593,6 +25641,8 @@ def build_breadth_tape_summary(
         "flip_run_n": 0,
         "chop_line": "",
         "chop_ready": False,
+        "chop_meta": "",
+        "chop_warn": False,
         "latest_dual": False,
         "latest_split": False,
         "latest_risk_off": False,
@@ -25769,6 +25819,11 @@ def build_breadth_tape_summary(
         flip_cv_streak=flip_cv_streak,
         flip_run_n=flip_run_n,
     )
+    chop_meta, chop_warn = breadth_chop_fold_meta(
+        chop_bits,
+        flip_stdev_streak=flip_stdev_streak,
+        flip_cv_streak=flip_cv_streak,
+    )
     risk_on_density = tape_label_density_pct(dual_n, days)
     split_density = tape_label_density_pct(split_n, days)
     risk_off_density = tape_label_density_pct(risk_off_n, days)
@@ -25821,6 +25876,8 @@ def build_breadth_tape_summary(
         "flip_run_n": flip_run_n,
         "chop_line": " · ".join(chop_bits),
         "chop_ready": bool(chop_bits),
+        "chop_meta": chop_meta if chop_bits else "",
+        "chop_warn": bool(chop_warn) if chop_bits else False,
         "latest_dual": latest_dual,
         "latest_split": latest_split,
         "latest_risk_off": latest_risk_off,

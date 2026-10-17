@@ -4,6 +4,7 @@ from pathlib import Path
 
 from openbb_backend.desk import (
     alone_density_pct,
+    breadth_chop_fold_meta,
     breadth_confirmed_thrust_streak,
     breadth_days_since_confirmed_thrust,
     breadth_days_since_mixed,
@@ -1405,11 +1406,65 @@ def test_breadth_tape_summary_flip_cv_streak_replay():
     assert "σ flip 1.2" not in s["line"]
     assert "CV flip 0.7" in s["chop_line"]
     assert "σ flip 1.2" in s["chop_line"]
+    # Mild σ/CV (<2) names spoken bits; does not warn-open the fold.
+    assert s["chop_meta"] == "max · avg · med · min · σ · CV"
+    assert s["chop_warn"] is False
     # two runs only → hide CV (needs ≥3)
     two = build_breadth_tape_summary(rows[:6])
     assert two["flip_run_n"] == 2
     assert two["flip_cv_streak"] is not None
     assert "CV flip" not in two["line"]
+
+
+def test_breadth_chop_fold_meta_names_spoken_bits() -> None:
+    """Static max·avg·… inventory lied when only a subset spoke."""
+    assert breadth_chop_fold_meta() == ("quiet", False)
+    assert breadth_chop_fold_meta([]) == ("quiet", False)
+    meta, warn = breadth_chop_fold_meta(
+        ["max flip 3", "avg flip 2.0 (2 runs)", "min flip 1"]
+    )
+    assert meta == "max · avg · min"
+    assert warn is False
+    meta, warn = breadth_chop_fold_meta(
+        ["σ flip 2.1", "CV flip 0.8"],
+        flip_stdev_streak=2.1,
+        flip_cv_streak=0.8,
+    )
+    assert meta == "σ wide · CV"
+    assert warn is True
+    meta, warn = breadth_chop_fold_meta(
+        ["σ flip 0.5", "CV flip 2.5"],
+        flip_stdev_streak=0.5,
+        flip_cv_streak=2.5,
+    )
+    assert meta == "σ · CV wide"
+    assert warn is True
+
+
+def test_breadth_tape_summary_chop_fold_meta_wide_sigma_warn() -> None:
+    """Wide σ (≥2) names σ wide and warn-opens the chop fold."""
+    # runs 1, 1, 6 → sample σ ≈ 2.89 ≥ 2
+    rows = [
+        {"day": "2026-09-01", "is_dual_advance": True, "tape_label": "risk-on"},
+        {"day": "2026-09-02", "is_tape_split": True, "tape_label": "split"},
+        {"day": "2026-09-03", "is_tape_split": True, "tape_label": "split"},
+        {"day": "2026-09-04", "is_risk_off": True, "tape_label": "risk-off"},
+        {"day": "2026-09-05", "is_risk_off": True, "tape_label": "risk-off"},
+        {"day": "2026-09-06", "tape_label": "mixed"},
+        {"day": "2026-09-07", "is_dual_advance": True, "tape_label": "risk-on"},
+        {"day": "2026-09-08", "is_tape_split": True, "tape_label": "split"},
+        {"day": "2026-09-09", "is_risk_off": True, "tape_label": "risk-off"},
+        {"day": "2026-09-10", "tape_label": "mixed"},
+        {"day": "2026-09-11", "is_dual_advance": True, "tape_label": "risk-on"},
+    ]
+    s = build_breadth_tape_summary(rows)
+    assert s["ready"] is True
+    assert s["flip_run_n"] == 3
+    assert s["flip_stdev_streak"] is not None
+    assert s["flip_stdev_streak"] >= 2.0
+    assert s["chop_ready"] is True
+    assert "σ wide" in s["chop_meta"]
+    assert s["chop_warn"] is True
 
 
 def test_breadth_glance_flip_max_streak_from_history():

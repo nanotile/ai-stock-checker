@@ -2324,6 +2324,16 @@ a:active {
   font-weight: 400;
 }
 
+.chop-honesty.warn {
+  border-color: var(--down);
+}
+
+.chop-honesty.warn > summary,
+.chop-honesty.warn > summary .meta,
+.chop-honesty > .weight.warn {
+  color: var(--down);
+}
+
 .promote-honesty > summary .meta .warn,
 .promote-honesty.warn > summary {
   color: var(--down);
