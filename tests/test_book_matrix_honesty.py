@@ -66,7 +66,7 @@ def test_book_matrix_fold_meta_spoken_inventory() -> None:
             "ai_debate_marks_ready": True,
         }
     )
-    assert meta == "Session · RR · AI"
+    assert meta == "quiet · 3 folds · Session · RR · AI"
     assert warn is False
 
 
@@ -78,7 +78,7 @@ def test_book_matrix_fold_meta_rr_thin_hit_warn() -> None:
             "live_rr_hit_lots": 0,
         }
     )
-    assert meta == "RR thin"
+    assert meta == "warn · 1 hot of 1 · RR thin · quiet · 0 folds"
     assert warn is True
     meta, warn = book_matrix_fold_meta(
         {
@@ -88,8 +88,27 @@ def test_book_matrix_fold_meta_rr_thin_hit_warn() -> None:
             "live_rr_hit_lots": 1,
         }
     )
-    assert meta == "Hours · RR hit"
+    assert meta == "warn · 1 hot of 2 · RR hit · quiet · 1 fold · Hours"
     assert warn is True
+
+
+def test_book_matrix_fold_meta_clips_storm_and_keeps_rr_hit() -> None:
+    ready = {key: True for key, _label in (
+        ("entry_session_marks_ready", "Session"),
+        ("entry_hours_marks_ready", "Hours"),
+        ("entry_rebuy_marks_ready", "Rebuy"),
+        ("entry_rebuy_gap_marks_ready", "Gap"),
+        ("entry_post_sl_marks_ready", "Post-SL"),
+        ("entry_buy_fee_marks_ready", "Fee"),
+        ("live_rr_marks_ready", "RR"),
+    )}
+    ready["live_rr_hit_lots"] = 1
+    meta, warn = book_matrix_fold_meta(ready)
+    assert warn is True
+    assert meta.startswith("warn · 1 hot of 7 · RR hit · quiet · 6 folds · ")
+    assert "Session · Hours · Rebuy · Gap · +2" in meta
+    assert "Post-SL" not in meta
+    assert "Fee" not in meta
 
 
 def test_book_matrix_honesty_details() -> None:

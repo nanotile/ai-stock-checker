@@ -2247,16 +2247,17 @@ def book_matrix_fold_meta(
 ) -> tuple[str, bool]:
     """Summary chip for Book matrix fold — which clusters spoke / why warn-open.
 
-    Quiet names the spoken inventory (not the full static Session·Hours·…
-    list that lied when only designed RR or a thin subset spoke). Adverse
-    live RR bands (``thin`` / ``hit`` lots) rename the RR chip and return
-    warn so the fold opens (Breadth chop / Hours inactive / Yahoo mix
-    fold-meta parity). Display only; not a gate.
+    Quiet names a clipped inventory (``quiet · N folds · Session · … · +K``),
+    not the full static Session·Hours·… list and not every ready cluster
+    (Close honesty name clip + Policy honesty calm inventory). Adverse live
+    RR bands (``thin`` / ``hit`` lots) lead the chip and return warn so the
+    fold opens; a 25-cluster storm no longer buries ``RR hit`` at the end.
+    An all-hot chip still speaks ``quiet · 0 folds``. Display only; not a gate.
     """
     if not isinstance(book_risk, dict):
         return "quiet", False
-    labels: list[str] = []
-    rr_warn = False
+    calm: list[str] = []
+    hot: list[str] = []
     for key, label in _BOOK_MATRIX_FOLD_LABELS:
         if not book_risk.get(key):
             continue
@@ -2270,18 +2271,33 @@ def book_matrix_fold_meta(
             except (TypeError, ValueError):
                 hit_lots = 0
             if hit_lots > 0:
-                labels.append("RR hit")
-                rr_warn = True
+                hot.append("RR hit")
             elif thin_lots > 0:
-                labels.append("RR thin")
-                rr_warn = True
+                hot.append("RR thin")
             else:
-                labels.append("RR")
+                calm.append("RR")
             continue
-        labels.append(label)
-    if not labels:
+        calm.append(label)
+    ready = len(calm) + len(hot)
+    if ready <= 0:
         return "quiet", False
-    return " · ".join(labels), rr_warn
+    if not hot:
+        unit = "fold" if ready == 1 else "folds"
+        named = cap_honesty_fold_names(calm, cap=_HONESTY_QUIET_NAME_CAP)
+        return f"quiet · {ready} {unit} · " + " · ".join(named), False
+    named_hot = cap_honesty_fold_names(hot, cap=_HONESTY_WARN_NAME_CAP)
+    quiet_n = len(calm)
+    unit = "fold" if quiet_n == 1 else "folds"
+    parts = [
+        f"warn · {len(hot)} hot of {ready}",
+        *named_hot,
+        f"quiet · {quiet_n} {unit}",
+    ]
+    if quiet_n > 0:
+        parts.extend(
+            cap_honesty_fold_names(calm, cap=_HONESTY_QUIET_NAME_CAP)
+        )
+    return " · ".join(parts), True
 
 
 # Nested glances inside ``#policy-honesty`` that can escalate tone.
