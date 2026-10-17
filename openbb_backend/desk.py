@@ -19961,6 +19961,7 @@ def build_universe_discovery_glance(
         yahoo_fail_error_also_vs_delta_lead_size_sides_share_delta,
         yahoo_fail_error_also_vs_delta_lead_size_sides_share_vs_gap,
         yahoo_fail_mix_lean_meta,
+        yahoo_fail_cascade_lean_meta,
         yahoo_fail_error_also_vs_lean,
         yahoo_fail_error_also_vs_winner,
         yahoo_fail_error_seed_fail_vs_budget,
@@ -20670,6 +20671,26 @@ def build_universe_discovery_glance(
         if mix_lean
         else ""
     )
+    error_lean_meta = (
+        yahoo_fail_cascade_lean_meta(
+            outer_bit=error_seed_fail_vs_budget,
+            outer_warn=error_seed_fail_vs_budget_warn,
+            inner_bit=error_seed_vs_fail,
+            inner_warn=error_seed_vs_fail_warn,
+        )
+        if error_lean
+        else ""
+    )
+    streak_lean_meta = (
+        yahoo_fail_cascade_lean_meta(
+            outer_bit=streak_seed_fail_vs_budget,
+            outer_warn=streak_seed_fail_vs_budget_warn,
+            inner_bit=streak_seed_vs_fail,
+            inner_warn=streak_seed_vs_fail_warn,
+        )
+        if streak_lean
+        else ""
+    )
     return {
         "ready": True,
         "tone": tone,
@@ -20677,8 +20698,10 @@ def build_universe_discovery_glance(
         "line_core": line_core,
         "streak_lean": streak_lean,
         "streak_lean_warn": bool(streak_lean_warn),
+        "streak_lean_meta": streak_lean_meta,
         "error_lean": error_lean,
         "error_lean_warn": bool(error_lean_warn),
+        "error_lean_meta": error_lean_meta,
         "mix_lean": mix_lean,
         "mix_lean_warn": bool(mix_lean_warn),
         "mix_lean_meta": mix_lean_meta,

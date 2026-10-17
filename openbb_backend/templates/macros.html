@@ -755,8 +755,10 @@
 {% set mix_meta = glance.mix_lean_meta|default('timeout · held') %}
 {% set error_lean = glance.error_lean|default('') %}
 {% set error_warn = glance.error_lean_warn|default(false) %}
+{% set error_meta = glance.error_lean_meta|default('cascade') %}
 {% set streak_lean = glance.streak_lean|default('') %}
 {% set lean_warn = glance.streak_lean_warn|default(false) %}
+{% set streak_meta = glance.streak_lean_meta|default('cascade') %}
 <section class="universe-discovery-glance" aria-labelledby="{{ heading_id }}">
   <h2 id="{{ heading_id }}" class="visually-hidden">Universe discovery</h2>
   <p class="universe-discovery-glance-line">
@@ -774,13 +776,13 @@
   {% endif %}
   {% if error_lean %}
   <details class="universe-error-lean{% if error_warn %} warn{% endif %}"{% if error_warn %} open{% endif %}>
-    <summary>error lean <span class="meta">cascade</span></summary>
+    <summary>error lean <span class="meta">{{ error_meta }}</span></summary>
     <p class="universe-error-lean-body{% if error_warn %} warn{% endif %}">{{ error_lean }}</p>
   </details>
   {% endif %}
   {% if streak_lean %}
   <details class="universe-streak-lean{% if lean_warn %} warn{% endif %}"{% if lean_warn %} open{% endif %}>
-    <summary>streak lean <span class="meta">cascade</span></summary>
+    <summary>streak lean <span class="meta">{{ streak_meta }}</span></summary>
     <p class="universe-streak-lean-body{% if lean_warn %} warn{% endif %}">{{ streak_lean }}</p>
   </details>
   {% endif %}

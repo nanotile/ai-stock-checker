@@ -25,6 +25,7 @@ from stock_checker.yahoo_universe_discovery import (
     yahoo_fail_error_also_vs_delta_lead_size_sides_share_delta,
     yahoo_fail_error_also_vs_delta_lead_size_sides_share_vs_gap,
     yahoo_fail_mix_lean_meta,
+    yahoo_fail_cascade_lean_meta,
     yahoo_fail_error_also_vs_lean,
     yahoo_fail_error_also_vs_winner,
     yahoo_fail_error_seed_fail_vs_budget,
@@ -498,6 +499,62 @@ def test_yahoo_fail_mix_lean_meta_names_the_open():
         share_vs_gap_warn=False,
         lean_warn=False,
     ) == "timeout · held"
+
+
+def test_yahoo_fail_cascade_lean_meta_names_the_open():
+    """Quiet chip stays cascade; warned sf/budget or seed/fail names why."""
+    assert yahoo_fail_cascade_lean_meta() == "cascade"
+    assert (
+        yahoo_fail_cascade_lean_meta(
+            outer_bit="align · both clash",
+            outer_warn=True,
+        )
+        == "align · both clash"
+    )
+    assert (
+        yahoo_fail_cascade_lean_meta(
+            outer_bit="align · both align",
+            outer_warn=True,
+        )
+        == "align · both align"
+    )
+    assert (
+        yahoo_fail_cascade_lean_meta(
+            outer_bit="clash · seed/fail align · budget clash",
+            outer_warn=True,
+        )
+        == "clash"
+    )
+    # Outer warn wins over inner.
+    assert (
+        yahoo_fail_cascade_lean_meta(
+            outer_bit="align · both clash",
+            outer_warn=True,
+            inner_bit="clash · seed clash · fail align",
+            inner_warn=True,
+        )
+        == "align · both clash"
+    )
+    # Inner alone when outer quiet.
+    assert (
+        yahoo_fail_cascade_lean_meta(
+            outer_bit="",
+            outer_warn=False,
+            inner_bit="clash · seed clash · fail align",
+            inner_warn=True,
+        )
+        == "clash"
+    )
+    # Non-warn outer does not open the chip.
+    assert (
+        yahoo_fail_cascade_lean_meta(
+            outer_bit="align · both align",
+            outer_warn=False,
+            inner_bit="",
+            inner_warn=False,
+        )
+        == "cascade"
+    )
 
 
 def test_yahoo_discovery_error_meta_allowlist():

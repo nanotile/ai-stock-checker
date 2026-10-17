@@ -2696,14 +2696,16 @@
       glance.error_lean ? String(glance.error_lean) : "",
       !!glance.error_lean_warn,
       "universe-error-lean",
-      "universe-error-lean-body"
+      "universe-error-lean-body",
+      glance.error_lean_meta ? String(glance.error_lean_meta) : "cascade"
     );
     appendLean(
       "streak lean",
       glance.streak_lean ? String(glance.streak_lean) : "",
       !!glance.streak_lean_warn,
       "universe-streak-lean",
-      "universe-streak-lean-body"
+      "universe-streak-lean-body",
+      glance.streak_lean_meta ? String(glance.streak_lean_meta) : "cascade"
     );
     var sub = document.createElement("p");
     sub.className = "sub";

@@ -425,6 +425,7 @@ def test_universe_discovery_glance_yahoo_fail_error_vs_seed_first_fail(
     assert g["yahoo_fail_error_seed_fail_vs_budget"] == "align · both clash"
     assert g["yahoo_fail_error_seed_fail_vs_budget_warn"] is True
     assert g["error_lean_warn"] is True
+    assert g["error_lean_meta"] == "align · both clash"
     assert "Yahoo fail · timeout · 0/3" in g["line_core"]
     assert "error/" not in g["line_core"]
     assert "error/seed clash · fresh" in g["error_lean"]
@@ -457,6 +458,7 @@ def test_universe_discovery_glance_yahoo_fail_error_vs_seed_first_fail(
     )
     assert stale["yahoo_fail_error_seed_fail_vs_budget_warn"] is True
     assert stale["error_lean_warn"] is True
+    assert stale["error_lean_meta"] == "clash"
     assert "error/" not in stale["line_core"]
     assert "error/seed align · stale" in stale["error_lean"]
     assert "error sf/budget clash · seed/fail align · budget clash" in stale[
@@ -562,6 +564,7 @@ def test_universe_discovery_glance_yahoo_fail_streak_speaks(tmp_path) -> None:
     assert "streak/seed clash · fresh" in g["streak_lean"]
     assert "sf/budget align · both clash" in g["streak_lean"]
     assert g["streak_lean_warn"] is True
+    assert g["streak_lean_meta"] == "align · both clash"
 
 
 def test_universe_discovery_glance_yahoo_fail_streak_vs_seed_stale(

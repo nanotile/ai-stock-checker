@@ -807,6 +807,37 @@ def yahoo_fail_mix_lean_meta(
     return "timeout · held"
 
 
+def yahoo_fail_cascade_lean_meta(
+    *,
+    outer_bit: str = "",
+    outer_warn: bool = False,
+    inner_bit: str = "",
+    inner_warn: bool = False,
+) -> str:
+    """Summary chip for error/streak lean folds — why open, not another body bit.
+
+    Quiet cascade stays ``cascade``. Prefer outer sf/budget warn over inner
+    seed/fail. ``align · both clash`` / adverse ``align · both align`` keep
+    that phrase; any ``clash · …`` bit shortens to ``clash``. Fold body still
+    holds the full relationship text (mix-fold meta parity).
+    """
+    bit = ""
+    if outer_warn and str(outer_bit or "").strip():
+        bit = str(outer_bit).strip()
+    elif inner_warn and str(inner_bit or "").strip():
+        bit = str(inner_bit).strip()
+    else:
+        return "cascade"
+    low = bit.lower()
+    if low.startswith("align · both "):
+        tail = low[len("align · both ") :].strip()
+        if tail in ("clash", "align"):
+            return f"align · both {tail}"
+    if low.startswith("clash"):
+        return "clash"
+    return "clash"
+
+
 def yahoo_fail_error_vs_seed(error: str, seed_freshness: str) -> str:
     """Typed last-error vs reused-seed extremes (xang1234 #639 + portfolio AI).
 
