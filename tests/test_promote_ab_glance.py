@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import date, datetime, timezone
 from pathlib import Path
 
-from openbb_backend.desk import build_promote_ab_glance
+from openbb_backend.desk import build_promote_ab_glance, promote_honesty_fold_meta
 from stock_checker.promote_ab import (
     WINDOW_A_START_UTC,
     filter_trades_in_window,
@@ -37,6 +37,49 @@ def test_promote_ab_glance_empty() -> None:
     assert build_promote_ab_glance(None)["ready"] is False
 
 
+def test_promote_honesty_fold_meta_names_fees_severity() -> None:
+    """Child-fold summary chips name why open — not static drag · comfortable."""
+    assert promote_honesty_fold_meta() == {}
+    assert (
+        promote_honesty_fold_meta(
+            fees_line="A fees thin · net +€20 · fees 0.8×",
+            fees_ok_severity="thin",
+            honesty_warns=["fees"],
+        )["fees"]
+        == "thin"
+    )
+    assert (
+        promote_honesty_fold_meta(
+            fees_line="A fee drag heavy · net −€60 · fees 4×",
+            fee_drag_severity="heavy",
+            honesty_warns=["fees"],
+        )["fees"]
+        == "heavy"
+    )
+    assert (
+        promote_honesty_fold_meta(
+            fees_line="A fees comfortable · net +€40 · fees 0.1×",
+            fees_ok_severity="comfortable",
+        )["fees"]
+        == "comfortable"
+    )
+    assert (
+        promote_honesty_fold_meta(
+            polarity_line="A all-loss · 0w/4l",
+            closes_polarity="all_loss",
+            honesty_warns=["polarity"],
+        )["polarity"]
+        == "all-loss"
+    )
+    assert (
+        promote_honesty_fold_meta(
+            fee_pressure_line="A exits € size clash keep fees eat · 2×",
+            honesty_warns=["fee pressure"],
+        )["fee pressure"]
+        == "eat"
+    )
+
+
 def test_promote_ab_glance_running() -> None:
     g = build_promote_ab_glance(
         {"promote_experiment_strategy": False},
@@ -60,6 +103,7 @@ def test_promote_ab_glance_running() -> None:
     assert g["align_nest_line"] == ""
     assert g["align_deep_line"] == ""
     assert g["edge_line"] == ""
+    assert g["honesty_fold_meta"] == {}
     assert g["honesty_warns"] == []
     assert g["honesty_warn_count"] == 0
     assert g["honesty_folds"] == []
@@ -912,6 +956,8 @@ def test_promote_ab_glance_fees_thin_warns_but_ready_for_b() -> None:
     assert g["honesty_folds"]
     assert "fees" in g["honesty_folds"]
     assert set(g["honesty_warns"]).issubset(set(g["honesty_folds"]))
+    # Child-fold summary names thin (not static drag · comfortable).
+    assert g["honesty_fold_meta"]["fees"] == "thin"
     # Hot also names calm folds + calm count (speak-both-sides after quiet
     # fold names; tradermonty preserve diagnostics when hot).
     assert "fees" not in g["honesty_quiet_folds"]

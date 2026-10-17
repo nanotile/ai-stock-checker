@@ -16113,6 +16113,174 @@ def build_calm_streak_glance(
 
 
 
+def promote_honesty_fold_meta(
+    *,
+    honesty_warns: list[str] | None = None,
+    fees_line: str = "",
+    fee_drag_severity: str = "",
+    fees_ok_severity: str = "",
+    polarity_line: str = "",
+    closes_polarity: str = "",
+    closes_polarity_lean: str = "",
+    edge_line: str = "",
+    closes_net_expectancy_eats_edge: bool = False,
+    closes_expectancy_neg: bool = False,
+    closes_net_expectancy_neg: bool = False,
+    closes_wr_below_be: bool = False,
+    closes_payoff_thin: bool = False,
+    closes_win_rate_thin: bool = False,
+    kelly_line: str = "",
+    closes_kelly_neg: bool = False,
+    closes_kelly_thin: bool = False,
+    streak_line: str = "",
+    closes_loss_streak_hot: bool = False,
+    closes_flat_warn: bool = False,
+    exit_mix_line: str = "",
+    exit_euro_line: str = "",
+    fee_pressure_line: str = "",
+    align_nest_line: str = "",
+    align_deep_line: str = "",
+) -> dict[str, str]:
+    """Summary chips for Close honesty child folds — why open, not body text.
+
+    Quiet stays a short calm label. Hot folds name the severity (Yahoo mix /
+    Screener weight lean meta + tradermonty assessment-label honesty). Static
+    ``drag · comfortable`` lied when fees were thin or drag was heavy.
+    """
+
+    warns = {str(w).strip() for w in (honesty_warns or []) if str(w).strip()}
+
+    def _rel_chip(bit: str, *, quiet: str) -> str:
+        low = str(bit or "").strip().lower()
+        if not low:
+            return quiet
+        # Fee-pressure leftover mood before generic clash (…clash keep fees eat).
+        if "keep fees eat" in low or low.endswith(" eat"):
+            return "eat"
+        if "align · both " in low:
+            if "both clash" in low:
+                return "align · both clash"
+            if "both align" in low:
+                return "align · both align"
+        if "align · wide" in low or low.endswith("· wide"):
+            return "align · wide"
+        if "align · thin" in low or low.endswith("· thin"):
+            return "align · thin"
+        if "clash" in low:
+            return "clash"
+        return "warn"
+
+    out: dict[str, str] = {}
+    if str(fees_line or "").strip():
+        drag = str(fee_drag_severity or "").strip().lower()
+        if drag in ("mild", "heavy", "severe", "total"):
+            out["fees"] = drag
+        else:
+            ok = str(fees_ok_severity or "").strip().lower()
+            if ok == "thin":
+                out["fees"] = "thin"
+            elif ok == "comfortable":
+                out["fees"] = "comfortable"
+            elif ok:
+                out["fees"] = "ok"
+            else:
+                out["fees"] = "quiet"
+
+    if str(polarity_line or "").strip():
+        pol = str(closes_polarity or "").strip().lower().replace("-", "_")
+        lean = str(closes_polarity_lean or "").strip().lower()
+        if pol == "all_loss":
+            out["polarity"] = "all-loss"
+        elif pol == "all_win":
+            out["polarity"] = "all-win"
+        elif lean == "loss_lean":
+            out["polarity"] = "mostly losses"
+        elif lean == "win_lean":
+            out["polarity"] = "mostly wins"
+        elif lean == "even":
+            out["polarity"] = "even"
+        else:
+            out["polarity"] = "wins · losses"
+
+    if str(edge_line or "").strip():
+        if "edge" in warns:
+            if closes_net_expectancy_eats_edge:
+                out["edge"] = "fees eat edge"
+            elif closes_expectancy_neg or closes_net_expectancy_neg:
+                out["edge"] = "expect −"
+            elif closes_wr_below_be:
+                out["edge"] = "below BE"
+            elif closes_payoff_thin:
+                out["edge"] = "payoff thin"
+            elif closes_win_rate_thin:
+                out["edge"] = "WR thin"
+            else:
+                out["edge"] = "thin"
+        else:
+            out["edge"] = "payoff · WR · PF"
+
+    if str(kelly_line or "").strip():
+        if "Kelly" in warns:
+            if closes_kelly_neg:
+                out["Kelly"] = "neg"
+            elif closes_kelly_thin:
+                out["Kelly"] = "thin"
+            else:
+                out["Kelly"] = "under"
+        else:
+            out["Kelly"] = "size vs sizer"
+
+    if str(streak_line or "").strip():
+        if "streaks" in warns:
+            if closes_loss_streak_hot:
+                out["streaks"] = "loss hot"
+            elif closes_flat_warn:
+                out["streaks"] = "flats"
+            else:
+                out["streaks"] = "hot"
+        else:
+            out["streaks"] = "win · loss runs"
+
+    if str(exit_mix_line or "").strip():
+        if "exit mix" in warns:
+            low = exit_mix_line.lower()
+            if "unknown" in low:
+                out["exit mix"] = "unknown"
+            else:
+                out["exit mix"] = "stops lead"
+        else:
+            out["exit mix"] = "tp · sl · rot · trim"
+
+    if str(exit_euro_line or "").strip():
+        if "exit euros" in warns:
+            out["exit euros"] = _rel_chip(exit_euro_line, quiet="warn")
+        else:
+            out["exit euros"] = "count ≠ €"
+
+    if str(fee_pressure_line or "").strip():
+        quiet = "leftover vs book"
+        if "fee pressure" in warns:
+            out["fee pressure"] = _rel_chip(fee_pressure_line, quiet="warn")
+        else:
+            out["fee pressure"] = quiet
+
+    if str(align_nest_line or "").strip():
+        quiet = "size · lead · share"
+        if "align nest" in warns:
+            out["align nest"] = _rel_chip(align_nest_line, quiet="warn")
+        else:
+            out["align nest"] = quiet
+
+    if str(align_deep_line or "").strip():
+        quiet = "nested size · lead · share"
+        if "align deep" in warns:
+            out["align deep"] = _rel_chip(align_deep_line, quiet="warn")
+        else:
+            out["align deep"] = quiet
+
+    return out
+
+
 def build_promote_ab_glance(
     runtime: dict[str, Any] | None,
     *,
@@ -18460,6 +18628,39 @@ def build_promote_ab_glance(
     # Allow room for N/M sells + fee / polarity / WR / vs-BE / Kelly / half-Kelly / slot / cap / quarter / practical / Kelly sample / loss streak / loss max / loss mean / loss med / loss min / loss σ / win streak / win max / win mean / win med / win min / flats / payoff / expectancy / net / fee take / PF / net PF / freshness.
     if len(line) > 1260:
         line = line[:1149] + "…"
+    honesty_fold_meta = promote_honesty_fold_meta(
+        honesty_warns=honesty_warns,
+        fees_line=fees_line,
+        fee_drag_severity=fee_drag_severity if window == "A" else "",
+        fees_ok_severity=fees_ok_severity if window == "A" else "",
+        polarity_line=polarity_line,
+        closes_polarity=closes_polarity if window == "A" else "",
+        closes_polarity_lean=closes_polarity_lean if window == "A" else "",
+        edge_line=edge_line,
+        closes_net_expectancy_eats_edge=(
+            closes_net_expectancy_eats_edge if window == "A" else False
+        ),
+        closes_expectancy_neg=closes_expectancy_neg if window == "A" else False,
+        closes_net_expectancy_neg=(
+            closes_net_expectancy_neg if window == "A" else False
+        ),
+        closes_wr_below_be=closes_wr_below_be if window == "A" else False,
+        closes_payoff_thin=closes_payoff_thin if window == "A" else False,
+        closes_win_rate_thin=closes_win_rate_thin if window == "A" else False,
+        kelly_line=kelly_line,
+        closes_kelly_neg=closes_kelly_neg if window == "A" else False,
+        closes_kelly_thin=closes_kelly_thin if window == "A" else False,
+        streak_line=streak_line,
+        closes_loss_streak_hot=(
+            closes_loss_streak_hot if window == "A" else False
+        ),
+        closes_flat_warn=closes_flat_warn if window == "A" else False,
+        exit_mix_line=exit_mix_line,
+        exit_euro_line=exit_euro_line,
+        fee_pressure_line=fee_pressure_line,
+        align_nest_line=align_nest_line,
+        align_deep_line=align_deep_line,
+    )
     return {
         "ready": True,
         "tone": tone,
@@ -18477,6 +18678,7 @@ def build_promote_ab_glance(
         "align_nest_line": align_nest_line,
         "align_deep_line": align_deep_line,
         "edge_line": edge_line,
+        "honesty_fold_meta": honesty_fold_meta,
         "honesty_warns": honesty_warns,
         # Count first so friends see how hot Close honesty is without scanning
         # every fold name (MonsterDeveloper declutter + xang1234 severity).

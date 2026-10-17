@@ -122,6 +122,9 @@ def test_promote_honesty_fold_in_macro_and_charts() -> None:
     assert "glance.exit_mix_line" in macro
     assert "glance.fees_line" in macro
     assert "glance.polarity_line" in macro
+    assert "glance.honesty_fold_meta" in macro
+    assert "fold_meta.fees" in macro
+    assert "drag · comfortable" not in macro
     assert "glance.align_nest_line" in macro
     assert "glance.align_deep_line" in macro
     assert ".promote-kelly" in css
@@ -140,6 +143,7 @@ def test_promote_honesty_fold_in_macro_and_charts() -> None:
     assert "promote-polarity" in js
     assert "promote-align-nest" in js
     assert "promote-align-deep" in js
+    assert "honesty_fold_meta" in js
     assert "glance.honesty_warns" in macro
     assert "glance.honesty_warns" in js
     assert "|length }} hot" in macro

@@ -1767,6 +1767,10 @@
         ? String(glance.align_deep_line)
         : "";
       var edge = glance.edge_line ? String(glance.edge_line) : "";
+      var foldMetaMap =
+        glance.honesty_fold_meta && typeof glance.honesty_fold_meta === "object"
+          ? glance.honesty_fold_meta
+          : {};
       function appendHonestyFold(className, title, metaText, noteText, body, label) {
         if (!body) return;
         var hot = warns.indexOf(label) !== -1;
@@ -1777,7 +1781,8 @@
         foldSummary.appendChild(document.createTextNode(title + " "));
         var foldMeta = document.createElement("span");
         foldMeta.className = "meta";
-        foldMeta.textContent = hot ? metaText + " · warn" : metaText;
+        var chip = foldMetaMap[label] ? String(foldMetaMap[label]) : "";
+        foldMeta.textContent = chip || metaText;
         foldSummary.appendChild(foldMeta);
         fold.appendChild(foldSummary);
         var foldNote = document.createElement("p");
