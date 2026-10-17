@@ -2212,6 +2212,78 @@ def build_pretrade_glance(
     }
 
 
+# Book Group Matrix fold — short summary labels for ready mark clusters
+# (order matches desk_book.html risk-strip). Display only; not a gate.
+_BOOK_MATRIX_FOLD_LABELS: tuple[tuple[str, str], ...] = (
+    ("entry_session_marks_ready", "Session"),
+    ("entry_hours_marks_ready", "Hours"),
+    ("entry_rebuy_marks_ready", "Rebuy"),
+    ("entry_rebuy_gap_marks_ready", "Gap"),
+    ("entry_post_sl_marks_ready", "Post-SL"),
+    ("entry_post_tp_marks_ready", "Post-TP"),
+    ("entry_post_rot_marks_ready", "Post-rot"),
+    ("entry_post_trim_marks_ready", "Post-trim"),
+    ("entry_buy_fee_marks_ready", "Fee"),
+    ("entry_buy_conf_marks_ready", "Buy-c"),
+    ("entry_buy_score_marks_ready", "Buy-s"),
+    ("entry_buy_strat_marks_ready", "Strat"),
+    ("entry_buy_size_marks_ready", "Buy-%"),
+    ("entry_buy_src_marks_ready", "Src"),
+    ("entry_conc_marks_ready", "Cap"),
+    ("live_rr_marks_ready", "RR"),
+    ("scan_list_marks_ready", "List"),
+    ("scan_score_marks_ready", "Score"),
+    ("scan_near_high_marks_ready", "Near"),
+    ("scan_mover_marks_ready", "Move"),
+    ("scan_vol_marks_ready", "Vol"),
+    ("ai_debate_marks_ready", "AI"),
+    ("ai_conf_marks_ready", "Conf"),
+    ("ai_roles_marks_ready", "Roles"),
+)
+
+
+def book_matrix_fold_meta(
+    book_risk: dict[str, Any] | None,
+) -> tuple[str, bool]:
+    """Summary chip for Book matrix fold — which clusters spoke / why warn-open.
+
+    Quiet names the spoken inventory (not the full static Session·Hours·…
+    list that lied when only designed RR or a thin subset spoke). Adverse
+    live RR bands (``thin`` / ``hit`` lots) rename the RR chip and return
+    warn so the fold opens (Breadth chop / Hours inactive / Yahoo mix
+    fold-meta parity). Display only; not a gate.
+    """
+    if not isinstance(book_risk, dict):
+        return "quiet", False
+    labels: list[str] = []
+    rr_warn = False
+    for key, label in _BOOK_MATRIX_FOLD_LABELS:
+        if not book_risk.get(key):
+            continue
+        if key == "live_rr_marks_ready":
+            try:
+                thin_lots = int(book_risk.get("live_rr_thin_lots") or 0)
+            except (TypeError, ValueError):
+                thin_lots = 0
+            try:
+                hit_lots = int(book_risk.get("live_rr_hit_lots") or 0)
+            except (TypeError, ValueError):
+                hit_lots = 0
+            if hit_lots > 0:
+                labels.append("RR hit")
+                rr_warn = True
+            elif thin_lots > 0:
+                labels.append("RR thin")
+                rr_warn = True
+            else:
+                labels.append("RR")
+            continue
+        labels.append(label)
+    if not labels:
+        return "quiet", False
+    return " · ".join(labels), rr_warn
+
+
 def build_book_risk_glance(
     book_risk: dict[str, Any] | None,
 ) -> dict[str, Any]:
@@ -27738,6 +27810,9 @@ def load_desk_snapshot(
         ai_gated=ai_gated,
         trades=trades,
     )
+    matrix_meta, matrix_warn = book_matrix_fold_meta(book_risk)
+    book_risk["matrix_meta"] = matrix_meta
+    book_risk["matrix_warn"] = matrix_warn
     runtime = _trader_runtime_view()
     scan_interval_sec = max(60, int(runtime.get("scan_interval_min") or 15) * 60)
     scan_time_raw = opportunities.get("scan_time") or ""

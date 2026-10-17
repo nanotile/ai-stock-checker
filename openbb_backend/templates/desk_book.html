@@ -163,10 +163,12 @@
     or br.scan_near_high_marks_ready or br.scan_mover_marks_ready or br.scan_vol_marks_ready
     or br.ai_debate_marks_ready or br.ai_conf_marks_ready or br.ai_roles_marks_ready
   ) %}
-  <details class="matrix-honesty" id="matrix-honesty">
+  {% set matrix_meta = br.matrix_meta|default('quiet') %}
+  {% set matrix_warn = br.matrix_warn|default(false) %}
+  <details class="matrix-honesty{% if matrix_warn %} warn{% endif %}" id="matrix-honesty"{% if matrix_warn %} open{% endif %}>
     <summary>
       Screener &amp; AI marks
-      <span class="meta">Session · Hours · Rebuy · Gap · Post-SL · Post-TP · Post-rot · Post-trim · Fee · Buy-c · Buy-s · Strat · Buy-% · Src · Cap · RR · List · Score · Near · Move · Vol · AI · Conf · Roles</span>
+      <span class="meta">{{ matrix_meta }}</span>
     </summary>
     <p class="sub">
       Group Matrix research clusters — entry session/hours/rebuy/gap/post-SL/post-TP/post-rot/post-trim/fee/buy-c/buy-s/strat/buy-%/src/cap + live RR + scan-list + debate memory; display only; not a gate.

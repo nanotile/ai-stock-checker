@@ -2390,6 +2390,15 @@ a:active {
   font-weight: 400;
 }
 
+.matrix-honesty.warn {
+  border-color: var(--down);
+}
+
+.matrix-honesty.warn > summary,
+.matrix-honesty.warn > summary .meta {
+  color: var(--down);
+}
+
 .matrix-honesty[open] > summary {
   margin-bottom: 0.35rem;
 }
