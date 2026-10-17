@@ -112,9 +112,32 @@ def test_promote_honesty_fold_meta_names_fees_severity() -> None:
         promote_honesty_fold_meta(
             fee_pressure_line="A exits € size clash keep fees eat · 2×",
             honesty_warns=["fee pressure"],
-        )["fee pressure"]
+        )        ["fee pressure"]
         == "eat"
     )
+
+
+def test_promote_honesty_quiet_chips_name_spoken_bits() -> None:
+    """Payoff-only edge must not claim WR and PF (Policy honesty inventory)."""
+    edge = promote_honesty_fold_meta(
+        edge_line="A payoff · 2.0×",
+    )["edge"]
+    assert edge == "quiet · 1 fold · payoff"
+    many = promote_honesty_fold_meta(
+        edge_line=(
+            "A payoff · 2× · A expectancy · +€1 · A PF · 1.5× · "
+            "A win rate · 55% · A WR above BE · +5pp"
+        ),
+    )["edge"]
+    assert many == "quiet · 5 folds · payoff · exp · PF · WR · +1"
+    mix = promote_honesty_fold_meta(
+        exit_mix_line="A exits tp · sl · A exits tp share · 80%",
+    )["exit mix"]
+    assert mix == "quiet · 2 folds · mix · tp"
+    streaks = promote_honesty_fold_meta(
+        streak_line="A loss streak quiet · 1 · A flats · 2",
+    )["streaks"]
+    assert streaks == "quiet · 2 folds · loss · flats"
 
 
 def test_promote_ab_glance_running() -> None:

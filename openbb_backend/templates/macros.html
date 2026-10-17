@@ -277,7 +277,7 @@
     {% endif %}
     {% if glance.edge_line %}
     <details class="promote-honesty promote-edge{% if 'edge' in warns %} warn{% endif %}"{% if 'edge' in warns %} open{% endif %}>
-      <summary>Edge <span class="meta">{{ fold_meta.edge|default('payoff · WR · PF') }}</span></summary>
+      <summary>Edge <span class="meta">{{ fold_meta.edge|default('quiet') }}</span></summary>
       <p class="sub">Close quality after fees. Warn only. Not a gate.</p>
       <p class="weight">{{ glance.edge_line }}</p>
     </details>
@@ -291,14 +291,14 @@
     {% endif %}
     {% if glance.streak_line %}
     <details class="promote-honesty promote-streaks{% if 'streaks' in warns %} warn{% endif %}"{% if 'streaks' in warns %} open{% endif %}>
-      <summary>Streaks <span class="meta">{{ fold_meta.streaks|default('win · loss runs') }}</span></summary>
+      <summary>Streaks <span class="meta">{{ fold_meta.streaks|default('quiet') }}</span></summary>
       <p class="sub">Newest and past close runs, plus flat sells. Warn only. Not a gate.</p>
       <p class="weight">{{ glance.streak_line }}</p>
     </details>
     {% endif %}
     {% if glance.exit_mix_line %}
     <details class="promote-honesty promote-exit-mix{% if 'exit mix' in warns %} warn{% endif %}"{% if 'exit mix' in warns %} open{% endif %}>
-      <summary>Exit mix <span class="meta">{{ fold_meta['exit mix']|default('tp · sl · rot · trim') }}</span></summary>
+      <summary>Exit mix <span class="meta">{{ fold_meta['exit mix']|default('quiet') }}</span></summary>
       <p class="sub">Which close reasons fired (counts, not euros). Warn only. Not a gate.</p>
       <p class="weight">{{ glance.exit_mix_line }}</p>
     </details>

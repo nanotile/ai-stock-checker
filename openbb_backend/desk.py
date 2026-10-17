@@ -16289,6 +16289,79 @@ def build_calm_streak_glance(
 
 
 
+# Quiet child chips name spoken bits (Policy honesty calm inventory).
+# Longer prefixes first so ``A net PF`` is not read as ``A PF``.
+_EDGE_QUIET_LABELS: tuple[tuple[str, str], ...] = (
+    ("A payoff", "payoff"),
+    ("A expectancy", "exp"),
+    ("A net expect", "net"),
+    ("A fee take", "fee take"),
+    ("A net/fee", "net/fee"),
+    ("A net PF", "net PF"),
+    ("A PF", "PF"),
+    ("A win rate", "WR"),
+    ("A WR ", "WR/BE"),
+)
+_STREAK_QUIET_LABELS: tuple[tuple[str, str], ...] = (
+    ("A loss streak max", "loss max"),
+    ("A loss streak mean", "loss mean"),
+    ("A loss streak med", "loss med"),
+    ("A loss streak min", "loss min"),
+    ("A loss streak σ", "loss σ"),
+    ("A loss streak CV", "loss CV"),
+    ("A loss streak", "loss"),
+    ("A win streak max", "win max"),
+    ("A win streak mean", "win mean"),
+    ("A win streak med", "win med"),
+    ("A win streak min", "win min"),
+    ("A win streak σ", "win σ"),
+    ("A win streak CV", "win CV"),
+    ("A win streak", "win"),
+    ("A flats", "flats"),
+)
+_EXIT_MIX_QUIET_LABELS: tuple[tuple[str, str], ...] = (
+    ("A exits unknown", "unknown"),
+    ("A exits tp share", "tp"),
+    ("A exits sl share", "sl"),
+    ("A exits rot share", "rot"),
+    ("A exits trim share", "trim"),
+    ("A exits ", "mix"),
+)
+
+
+def _honesty_bits_in_line(line: str) -> list[str]:
+    """Split a joined honesty line on bit boundaries, not inner `` · ``.
+
+    Window A bits all start with ``A ``. The exit-mix bit itself contains
+    `` · `` (``A exits tp · sl``), so a raw split would invent extra bits.
+    """
+    text = str(line or "").strip()
+    if not text:
+        return []
+    parts = text.split(" · A ")
+    bits = [parts[0]]
+    bits.extend(f"A {part}" for part in parts[1:])
+    return [bit.strip() for bit in bits if bit.strip()]
+
+
+def _quiet_spoken_chip(
+    line: str,
+    labels: tuple[tuple[str, str], ...],
+) -> str:
+    """``quiet · N folds · payoff · … · +K`` for bits that actually spoke."""
+    names: list[str] = []
+    for bit in _honesty_bits_in_line(line):
+        for prefix, label in labels:
+            if bit.startswith(prefix):
+                names.append(label)
+                break
+    if not names:
+        return "quiet"
+    unit = "fold" if len(names) == 1 else "folds"
+    named = cap_honesty_fold_names(names, cap=_HONESTY_QUIET_NAME_CAP)
+    return f"quiet · {len(names)} {unit} · " + " · ".join(named)
+
+
 def promote_honesty_fold_meta(
     *,
     honesty_warns: list[str] | None = None,
@@ -16319,8 +16392,10 @@ def promote_honesty_fold_meta(
 ) -> dict[str, str]:
     """Summary chips for Close honesty child folds — why open, not body text.
 
-    Quiet stays a short calm label. Hot folds name the severity (Yahoo mix /
-    Screener weight lean meta + tradermonty assessment-label honesty). Static
+    Quiet edge / streaks / exit mix name the bits that spoke
+    (``quiet · N folds · payoff · …``), clipped like Policy honesty, so a
+    payoff-only fold does not claim WR and PF. Hot folds still name the
+    severity (Yahoo mix / Screener weight lean meta). Static
     ``drag · comfortable`` lied when fees were thin or drag was heavy.
     """
 
@@ -16393,7 +16468,7 @@ def promote_honesty_fold_meta(
             else:
                 out["edge"] = "thin"
         else:
-            out["edge"] = "payoff · WR · PF"
+            out["edge"] = _quiet_spoken_chip(edge_line, _EDGE_QUIET_LABELS)
 
     if str(kelly_line or "").strip():
         if "Kelly" in warns:
@@ -16415,7 +16490,9 @@ def promote_honesty_fold_meta(
             else:
                 out["streaks"] = "hot"
         else:
-            out["streaks"] = "win · loss runs"
+            out["streaks"] = _quiet_spoken_chip(
+                streak_line, _STREAK_QUIET_LABELS
+            )
 
     if str(exit_mix_line or "").strip():
         if "exit mix" in warns:
@@ -16425,7 +16502,9 @@ def promote_honesty_fold_meta(
             else:
                 out["exit mix"] = "stops lead"
         else:
-            out["exit mix"] = "tp · sl · rot · trim"
+            out["exit mix"] = _quiet_spoken_chip(
+                exit_mix_line, _EXIT_MIX_QUIET_LABELS
+            )
 
     if str(exit_euro_line or "").strip():
         if "exit euros" in warns:

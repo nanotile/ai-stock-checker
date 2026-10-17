@@ -1848,7 +1848,7 @@
       appendHonestyFold(
         "promote-edge",
         "Edge",
-        "payoff · WR · PF",
+        "quiet",
         "Close quality after fees. Warn only. Not a gate.",
         edge,
         "edge"
@@ -1864,7 +1864,7 @@
       appendHonestyFold(
         "promote-streaks",
         "Streaks",
-        "win · loss runs",
+        "quiet",
         "Newest and past close runs, plus flat sells. Warn only. Not a gate.",
         streaks,
         "streaks"
@@ -1872,7 +1872,7 @@
       appendHonestyFold(
         "promote-exit-mix",
         "Exit mix",
-        "tp · sl · rot · trim",
+        "quiet",
         "Which close reasons fired (counts, not euros). Warn only. Not a gate.",
         exitMix,
         "exit mix"
