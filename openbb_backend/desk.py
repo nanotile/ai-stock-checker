@@ -2320,15 +2320,17 @@ def policy_honesty_fold_meta(
 
     Quiet keeps the category index (``crypto · exits · AI · gates · fees``).
     Nested glances with ``warn`` / ``aging`` / ``stale`` tones open the fold
-    and speak Close-honesty inventory (``warn · N hot of M · … · quiet · K``)
-    so a fee/stuck storm does not hide how many tracked glances stay calm
-    (Book matrix / Hours / Yahoo fold-meta + Close honesty count parity).
+    and speak Close-honesty inventory
+    (``warn · N hot of M · … · quiet · K · crypto · AI · …``)
+    so a fee/stuck storm does not hide *which* tracked glances stay calm
+    (Close honesty hot quiet folds + Book matrix / Hours / Yahoo fold-meta).
     Aging/stale append the severity word. Display only; not a gate.
     """
     if not isinstance(snap, dict):
         return _POLICY_HONESTY_QUIET, False
     ready = 0
     labels: list[str] = []
+    quiet_labels: list[str] = []
     for key, label in _POLICY_HONESTY_FOLD_LABELS:
         glance = snap.get(key)
         if not isinstance(glance, dict) or not glance.get("ready"):
@@ -2336,6 +2338,7 @@ def policy_honesty_fold_meta(
         ready += 1
         tone = str(glance.get("tone") or "").strip().lower()
         if tone not in _POLICY_HONESTY_ADVERSE:
+            quiet_labels.append(label)
             continue
         if tone in {"aging", "stale"}:
             labels.append(f"{label} {tone}")
@@ -2348,9 +2351,13 @@ def policy_honesty_fold_meta(
     extra = n_hot - 6
     named = labels[:6] + ([f"+{extra}"] if extra > 0 else [])
     parts = [f"warn · {n_hot} hot of {ready}", *named]
-    quiet_n = ready - n_hot
+    quiet_n = len(quiet_labels)
     if quiet_n > 0:
+        # Cap calm names like heat; count stays full (Close honesty quiet · K).
+        q_extra = quiet_n - 4
+        q_named = quiet_labels[:4] + ([f"+{q_extra}"] if q_extra > 0 else [])
         parts.append(f"quiet · {quiet_n}")
+        parts.extend(q_named)
     return " · ".join(parts), True
 
 

@@ -53,7 +53,7 @@ def test_policy_honesty_fold_meta_warn_and_clock() -> None:
 
 
 def test_policy_honesty_fold_meta_inventory_quiet_remainder() -> None:
-    """Hot names + quiet count (Close honesty speak-both-sides)."""
+    """Hot names + quiet count + calm labels (Close honesty hot quiet folds)."""
     meta, warn = policy_honesty_fold_meta(
         {
             "fee_burn_glance": {"ready": True, "tone": "warn"},
@@ -64,7 +64,28 @@ def test_policy_honesty_fold_meta_inventory_quiet_remainder() -> None:
         }
     )
     assert warn is True
-    assert meta == "warn · 2 hot of 5 · fees · stuck · quiet · 3"
+    assert meta == (
+        "warn · 2 hot of 5 · fees · stuck · quiet · 3 · LAYA · crypto · AI"
+    )
+
+
+def test_policy_honesty_fold_meta_quiet_names_capped() -> None:
+    """Calm name list caps at 4 +N; quiet count stays full."""
+    snap = {
+        "fee_burn_glance": {"ready": True, "tone": "warn"},
+        "laya_glance": {"ready": True, "tone": "advisory"},
+        "crypto_policy_glance": {"ready": True, "tone": "flat"},
+        "book_limits_glance": {"ready": True, "tone": "flat"},
+        "fee_allowance_glance": {"ready": True, "tone": "quiet"},
+        "ai_mode_glance": {"ready": True, "tone": "quiet"},
+        "session_glance": {"ready": True, "tone": "flat"},
+    }
+    meta, warn = policy_honesty_fold_meta(snap)
+    assert warn is True
+    assert meta == (
+        "warn · 1 hot of 7 · fees · quiet · 6 · LAYA · crypto · book · "
+        "allowance · +2"
+    )
 
 
 def test_policy_honesty_fold_meta_caps_storm() -> None:
