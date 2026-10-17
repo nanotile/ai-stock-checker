@@ -2316,21 +2316,24 @@ _POLICY_HONESTY_FOLD_LABELS: tuple[tuple[str, str], ...] = (
 def policy_honesty_fold_meta(
     snap: dict[str, Any] | None,
 ) -> tuple[str, bool]:
-    """Summary chip for Policy honesty fold — which nested glances warn-open.
+    """Summary chip for Policy honesty fold — inventory + which glances warn-open.
 
     Quiet keeps the category index (``crypto · exits · AI · gates · fees``).
-    Nested glances with ``warn`` / ``aging`` / ``stale`` tones rename the
-    chip and return warn so the fold opens (Book matrix / Hours inactive /
-    Yahoo mix fold-meta parity). Aging/stale append the severity word so
-    friends see clock drift vs a plain warn. Display only; not a gate.
+    Nested glances with ``warn`` / ``aging`` / ``stale`` tones open the fold
+    and speak Close-honesty inventory (``warn · N hot of M · … · quiet · K``)
+    so a fee/stuck storm does not hide how many tracked glances stay calm
+    (Book matrix / Hours / Yahoo fold-meta + Close honesty count parity).
+    Aging/stale append the severity word. Display only; not a gate.
     """
     if not isinstance(snap, dict):
         return _POLICY_HONESTY_QUIET, False
+    ready = 0
     labels: list[str] = []
     for key, label in _POLICY_HONESTY_FOLD_LABELS:
         glance = snap.get(key)
         if not isinstance(glance, dict) or not glance.get("ready"):
             continue
+        ready += 1
         tone = str(glance.get("tone") or "").strip().lower()
         if tone not in _POLICY_HONESTY_ADVERSE:
             continue
@@ -2340,11 +2343,15 @@ def policy_honesty_fold_meta(
             labels.append(label)
     if not labels:
         return _POLICY_HONESTY_QUIET, False
-    # Cap the chip so a storm of warn glances still fits the summary line.
-    extra = len(labels) - 6
-    if extra > 0:
-        labels = labels[:6] + [f"+{extra}"]
-    return " · ".join(labels), True
+    n_hot = len(labels)
+    # Cap named heat so a storm still fits; inventory counts stay full.
+    extra = n_hot - 6
+    named = labels[:6] + ([f"+{extra}"] if extra > 0 else [])
+    parts = [f"warn · {n_hot} hot of {ready}", *named]
+    quiet_n = ready - n_hot
+    if quiet_n > 0:
+        parts.append(f"quiet · {quiet_n}")
+    return " · ".join(parts), True
 
 
 def build_book_risk_glance(

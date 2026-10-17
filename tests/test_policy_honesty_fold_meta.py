@@ -47,7 +47,24 @@ def test_policy_honesty_fold_meta_warn_and_clock() -> None:
         }
     )
     assert warn is True
-    assert meta == "fees · stuck · LAYA stale · debate aging"
+    assert meta == (
+        "warn · 4 hot of 4 · fees · stuck · LAYA stale · debate aging"
+    )
+
+
+def test_policy_honesty_fold_meta_inventory_quiet_remainder() -> None:
+    """Hot names + quiet count (Close honesty speak-both-sides)."""
+    meta, warn = policy_honesty_fold_meta(
+        {
+            "fee_burn_glance": {"ready": True, "tone": "warn"},
+            "stuck_capital_glance": {"ready": True, "tone": "warn"},
+            "laya_glance": {"ready": True, "tone": "advisory"},
+            "crypto_policy_glance": {"ready": True, "tone": "flat"},
+            "ai_mode_glance": {"ready": True, "tone": "quiet"},
+        }
+    )
+    assert warn is True
+    assert meta == "warn · 2 hot of 5 · fees · stuck · quiet · 3"
 
 
 def test_policy_honesty_fold_meta_caps_storm() -> None:
@@ -66,8 +83,10 @@ def test_policy_honesty_fold_meta_caps_storm() -> None:
     }
     meta, warn = policy_honesty_fold_meta(snap)
     assert warn is True
+    assert meta.startswith("warn · 8 hot of 8 · ")
     assert meta.endswith("+2")
-    assert meta.count("·") == 6  # six labels + +2
+    # inventory + six named labels + +2
+    assert "fees · stuck · LAYA · debate · Yahoo · Hours · +2" in meta
 
 
 def test_policy_honesty_templates_use_fold_meta() -> None:
