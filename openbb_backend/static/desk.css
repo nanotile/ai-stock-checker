@@ -1277,8 +1277,30 @@ a:active {
 .equity-hours-inactive > summary::-webkit-details-marker {
   display: none;
 }
+.equity-hours-inactive > summary .meta {
+  margin-left: 0.25rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
 .equity-hours-inactive[open] > summary {
   color: var(--ink);
+}
+.equity-hours-inactive.warn {
+  border-color: var(--down);
+}
+.equity-hours-inactive.warn > summary,
+.equity-hours-inactive.warn > summary .meta {
+  color: var(--down);
+}
+.equity-hours-inactive-body {
+  margin: 0.25rem 0 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.78rem;
+  color: var(--ink);
+  line-height: 1.35;
+}
+.equity-hours-inactive-body.warn {
+  color: var(--down);
 }
 .equity-hours-inactive > .sub {
   margin: 0.25rem 0 0.15rem;

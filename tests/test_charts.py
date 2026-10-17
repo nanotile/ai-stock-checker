@@ -671,6 +671,24 @@ def test_charts_js_universe_mix_lean_fold() -> None:
     assert 0 < mix_at < error_at < streak_at
 
 
+def test_charts_js_equity_hours_inactive_fold_meta() -> None:
+    """Charts must name why the Hours inactive fold opened (desk macros parity)."""
+    src = (
+        Path(__file__).resolve().parents[1] / "openbb_backend" / "static" / "charts.js"
+    ).read_text()
+    assert "glance.inactive_meta" in src
+    assert "glance.inactive_warn" in src
+    assert "equity-hours-inactive-body" in src
+    macro = (
+        Path(__file__).resolve().parents[1]
+        / "openbb_backend"
+        / "templates"
+        / "macros.html"
+    ).read_text()
+    assert "inactive_meta" in macro
+    assert "equity-hours-inactive-body" in macro
+
+
 def test_charts_js_escapes_tip_free_text() -> None:
     """tradermonty #440 — tip.innerHTML must escape symbol/name/label."""
     src = (Path(__file__).resolve().parents[1] / "openbb_backend" / "static" / "charts.js").read_text()

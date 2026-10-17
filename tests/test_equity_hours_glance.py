@@ -7,7 +7,40 @@ from datetime import datetime
 import pytz
 
 from openbb_backend.charts import load_chart_payload
-from openbb_backend.desk import build_equity_hours_glance, load_desk_snapshot
+from openbb_backend.desk import (
+    build_equity_hours_glance,
+    equity_hours_inactive_meta,
+    load_desk_snapshot,
+)
+
+
+def test_equity_hours_inactive_meta_names_the_open() -> None:
+    assert equity_hours_inactive_meta() == "closed"
+    assert (
+        equity_hours_inactive_meta(
+            attention_vs_open="align · hot|thin",
+            attention_vs_open_warn=True,
+            attention_all_cash=True,
+        )
+        == "align · hot|thin"
+    )
+    assert (
+        equity_hours_inactive_meta(
+            attention_vs_open="clash · attention hot · open strong",
+            attention_vs_open_warn=True,
+        )
+        == "clash"
+    )
+    assert (
+        equity_hours_inactive_meta(attention_all_cash=True) == "all cash"
+    )
+    assert (
+        equity_hours_inactive_meta(attention_half_cash=True) == "half cash"
+    )
+    assert (
+        equity_hours_inactive_meta(inactive_markets=["US", "Xetra"])
+        == "US · Xetra"
+    )
 
 
 def test_equity_hours_glance_both_open_us_morning() -> None:
@@ -32,6 +65,8 @@ def test_equity_hours_glance_both_open_us_morning() -> None:
     assert g["attention_vs_open"] == ""
     assert g["attention_vs_open_warn"] is False
     assert g["inactive_line"] == ""
+    assert g["inactive_meta"] == ""
+    assert g["inactive_warn"] is False
     assert g["inactive_count"] == 0
     assert g["active_markets"] == ["US", "Xetra", "crypto"]
     assert g["inactive_markets"] == []
@@ -69,6 +104,8 @@ def test_equity_hours_glance_both_closed_weekend() -> None:
     assert g["attention_vs_open_warn"] is True
     assert g["cash_open"] is False
     assert g["inactive_line"] == "Inactive markets (2): US · Xetra"
+    assert g["inactive_meta"] == "align · hot|thin"
+    assert g["inactive_warn"] is True
     assert g["inactive_count"] == 2
     assert g["active_markets"] == ["crypto"]
     assert g["inactive_markets"] == ["US", "Xetra"]
@@ -109,6 +146,8 @@ def test_equity_hours_glance_split_xetra_only() -> None:
     assert g["attention_vs_open_warn"] is False
     assert g["cash_open"] is False
     assert g["inactive_line"] == "Inactive markets (1): US"
+    assert g["inactive_meta"] == "half cash"
+    assert g["inactive_warn"] is False
     assert g["inactive_count"] == 1
     assert g["active_markets"] == ["Xetra", "crypto"]
     assert g["inactive_markets"] == ["US"]
@@ -134,6 +173,8 @@ def test_equity_hours_glance_in_snapshot(tmp_path) -> None:
     assert g["line"].startswith("active · ")
     assert "crypto" in g["line"]
     assert "inactive_line" in g
+    assert "inactive_meta" in g
+    assert "inactive_warn" in g
     assert "inactive_count" in g
     assert "attention_all_cash" in g
     assert "attention_half_cash" in g
@@ -162,6 +203,8 @@ def test_equity_hours_glance_in_chart_payload(tmp_path) -> None:
     assert g["line"].startswith("active · ")
     assert "crypto" in g["line"]
     assert "inactive_line" in g
+    assert "inactive_meta" in g
+    assert "inactive_warn" in g
     assert "attention_all_cash" in g
     assert "attention_half_cash" in g
     assert "attention_cash_share_severity" in g

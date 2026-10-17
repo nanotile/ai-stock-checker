@@ -19701,6 +19701,39 @@ def build_session_glance(
     }
 
 
+def equity_hours_inactive_meta(
+    *,
+    attention_vs_open: str = "",
+    attention_vs_open_warn: bool = False,
+    attention_all_cash: bool = False,
+    attention_half_cash: bool = False,
+    inactive_markets: list[str] | None = None,
+) -> str:
+    """Summary chip for Hours inactive fold — why open, not the body list.
+
+    Quiet stays venue names (or ``closed``). Prefer warned attn-vs-open
+    lean (Yahoo mix / Screener weight lean / Close honesty fold-meta
+    parity). ``align · hot|thin`` and ``clash`` short-copy; calm all/half
+    cash folds name ownership without inventing a lean.
+    """
+
+    if attention_vs_open_warn:
+        low = str(attention_vs_open or "").strip().lower()
+        if low.startswith("align ·"):
+            return str(attention_vs_open).strip()
+        if low.startswith("clash"):
+            return "clash"
+        return "warn"
+    if attention_all_cash:
+        return "all cash"
+    if attention_half_cash:
+        return "half cash"
+    names = [str(n).strip() for n in (inactive_markets or []) if str(n).strip()]
+    if names:
+        return " · ".join(names)
+    return "closed"
+
+
 def build_equity_hours_glance(
     *,
     now: datetime | None = None,
@@ -19744,6 +19777,11 @@ def build_equity_hours_glance(
     ``venue_chips`` / ``venue_chips_line`` grouped by cash vs crypto with
     open|closed|on per market (xang1234 #635 Operations job-type row + chip
     per market — no Celery schedules here; session status is the chip).
+
+    Inactive disclosure summary speaks severity why it opened
+    (``inactive_meta`` / ``inactive_warn``) — static ``Inactive markets (N)``
+    as the only summary hid adverse align|clash (Yahoo/Screener/Close
+    fold-meta parity); warn opens the fold.
     """
     from stock_checker.market_hours import (
         is_us_cash_session_closed,
@@ -19908,6 +19946,18 @@ def build_equity_hours_glance(
         line = line[:95] + "…"
     if len(inactive_line) > 96:
         inactive_line = inactive_line[:95] + "…"
+    inactive_warn = bool(inactive_line) and attention_vs_open_warn
+    inactive_meta = (
+        equity_hours_inactive_meta(
+            attention_vs_open=attention_vs_open,
+            attention_vs_open_warn=attention_vs_open_warn,
+            attention_all_cash=attention_all_cash,
+            attention_half_cash=attention_half_cash,
+            inactive_markets=inactive,
+        )
+        if inactive_line
+        else ""
+    )
     return {
         "ready": True,
         "tone": tone,
@@ -19924,6 +19974,8 @@ def build_equity_hours_glance(
         "attention_vs_open_warn": attention_vs_open_warn,
         "cash_open": cash_open,
         "inactive_line": inactive_line,
+        "inactive_meta": inactive_meta,
+        "inactive_warn": inactive_warn,
         "inactive_count": len(inactive),
         "active_markets": active,
         "inactive_markets": inactive,

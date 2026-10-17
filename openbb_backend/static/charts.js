@@ -2385,11 +2385,25 @@
       wrap.appendChild(chipsRow);
     }
     if (glance.inactive_line) {
+      var inactiveWarn = !!glance.inactive_warn;
       var fold = document.createElement("details");
-      fold.className = "equity-hours-inactive";
+      fold.className =
+        "equity-hours-inactive" + (inactiveWarn ? " warn" : "");
+      if (inactiveWarn) fold.open = true;
       var summary = document.createElement("summary");
-      summary.textContent = String(glance.inactive_line);
+      summary.appendChild(document.createTextNode("inactive "));
+      var foldMeta = document.createElement("span");
+      foldMeta.className = "meta";
+      foldMeta.textContent = glance.inactive_meta
+        ? String(glance.inactive_meta)
+        : "closed";
+      summary.appendChild(foldMeta);
       fold.appendChild(summary);
+      var foldBody = document.createElement("p");
+      foldBody.className =
+        "equity-hours-inactive-body" + (inactiveWarn ? " warn" : "");
+      foldBody.textContent = String(glance.inactive_line);
+      fold.appendChild(foldBody);
       var foldSub = document.createElement("p");
       foldSub.className = "sub";
       foldSub.textContent =

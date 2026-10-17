@@ -603,8 +603,11 @@
   </p>
   {% endif %}
   {% if glance.inactive_line %}
-  <details class="equity-hours-inactive">
-    <summary>{{ glance.inactive_line }}</summary>
+  {% set inactive_warn = glance.inactive_warn|default(false) %}
+  {% set inactive_meta = glance.inactive_meta|default('closed') %}
+  <details class="equity-hours-inactive{% if inactive_warn %} warn{% endif %}"{% if inactive_warn %} open{% endif %}>
+    <summary>inactive <span class="meta">{{ inactive_meta }}</span></summary>
+    <p class="equity-hours-inactive-body{% if inactive_warn %} warn{% endif %}">{{ glance.inactive_line }}</p>
     <p class="sub">Closed cash sessions — crypto stays on the active line. Not a gate.</p>
   </details>
   {% endif %}
