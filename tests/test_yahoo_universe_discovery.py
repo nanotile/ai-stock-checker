@@ -22,6 +22,7 @@ from stock_checker.yahoo_universe_discovery import (
     yahoo_fail_error_also_vs_delta_lead_size_sides,
     yahoo_fail_error_also_vs_delta_lead_size_sides_delta,
     yahoo_fail_error_also_vs_delta_lead_size_sides_share,
+    yahoo_fail_error_also_vs_delta_lead_size_sides_share_delta,
     yahoo_fail_error_also_vs_lean,
     yahoo_fail_error_also_vs_winner,
     yahoo_fail_error_seed_fail_vs_budget,
@@ -390,6 +391,32 @@ def test_yahoo_fail_error_also_vs_delta_lead_size_sides_share_count_pair():
     assert yahoo_fail_error_also_vs_delta_lead_size_sides_share(
         "", "Δ lead size sides · held 7 · timeout 1", 7, 1
     ) == ("", None, None)
+
+
+def test_yahoo_fail_error_also_vs_delta_lead_size_sides_share_delta_spread():
+    """Named % alone hid a lopsided pair vs a near-even mix."""
+    wide_share = "Δ lead size sides share · held 88% · timeout 12%"
+    mild_share = "Δ lead size sides share · timeout 59% · held 41%"
+    assert yahoo_fail_error_also_vs_delta_lead_size_sides_share_delta(
+        wide_share, 88, 12
+    ) == (
+        "Δ lead size sides share Δ wide · +76pp",
+        76,
+        "wide",
+    )
+    assert yahoo_fail_error_also_vs_delta_lead_size_sides_share_delta(
+        mild_share, 59, 41
+    ) == ("", None, "")
+    assert yahoo_fail_error_also_vs_delta_lead_size_sides_share_delta(
+        "Δ lead size sides share · held 52% · timeout 48%", 52, 48
+    ) == (
+        "Δ lead size sides share Δ thin · +4pp",
+        4,
+        "thin",
+    )
+    assert yahoo_fail_error_also_vs_delta_lead_size_sides_share_delta(
+        "", 88, 12
+    ) == ("", None, "")
 
 
 def test_yahoo_discovery_error_meta_allowlist():

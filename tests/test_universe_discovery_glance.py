@@ -305,12 +305,21 @@ def test_universe_discovery_glance_yahoo_fail_error_also_mix(tmp_path) -> None:
         owned["yahoo_fail_error_also_vs_delta_lead_size_sides_share_quieter_pct"]
         == 25
     )
+    assert owned["yahoo_fail_error_also_vs_delta_lead_size_sides_share_delta"] == (
+        "Δ lead size sides share Δ wide · +50pp"
+    )
+    assert owned["yahoo_fail_error_also_vs_delta_lead_size_sides_share_delta_pp"] == 50
+    assert (
+        owned["yahoo_fail_error_also_vs_delta_lead_size_sides_share_delta_severity"]
+        == "wide"
+    )
     assert owned["mix_lean"] == (
         "+timeout · 1 timeout · 3 held · align · quiet|strong · Δ wide · -50pp"
         " · Δ lead · held · Δ lead size · 3×"
         " · Δ lead size sides · held 3 · timeout 1"
         " · Δ lead size sides Δ wide · 2 screens"
         " · Δ lead size sides share · held 75% · timeout 25%"
+        " · Δ lead size sides share Δ wide · +50pp"
     )
     assert owned["mix_lean_warn"] is False
     assert (
@@ -341,12 +350,19 @@ def test_universe_discovery_glance_yahoo_fail_error_also_mix(tmp_path) -> None:
         "Δ lead size sides share · held 88% · timeout 12%"
     )
     assert "Δ lead size sides share · held 88% · timeout 12%" in counted["mix_lean"]
+    assert counted["yahoo_fail_error_also_vs_delta_lead_size_sides_share_delta"] == (
+        "Δ lead size sides share Δ wide · +76pp"
+    )
+    assert (
+        "Δ lead size sides share Δ wide · +76pp" in counted["mix_lean"]
+    )
     assert counted["yahoo_fail_error_also_vs_delta_lead_size_sides_delta"] == (
         "Δ lead size sides Δ wide · 6 screens"
     )
     assert "Δ lead size sides Δ wide · 6 screens" in counted["mix_lean"]
     assert half["yahoo_fail_error_also_vs_delta_lead_size_sides_delta"] == ""
     assert half["yahoo_fail_error_also_vs_delta_lead_size_sides_share"] == ""
+    assert half["yahoo_fail_error_also_vs_delta_lead_size_sides_share_delta"] == ""
 
 
 def test_universe_discovery_glance_yahoo_fail_error_vs_seed_first_fail(

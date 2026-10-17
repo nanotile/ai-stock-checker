@@ -19955,6 +19955,7 @@ def build_universe_discovery_glance(
         yahoo_fail_error_also_vs_delta_lead_size_sides,
         yahoo_fail_error_also_vs_delta_lead_size_sides_delta,
         yahoo_fail_error_also_vs_delta_lead_size_sides_share,
+        yahoo_fail_error_also_vs_delta_lead_size_sides_share_delta,
         yahoo_fail_error_also_vs_lean,
         yahoo_fail_error_also_vs_winner,
         yahoo_fail_error_seed_fail_vs_budget,
@@ -20143,6 +20144,9 @@ def build_universe_discovery_glance(
     fail_error_also_vs_delta_lead_size_sides_share = ""
     fail_error_also_vs_delta_lead_size_sides_share_louder: int | None = None
     fail_error_also_vs_delta_lead_size_sides_share_quieter: int | None = None
+    fail_error_also_vs_delta_lead_size_sides_share_delta = ""
+    fail_error_also_vs_delta_lead_size_sides_share_delta_pp: int | None = None
+    fail_error_also_vs_delta_lead_size_sides_share_delta_severity = ""
     if fail_error_also_vs_delta:
         fail_error_also_vs_delta_lead = yahoo_fail_error_also_vs_delta_lead(
             fail_error,
@@ -20193,6 +20197,16 @@ def build_universe_discovery_glance(
             fail_error_also_vs_delta_lead_size_sides,
             fail_error_also_vs_delta_lead_size_louder,
             fail_error_also_vs_delta_lead_size_quieter,
+        )
+    if fail_error_also_vs_delta_lead_size_sides_share:
+        (
+            fail_error_also_vs_delta_lead_size_sides_share_delta,
+            fail_error_also_vs_delta_lead_size_sides_share_delta_pp,
+            fail_error_also_vs_delta_lead_size_sides_share_delta_severity,
+        ) = yahoo_fail_error_also_vs_delta_lead_size_sides_share_delta(
+            fail_error_also_vs_delta_lead_size_sides_share,
+            fail_error_also_vs_delta_lead_size_sides_share_louder,
+            fail_error_also_vs_delta_lead_size_sides_share_quieter,
         )
     retry_due = yahoo_discovery_due_from_meta(
         uni_meta,
@@ -20342,8 +20356,9 @@ def build_universe_discovery_glance(
         # speak the additive screen gap (1 screen thin · ≥2 wide) so a
         # rounded pp band does not overstate one extra hung screen, then
         # the count-pair share (7 vs 1 is 88/12; 20 vs 14 with the same
-        # 6-screen gap is 59/41). Percent sides stay silent here. Mid pp
-        # Δ stays silent (no lean-vs-Δ nest).
+        # 6-screen gap is 59/41), then the ownership spread (88/12 is
+        # +76pp wide; 59/41 is mid silent). Percent sides stay silent
+        # here. Mid pp Δ stays silent (no lean-vs-Δ nest).
         mix_lean = ""
         mix_lean_warn = False
         if fail_error and fail_error_also:
@@ -20384,6 +20399,11 @@ def build_universe_discovery_glance(
                     if fail_error_also_vs_delta_lead_size_sides_share
                     else ""
                 )
+                sides_share_delta = (
+                    f" · {fail_error_also_vs_delta_lead_size_sides_share_delta}"
+                    if fail_error_also_vs_delta_lead_size_sides_share_delta
+                    else ""
+                )
             else:
                 share = (
                     f" · {fail_error_also_share}" if fail_error_also_share else ""
@@ -20396,9 +20416,11 @@ def build_universe_discovery_glance(
                 sides = ""
                 sides_delta = ""
                 sides_share = ""
+                sides_share_delta = ""
             mix_body = (
                 f"{fail_error_also}{counts}{share}{vs}{lean}"
-                f"{delta}{lead}{size}{sides}{sides_delta}{sides_share}"
+                f"{delta}{lead}{size}{sides}{sides_delta}"
+                f"{sides_share}{sides_share_delta}"
             )
             mix_lean = mix_body.strip(" ·")
             mix_lean_warn = bool(fail_error_also_vs_lean_warn)
@@ -20681,6 +20703,15 @@ def build_universe_discovery_glance(
         ),
         "yahoo_fail_error_also_vs_delta_lead_size_sides_share_quieter_pct": (
             fail_error_also_vs_delta_lead_size_sides_share_quieter
+        ),
+        "yahoo_fail_error_also_vs_delta_lead_size_sides_share_delta": (
+            fail_error_also_vs_delta_lead_size_sides_share_delta
+        ),
+        "yahoo_fail_error_also_vs_delta_lead_size_sides_share_delta_pp": (
+            fail_error_also_vs_delta_lead_size_sides_share_delta_pp
+        ),
+        "yahoo_fail_error_also_vs_delta_lead_size_sides_share_delta_severity": (
+            fail_error_also_vs_delta_lead_size_sides_share_delta_severity
         ),
         "yahoo_fail_timeout_fails": timeout_fails_n if yahoo_failed else 0,
         "yahoo_fail_inflight_fails": inflight_fails_n if yahoo_failed else 0,

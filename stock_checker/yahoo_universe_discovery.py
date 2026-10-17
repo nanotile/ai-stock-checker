@@ -706,6 +706,45 @@ def yahoo_fail_error_also_vs_delta_lead_size_sides_share(
     return bit, loud_pct, quiet_pct
 
 
+def yahoo_fail_error_also_vs_delta_lead_size_sides_share_delta(
+    share: str,
+    louder_pct: int | None,
+    quieter_pct: int | None,
+) -> tuple[str, int | None, str]:
+    """Ownership spread once mix Δ lead size sides share already spoke.
+
+    ``held 88% · timeout 12%`` and ``timeout 59% · held 41%`` both name
+    sides after the same screen-gap label can fire. Absolute % ≠ how far
+    the pair sits. ``wide`` ≥20pp · ``thin`` <10pp · mid silent (no nest).
+    Louder−quieter is always ≥0 when share spoke. Returns
+    ``(Δ lead size sides share Δ wide|thin · +Npp, pp, severity)``
+    / ``(\"\", None, \"\")``.
+    """
+    if not str(share or "").strip():
+        return "", None, ""
+    if louder_pct is None or quieter_pct is None:
+        return "", None, ""
+    try:
+        delta = int(louder_pct) - int(quieter_pct)
+    except (TypeError, ValueError):
+        return "", None, ""
+    if delta < 0:
+        return "", None, ""
+    abs_delta = abs(delta)
+    if abs_delta >= YAHOO_FAIL_ALSO_DELTA_WIDE_PP:
+        severity = "wide"
+    elif abs_delta < YAHOO_FAIL_ALSO_DELTA_THIN_PP:
+        severity = "thin"
+    else:
+        return "", None, ""
+    sign = f"+{delta}" if delta > 0 else str(delta)
+    return (
+        f"Δ lead size sides share Δ {severity} · {sign}pp",
+        delta,
+        severity,
+    )
+
+
 def yahoo_fail_error_vs_seed(error: str, seed_freshness: str) -> str:
     """Typed last-error vs reused-seed extremes (xang1234 #639 + portfolio AI).
 
