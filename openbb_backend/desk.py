@@ -16433,6 +16433,24 @@ def promote_honesty_fold_meta(
     return out
 
 
+# Close honesty summary clip — Policy honesty storm cap (hot 6 · calm 4).
+_HONESTY_WARN_NAME_CAP = 6
+_HONESTY_QUIET_NAME_CAP = 4
+
+
+def cap_honesty_fold_names(labels: list[str], *, cap: int) -> list[str]:
+    """Keep a fold-name chip short; ``+N`` is the unnamed remainder.
+
+    The count on the summary stays full. A 10-fold Close honesty storm
+    was joining every label (Policy honesty already clips at 6 / 4).
+    """
+    names = [str(label).strip() for label in labels if str(label).strip()]
+    extra = len(names) - cap
+    if extra > 0:
+        return [*names[:cap], f"+{extra}"]
+    return names
+
+
 def build_promote_ab_glance(
     runtime: dict[str, Any] | None,
     *,
@@ -18835,6 +18853,16 @@ def build_promote_ab_glance(
         # Count first so friends see how hot Close honesty is without scanning
         # every fold name (MonsterDeveloper declutter + xang1234 severity).
         "honesty_warn_count": len(honesty_warns),
+        # Named chips clip; counts above stay full (Policy honesty +N).
+        "honesty_warn_named": cap_honesty_fold_names(
+            honesty_warns, cap=_HONESTY_WARN_NAME_CAP
+        ),
+        "honesty_quiet_named": cap_honesty_fold_names(
+            honesty_quiet_folds, cap=_HONESTY_QUIET_NAME_CAP
+        ),
+        "honesty_fold_named": cap_honesty_fold_names(
+            honesty_folds, cap=_HONESTY_QUIET_NAME_CAP
+        ),
         # Child-fold inventory (portfolio AI speak-both-sides + xang1234):
         # quiet · N folds · fees · … /
         # warn · N hot of M · fees · … · quiet · K folds · edge · ….

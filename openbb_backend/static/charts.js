@@ -1715,6 +1715,12 @@
         var quietFolds = Array.isArray(glance.honesty_quiet_folds)
           ? glance.honesty_quiet_folds
           : [];
+        var warnNamed = Array.isArray(glance.honesty_warn_named)
+          ? glance.honesty_warn_named
+          : warns;
+        var quietNamed = Array.isArray(glance.honesty_quiet_named)
+          ? glance.honesty_quiet_named
+          : quietFolds;
         var quietN =
           typeof glance.honesty_quiet_fold_count === "number"
             ? glance.honesty_quiet_fold_count
@@ -1723,7 +1729,7 @@
         var quietTail = "";
         if (quietFolds.length > 0) {
           quietTail =
-            " · quiet · " + quietN + quietUnit + " · " + quietFolds.join(" · ");
+            " · quiet · " + quietN + quietUnit + " · " + quietNamed.join(" · ");
         } else if (foldN > 0 && quietN === 0) {
           // All-hot: empty remainder stays visible (Policy honesty quiet · 0).
           quietTail = " · quiet · 0 folds";
@@ -1735,14 +1741,17 @@
               " hot" +
               ofTotal +
               " · " +
-              warns.join(" · ") +
+              warnNamed.join(" · ") +
               quietTail
           )
         );
       } else if (folds.length > 0) {
+        var foldNamed = Array.isArray(glance.honesty_fold_named)
+          ? glance.honesty_fold_named
+          : folds;
         var calmUnit = folds.length === 1 ? " fold" : " folds";
         meta.textContent =
-          "quiet · " + folds.length + calmUnit + " · " + folds.join(" · ");
+          "quiet · " + folds.length + calmUnit + " · " + foldNamed.join(" · ");
       } else if (foldN > 0) {
         meta.textContent =
           "quiet · " + foldN + (foldN === 1 ? " fold" : " folds");

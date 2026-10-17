@@ -5,7 +5,11 @@ from __future__ import annotations
 from datetime import date, datetime, timezone
 from pathlib import Path
 
-from openbb_backend.desk import build_promote_ab_glance, promote_honesty_fold_meta
+from openbb_backend.desk import (
+    build_promote_ab_glance,
+    cap_honesty_fold_names,
+    promote_honesty_fold_meta,
+)
 from stock_checker.promote_ab import (
     WINDOW_A_START_UTC,
     filter_trades_in_window,
@@ -35,6 +39,39 @@ def test_promote_ab_snapshot_window_a_target_met() -> None:
 
 def test_promote_ab_glance_empty() -> None:
     assert build_promote_ab_glance(None)["ready"] is False
+
+
+def test_cap_honesty_fold_names_clips_storm() -> None:
+    """Counts stay full; the chip keeps 6 hot / 4 calm names then +N."""
+    assert cap_honesty_fold_names(["fees"], cap=6) == ["fees"]
+    assert cap_honesty_fold_names([], cap=4) == []
+    eight = [
+        "fees",
+        "polarity",
+        "edge",
+        "Kelly",
+        "streaks",
+        "exit mix",
+        "exit euros",
+        "fee pressure",
+    ]
+    assert cap_honesty_fold_names(eight, cap=6) == [
+        "fees",
+        "polarity",
+        "edge",
+        "Kelly",
+        "streaks",
+        "exit mix",
+        "+2",
+    ]
+    calm = ["fees", "polarity", "edge", "Kelly", "streaks"]
+    assert cap_honesty_fold_names(calm, cap=4) == [
+        "fees",
+        "polarity",
+        "edge",
+        "Kelly",
+        "+1",
+    ]
 
 
 def test_promote_honesty_fold_meta_names_fees_severity() -> None:
@@ -966,6 +1003,11 @@ def test_promote_ab_glance_fees_thin_warns_but_ready_for_b() -> None:
     assert g["honesty_quiet_fold_count"] >= 1
     assert set(g["honesty_quiet_folds"]).isdisjoint(set(g["honesty_warns"]))
     assert set(g["honesty_quiet_folds"]) | set(g["honesty_warns"]) == set(g["honesty_folds"])
+    assert g["honesty_warn_named"] == cap_honesty_fold_names(g["honesty_warns"], cap=6)
+    assert g["honesty_quiet_named"] == cap_honesty_fold_names(
+        g["honesty_quiet_folds"], cap=4
+    )
+    assert g["honesty_fold_named"] == cap_honesty_fold_names(g["honesty_folds"], cap=4)
     assert "A fees ok" not in g["line"]
     assert "A fee drag" not in g["line"]
     assert "A fresh closes" in g["line"]
