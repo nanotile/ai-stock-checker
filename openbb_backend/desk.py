@@ -2285,7 +2285,7 @@ def book_matrix_fold_meta(
 
 
 # Nested glances inside ``#policy-honesty`` that can escalate tone.
-# Quiet summary keeps the category index; adverse tones rename the chip.
+# Empty snapshot keeps the category index; a calm ready set names those glances.
 _POLICY_HONESTY_QUIET = "crypto · exits · AI · gates · fees"
 _POLICY_HONESTY_ADVERSE = frozenset({"warn", "aging", "stale"})
 _POLICY_HONESTY_FOLD_LABELS: tuple[tuple[str, str], ...] = (
@@ -2318,9 +2318,12 @@ def policy_honesty_fold_meta(
 ) -> tuple[str, bool]:
     """Summary chip for Policy honesty fold — inventory + which glances warn-open.
 
-    Quiet keeps the category index (``crypto · exits · AI · gates · fees``).
-    Nested glances with ``warn`` / ``aging`` / ``stale`` tones open the fold
-    and speak Close-honesty inventory
+    An empty snapshot keeps the category index
+    (``crypto · exits · AI · gates · fees``). When every ready glance is calm,
+    the chip names those glances (``quiet · N folds · fees · LAYA``) so the
+    index does not pretend exits/gates are loaded. Nested glances with
+    ``warn`` / ``aging`` / ``stale`` tones open the fold and speak
+    Close-honesty inventory
     (``warn · N hot of M · … · quiet · K folds · crypto · AI · …``).
     An all-hot storm still speaks ``quiet · 0 folds`` so a missing calm
     side is not the same as a dropped remainder
@@ -2346,21 +2349,26 @@ def policy_honesty_fold_meta(
         else:
             labels.append(label)
     if not labels:
-        return _POLICY_HONESTY_QUIET, False
+        if ready <= 0:
+            return _POLICY_HONESTY_QUIET, False
+        # Category index names exits/gates that are not the loaded glances.
+        unit = "fold" if ready == 1 else "folds"
+        named = cap_honesty_fold_names(
+            quiet_labels, cap=_HONESTY_QUIET_NAME_CAP
+        )
+        return f"quiet · {ready} {unit} · " + " · ".join(named), False
     n_hot = len(labels)
     # Cap named heat so a storm still fits; inventory counts stay full.
-    extra = n_hot - 6
-    named = labels[:6] + ([f"+{extra}"] if extra > 0 else [])
+    named = cap_honesty_fold_names(labels, cap=_HONESTY_WARN_NAME_CAP)
     parts = [f"warn · {n_hot} hot of {ready}", *named]
     quiet_n = len(quiet_labels)
     # Zero stays visible: omitting the calm side hid an all-hot storm.
     unit = "fold" if quiet_n == 1 else "folds"
     parts.append(f"quiet · {quiet_n} {unit}")
     if quiet_n > 0:
-        # Cap calm names like heat; count stays full (Close honesty quiet · K folds).
-        q_extra = quiet_n - 4
-        q_named = quiet_labels[:4] + ([f"+{q_extra}"] if q_extra > 0 else [])
-        parts.extend(q_named)
+        parts.extend(
+            cap_honesty_fold_names(quiet_labels, cap=_HONESTY_QUIET_NAME_CAP)
+        )
     return " · ".join(parts), True
 
 

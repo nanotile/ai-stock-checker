@@ -33,8 +33,33 @@ def test_policy_honesty_fold_meta_quiet() -> None:
             "laya_glance": {"ready": True, "tone": "advisory"},
         }
     )
-    assert meta == QUIET
+    assert meta == "quiet · 2 folds · fees · LAYA"
     assert warn is False
+
+
+def test_policy_honesty_fold_meta_all_calm_names() -> None:
+    """Calm ready set names loaded glances; category index hid exits/gates."""
+    meta, warn = policy_honesty_fold_meta(
+        {"fee_burn_glance": {"ready": True, "tone": "quiet"}}
+    )
+    assert meta == "quiet · 1 fold · fees"
+    assert warn is False
+    snap = {
+        key: {"ready": True, "tone": "flat"}
+        for key in (
+            "laya_glance",
+            "crypto_policy_glance",
+            "book_limits_glance",
+            "fee_allowance_glance",
+            "ai_mode_glance",
+            "session_glance",
+        )
+    }
+    meta, warn = policy_honesty_fold_meta(snap)
+    assert warn is False
+    assert meta == (
+        "quiet · 6 folds · LAYA · crypto · book · allowance · +2"
+    )
 
 
 def test_policy_honesty_fold_meta_warn_and_clock() -> None:
