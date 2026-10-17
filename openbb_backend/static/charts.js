@@ -2689,7 +2689,7 @@
       !!glance.mix_lean_warn,
       "universe-mix-lean",
       "universe-mix-lean-body",
-      "timeout · held"
+      glance.mix_lean_meta ? String(glance.mix_lean_meta) : "timeout · held"
     );
     appendLean(
       "error lean",

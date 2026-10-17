@@ -24,6 +24,7 @@ from stock_checker.yahoo_universe_discovery import (
     yahoo_fail_error_also_vs_delta_lead_size_sides_share,
     yahoo_fail_error_also_vs_delta_lead_size_sides_share_delta,
     yahoo_fail_error_also_vs_delta_lead_size_sides_share_vs_gap,
+    yahoo_fail_mix_lean_meta,
     yahoo_fail_error_also_vs_lean,
     yahoo_fail_error_also_vs_winner,
     yahoo_fail_error_seed_fail_vs_budget,
@@ -461,6 +462,42 @@ def test_yahoo_fail_error_also_vs_delta_lead_size_sides_share_vs_gap():
     assert yahoo_fail_error_also_vs_delta_lead_size_sides_share_vs_gap(
         share_wide, "mid", "wide"
     ) == ("", "", False)
+
+
+def test_yahoo_fail_mix_lean_meta_names_the_open():
+    """Quiet chip stays timeout · held; a warned open names align or clash."""
+    wide = "Δ lead size sides share vs gap align · wide"
+    clash = "Δ lead size sides share vs gap clash · screens thin · % wide"
+    assert yahoo_fail_mix_lean_meta(
+        share_vs_gap="",
+        share_vs_gap_verb="",
+        share_vs_gap_warn=False,
+        lean_warn=False,
+    ) == "timeout · held"
+    assert yahoo_fail_mix_lean_meta(
+        share_vs_gap="",
+        share_vs_gap_verb="",
+        share_vs_gap_warn=False,
+        lean_warn=True,
+    ) == "clash"
+    assert yahoo_fail_mix_lean_meta(
+        share_vs_gap=wide,
+        share_vs_gap_verb="align",
+        share_vs_gap_warn=True,
+        lean_warn=True,
+    ) == "align · wide"
+    assert yahoo_fail_mix_lean_meta(
+        share_vs_gap=clash,
+        share_vs_gap_verb="clash",
+        share_vs_gap_warn=True,
+        lean_warn=False,
+    ) == "clash"
+    assert yahoo_fail_mix_lean_meta(
+        share_vs_gap="Δ lead size sides share vs gap align · thin",
+        share_vs_gap_verb="align",
+        share_vs_gap_warn=False,
+        lean_warn=False,
+    ) == "timeout · held"
 
 
 def test_yahoo_discovery_error_meta_allowlist():

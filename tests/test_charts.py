@@ -660,6 +660,7 @@ def test_charts_js_universe_mix_lean_fold() -> None:
     ).read_text()
     assert "glance.mix_lean" in src
     assert "glance.mix_lean_warn" in src
+    assert "glance.mix_lean_meta" in src
     assert '"universe-mix-lean"' in src
     assert '"universe-mix-lean-body"' in src
     mix_at = src.find('"universe-mix-lean"')

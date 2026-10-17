@@ -780,6 +780,33 @@ def yahoo_fail_error_also_vs_delta_lead_size_sides_share_vs_gap(
     )
 
 
+def yahoo_fail_mix_lean_meta(
+    *,
+    share_vs_gap: str,
+    share_vs_gap_verb: str,
+    share_vs_gap_warn: bool,
+    lean_warn: bool,
+) -> str:
+    """Summary chip for the mix fold — why it opened, not another body bit.
+
+    Quiet mix stays ``timeout · held``. A warned share-vs-gap speaks
+    ``align · wide`` or ``clash`` (the fold body still holds the full bit).
+    A lean-only warn (half mix, no share-vs-gap) speaks ``clash``.
+    ``align · thin`` does not warn, so it keeps the quiet chip.
+    """
+    if share_vs_gap_warn and str(share_vs_gap or "").strip():
+        verb = str(share_vs_gap_verb or "").strip().lower()
+        if verb == "align":
+            tail = str(share_vs_gap).rsplit("·", 1)[-1].strip().lower()
+            if tail in ("wide", "thin"):
+                return f"align · {tail}"
+        if verb == "clash":
+            return "clash"
+    if lean_warn:
+        return "clash"
+    return "timeout · held"
+
+
 def yahoo_fail_error_vs_seed(error: str, seed_freshness: str) -> str:
     """Typed last-error vs reused-seed extremes (xang1234 #639 + portfolio AI).
 

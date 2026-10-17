@@ -19933,7 +19933,10 @@ def build_universe_discovery_glance(
     count-gap share so 6 screens on 7 vs 1 is not read as 6 screens on
     20 vs 14)
     sits in ``mix_lean``; ``line_core`` keeps the winning class.
-    Counts stay when lean drops the percents. Warn opens that fold too.
+    Counts stay when lean drops the percents. Warn opens that fold.
+    The summary chip stays ``timeout · held`` when quiet and names
+    ``align · wide`` or ``clash`` when the open is a warned relationship
+    (share-vs-gap before a lean-only half mix).
     Mid Δ stays silent.
     Buys still need regime/RS/breadth/fees. Not a new gate.
     """
@@ -19957,6 +19960,7 @@ def build_universe_discovery_glance(
         yahoo_fail_error_also_vs_delta_lead_size_sides_share,
         yahoo_fail_error_also_vs_delta_lead_size_sides_share_delta,
         yahoo_fail_error_also_vs_delta_lead_size_sides_share_vs_gap,
+        yahoo_fail_mix_lean_meta,
         yahoo_fail_error_also_vs_lean,
         yahoo_fail_error_also_vs_winner,
         yahoo_fail_error_seed_fail_vs_budget,
@@ -20652,6 +20656,20 @@ def build_universe_discovery_glance(
         fail_error_also_vs_delta_lead_size_louder = None
         fail_error_also_vs_delta_lead_size_quieter = None
     sides_are_pct = "%" in fail_error_also_vs_delta_lead_size_sides
+    mix_lean_meta = (
+        yahoo_fail_mix_lean_meta(
+            share_vs_gap=fail_error_also_vs_delta_lead_size_sides_share_vs_gap,
+            share_vs_gap_verb=(
+                fail_error_also_vs_delta_lead_size_sides_share_vs_gap_verb
+            ),
+            share_vs_gap_warn=(
+                fail_error_also_vs_delta_lead_size_sides_share_vs_gap_warn
+            ),
+            lean_warn=fail_error_also_vs_lean_warn,
+        )
+        if mix_lean
+        else ""
+    )
     return {
         "ready": True,
         "tone": tone,
@@ -20663,6 +20681,7 @@ def build_universe_discovery_glance(
         "error_lean_warn": bool(error_lean_warn),
         "mix_lean": mix_lean,
         "mix_lean_warn": bool(mix_lean_warn),
+        "mix_lean_meta": mix_lean_meta,
         "mover_count": per,
         "discovery_only": True,
         "auto_buy": False,
