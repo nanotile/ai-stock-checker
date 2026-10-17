@@ -90,8 +90,10 @@
 ) }}
 
 {# MonsterDeveloper simplicity: keep first viewport short; policy lines stay available. #}
-<details class="policy-honesty" id="policy-honesty">
-  <summary>Policy honesty <span class="meta">crypto · exits · AI · gates · fees</span></summary>
+{% set policy_meta = snap.policy_honesty_meta|default('crypto · exits · AI · gates · fees') %}
+{% set policy_warn = snap.policy_honesty_warn|default(false) %}
+<details class="policy-honesty{% if policy_warn %} warn{% endif %}" id="policy-honesty"{% if policy_warn %} open{% endif %}>
+  <summary>Policy honesty <span class="meta">{{ policy_meta }}</span></summary>
   <p class="sub">Display-only rules. Not new entry gates. Ops keeps the toggles.</p>
 
 {{ crypto_policy_glance(

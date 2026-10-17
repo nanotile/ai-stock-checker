@@ -3518,13 +3518,17 @@
 
     /* MonsterDeveloper + xang1234: collapse long policy wall (parity with HTML screens). */
     var details = document.createElement("details");
-    details.className = "policy-honesty";
+    var policyWarn = !!(payload && payload.policy_honesty_warn);
+    details.className = "policy-honesty" + (policyWarn ? " warn" : "");
     details.id = "policy-honesty";
+    if (policyWarn) details.open = true;
     var summary = document.createElement("summary");
     summary.appendChild(document.createTextNode("Policy honesty "));
     var meta = document.createElement("span");
     meta.className = "meta";
-    meta.textContent = "crypto · exits · AI · gates · fees";
+    meta.textContent =
+      (payload && payload.policy_honesty_meta) ||
+      "crypto · exits · AI · gates · fees";
     summary.appendChild(meta);
     details.appendChild(summary);
     var intro = document.createElement("p");

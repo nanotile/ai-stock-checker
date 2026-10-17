@@ -34,9 +34,10 @@ INSIDE_DETAILS = (
 def test_policy_honesty_details_on_desk_screens() -> None:
     for name in POLICY_HONESTY_SCREENS:
         text = (TEMPLATES / name).read_text(encoding="utf-8")
-        assert 'class="policy-honesty"' in text, name
+        assert 'class="policy-honesty' in text, name
         assert 'id="policy-honesty"' in text, name
-        open_idx = text.index('class="policy-honesty"')
+        assert "policy_honesty_meta" in text, name
+        open_idx = text.index('class="policy-honesty')
         close_idx = text.index("</details>", open_idx)
         body = text[open_idx:close_idx]
         above = text[:open_idx]
@@ -59,6 +60,7 @@ def test_policy_honesty_css() -> None:
     ).read_text(encoding="utf-8")
     assert ".policy-honesty" in css
     assert ".policy-honesty > summary" in css
+    assert ".policy-honesty.warn" in css
 
 
 def test_charts_js_policy_honesty_parity() -> None:
@@ -70,6 +72,8 @@ def test_charts_js_policy_honesty_parity() -> None:
         / "charts.js"
     ).read_text(encoding="utf-8")
     assert 'className = "policy-honesty"' in js
+    assert "policy_honesty_meta" in js
+    assert "policy_honesty_warn" in js
     assert 'id = "policy-honesty"' in js
     assert "function appendGlance" in js
     page = js[js.index("function renderChartsPage") :]

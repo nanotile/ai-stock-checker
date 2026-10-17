@@ -2284,6 +2284,69 @@ def book_matrix_fold_meta(
     return " · ".join(labels), rr_warn
 
 
+# Nested glances inside ``#policy-honesty`` that can escalate tone.
+# Quiet summary keeps the category index; adverse tones rename the chip.
+_POLICY_HONESTY_QUIET = "crypto · exits · AI · gates · fees"
+_POLICY_HONESTY_ADVERSE = frozenset({"warn", "aging", "stale"})
+_POLICY_HONESTY_FOLD_LABELS: tuple[tuple[str, str], ...] = (
+    ("fee_burn_glance", "fees"),
+    ("stuck_capital_glance", "stuck"),
+    ("laya_glance", "LAYA"),
+    ("ai_debate_glance", "debate"),
+    ("universe_discovery_glance", "Yahoo"),
+    ("equity_hours_glance", "Hours"),
+    ("daily_loss_glance", "day loss"),
+    ("concentration_glance", "conc"),
+    ("min_hold_lock_glance", "min-hold"),
+    ("rebuy_cooldown_glance", "rebuy"),
+    ("post_sl_cooldown_glance", "post-SL"),
+    ("loop_cadence_glance", "cadence"),
+    ("crypto_policy_glance", "crypto"),
+    ("book_limits_glance", "book"),
+    ("fee_allowance_glance", "allowance"),
+    ("atr_display_glance", "ATR"),
+    ("promote_contract_glance", "promote"),
+    ("ai_mode_glance", "AI"),
+    ("ai_validate_scope_glance", "AI scope"),
+    ("session_glance", "session"),
+    ("postmortem_glance", "rounds"),
+)
+
+
+def policy_honesty_fold_meta(
+    snap: dict[str, Any] | None,
+) -> tuple[str, bool]:
+    """Summary chip for Policy honesty fold — which nested glances warn-open.
+
+    Quiet keeps the category index (``crypto · exits · AI · gates · fees``).
+    Nested glances with ``warn`` / ``aging`` / ``stale`` tones rename the
+    chip and return warn so the fold opens (Book matrix / Hours inactive /
+    Yahoo mix fold-meta parity). Aging/stale append the severity word so
+    friends see clock drift vs a plain warn. Display only; not a gate.
+    """
+    if not isinstance(snap, dict):
+        return _POLICY_HONESTY_QUIET, False
+    labels: list[str] = []
+    for key, label in _POLICY_HONESTY_FOLD_LABELS:
+        glance = snap.get(key)
+        if not isinstance(glance, dict) or not glance.get("ready"):
+            continue
+        tone = str(glance.get("tone") or "").strip().lower()
+        if tone not in _POLICY_HONESTY_ADVERSE:
+            continue
+        if tone in {"aging", "stale"}:
+            labels.append(f"{label} {tone}")
+        else:
+            labels.append(label)
+    if not labels:
+        return _POLICY_HONESTY_QUIET, False
+    # Cap the chip so a storm of warn glances still fits the summary line.
+    extra = len(labels) - 6
+    if extra > 0:
+        labels = labels[:6] + [f"+{extra}"]
+    return " · ".join(labels), True
+
+
 def build_book_risk_glance(
     book_risk: dict[str, Any] | None,
 ) -> dict[str, Any]:
@@ -27843,7 +27906,7 @@ def load_desk_snapshot(
     cov_bit = str(mark_coverage.get("bit") or "")
     mark_note = f"{mark_base} {cov_bit}." if mark_base and cov_bit else mark_base
 
-    return {
+    snap = {
         "brand": "AI Stock Checker",
         "tagline": "Paper desk — honest marks, low churn.",
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
@@ -28026,3 +28089,7 @@ def load_desk_snapshot(
         "adopted_ideas": adopted_ideas,
         "runtime": runtime,
     }
+    ph_meta, ph_warn = policy_honesty_fold_meta(snap)
+    snap["policy_honesty_meta"] = ph_meta
+    snap["policy_honesty_warn"] = ph_warn
+    return snap

@@ -2285,6 +2285,15 @@ a:active {
   font-weight: 400;
 }
 
+.policy-honesty.warn {
+  border-color: var(--down);
+}
+
+.policy-honesty.warn > summary,
+.policy-honesty.warn > summary .meta {
+  color: var(--down);
+}
+
 .policy-honesty[open] > summary {
   margin-bottom: 0.35rem;
 }
