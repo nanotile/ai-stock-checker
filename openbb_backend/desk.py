@@ -1609,7 +1609,15 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"^clash · gap \S+ · scan\b"), "gap/scan"),
     (re.compile(r"^clash · gap \S+ · cash\b"), "gap/cash"),
     (re.compile(r"^clash · gap \S+ · (?:laya|debate)\b"), "gap/memory"),
-    (re.compile(r"^\d+ gap\b"), "gap"),
+    # Cursor ticker + age ride with the count so ``N gap`` does not hide
+    # who last failed open or whether that print is still live (#546).
+    (
+        re.compile(
+            r"^\d+ gap(?: · last ([A-Za-z0-9][A-Za-z0-9.\-]{0,14}))?"
+            r"(?: · (fresh|aging|expired))?\b"
+        ),
+        "gap",
+    ),
     # Longer relationship prefixes first (Screener weight lean inventory).
     (re.compile(r"^share/lean\b"), "share/lean"),
     (re.compile(r"^lead/lean\b"), "lead/lean"),
@@ -1624,11 +1632,13 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
 def soft_allow_lean_meta(soft_lean: str, *, warn: bool = False) -> str:
     """Summary chip for soft-allow lean fold — which cascades spoke / why open.
 
-    Quiet names sleeves that spoke (``quiet · N folds · scan · gap · last/share``),
+    Quiet names sleeves that spoke (``quiet · N folds · scan · gap AAPL fresh``),
     so the primary line does not claim gen-clash or RS-gap when those bits are
-    absent — and a bare ``N gap`` no longer hides age↔share / gap-vs-other lean
-    (Screener weight + FinRobot last-row). Warned folds speak ``clash`` /
-    ``hot`` / ``warn`` and append clipped stage names. Display only; not a gate.
+    absent. The gap stage keeps ``last SYM`` and ``fresh|aging|expired`` so a
+    bare count does not hide the cursor (xang1234 #546 + RyanJHamby age) or
+    age↔share / gap-vs-other lean (Screener weight + FinRobot last-row).
+    Warned folds speak ``clash`` / ``hot`` / ``warn`` and append clipped stage
+    names. Display only; not a gate.
     """
     lean = str(soft_lean or "").strip()
     if not lean:

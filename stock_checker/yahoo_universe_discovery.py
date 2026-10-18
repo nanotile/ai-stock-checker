@@ -820,8 +820,17 @@ def _quiet_inventory_chip(
     def stage_at(blob: str) -> tuple[str, int] | None:
         for rx, label in stages:
             match = rx.match(blob)
-            if match:
-                return label, match.end()
+            if not match:
+                continue
+            # Capture groups append to the label (``gap`` + ticker + age).
+            pieces = [label] if label else []
+            for i in range(1, (match.lastindex or 0) + 1):
+                piece = str(match.group(i) or "").strip()
+                if piece:
+                    pieces.append(piece)
+            shown = " ".join(pieces).strip()
+            if shown:
+                return shown, match.end()
         return None
 
     rest = str(text or "").strip()

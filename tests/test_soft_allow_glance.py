@@ -25,7 +25,7 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
             "clash · scan fresh · clash · soft fresh · gap expired · "
             "2 gap · last AAPL · fresh"
         )
-        == "quiet · 3 folds · scan · soft/gap · gap"
+        == "quiet · 3 folds · scan · soft/gap · gap AAPL fresh"
     )
     # gap↔scan / cash / memory were silent on the chip (N gap alone ≠ generation).
     assert (
@@ -47,7 +47,7 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
             "2 gap · last AAPL · fresh · clash · gap expired · scan stale",
             warn=True,
         )
-        == "clash · gap · gap/scan"
+        == "clash · gap AAPL fresh · gap/scan"
     )
     # soft≠gap must not greedily eat a later gap↔scan on the same lean line.
     assert (
@@ -55,7 +55,7 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
             "clash · soft fresh · gap expired · 2 gap · last AAPL · fresh · "
             "clash · gap expired · scan stale"
         )
-        == "quiet · 3 folds · soft/gap · gap · gap/scan"
+        == "quiet · 3 folds · soft/gap · gap AAPL fresh · gap/scan"
     )
     assert (
         soft_allow_lean_meta("clash · scan stale", warn=True)
@@ -65,7 +65,7 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
         soft_allow_lean_meta(
             "2 gap · last AAPL · fresh · hot · 66.7%", warn=True
         )
-        == "hot · gap"
+        == "hot · gap AAPL fresh"
     )
     # Bare N gap hid age↔share / gap-vs-other / share↔lean on the chip.
     assert (
@@ -77,7 +77,7 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
             "last/lean clash · expired · gap hot · other ok · "
             "share/lean clash · share clash · lean clash"
         )
-        == "quiet · 5 folds · gap · last/share · gap/other · last/lean · +1"
+        == "quiet · 5 folds · gap AAPL fresh · last/share · gap/other · last/lean · +1"
     )
     assert (
         soft_allow_lean_meta(
@@ -86,7 +86,7 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
             "gap vs other clash · gap hot · other ok",
             warn=True,
         )
-        == "clash · gap · last/share · gap/other"
+        == "clash · gap AAPL fresh · last/share · gap/other"
     )
     assert (
         soft_allow_lean_meta(
@@ -95,7 +95,7 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
             "last/share clash · expired · hot · "
             "lead/share clash · lead clash · share align"
         )
-        == "quiet · 4 folds · gap · last/lead · last/share · lead/share"
+        == "quiet · 4 folds · gap MSFT expired · last/lead · last/share · lead/share"
     )
 
 
@@ -253,7 +253,7 @@ def test_soft_allow_glance_anchor_gap_count() -> None:
     assert g["soft_lean"] == g["anchor_gap_bit"]
     assert g["soft_lean_warn"] is True
     assert g["soft_lean_meta"] == (
-        "hot · gap · last/share · gap/other · last/lean · +1"
+        "hot · gap AAPL fresh · last/share · gap/other · last/lean · +1"
     )
     assert g["anchor_gap_bit"] not in g["line_core"]
     assert "soft-allow" in g["line_core"]
