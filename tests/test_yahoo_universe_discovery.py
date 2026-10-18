@@ -495,20 +495,35 @@ def test_yahoo_fail_mix_lean_meta_names_the_open():
         lean_warn=False,
         mix_lean=long_body,
     ) == "quiet · 7 folds · +held · counts · lean · Δ · +3"
+    # Hot lean without spoken stages stays lean-only.
+    assert yahoo_fail_mix_lean_meta(
+        share_vs_gap="",
+        share_vs_gap_verb="",
+        share_vs_gap_warn=False,
+        lean_warn=True,
+    ) == "clash"
+    # Hot lean appends spoken stages (Screener weight hot inventory).
     assert yahoo_fail_mix_lean_meta(
         share_vs_gap="",
         share_vs_gap_verb="",
         share_vs_gap_warn=False,
         lean_warn=True,
         mix_lean=body,
-    ) == "clash"
+    ) == "clash · +timeout · counts · share · vs"
     assert yahoo_fail_mix_lean_meta(
         share_vs_gap=wide,
         share_vs_gap_verb="align",
         share_vs_gap_warn=True,
         lean_warn=True,
         mix_lean=body,
-    ) == "align · wide"
+    ) == "align · wide · +timeout · counts · share · vs"
+    assert yahoo_fail_mix_lean_meta(
+        share_vs_gap=clash,
+        share_vs_gap_verb="clash",
+        share_vs_gap_warn=True,
+        lean_warn=False,
+        mix_lean=long_body,
+    ) == "clash · +held · counts · lean · Δ · +3"
     assert yahoo_fail_mix_lean_meta(
         share_vs_gap=clash,
         share_vs_gap_verb="clash",
@@ -541,6 +556,7 @@ def test_yahoo_fail_cascade_lean_meta_names_the_open():
             " · error sf/budget align · both align"
         )
     ) == "quiet · 5 folds · seed · fail · seed/fail · budget · +1"
+    # Hot lean without spoken stages stays lean-only.
     assert (
         yahoo_fail_cascade_lean_meta(
             outer_bit="align · both clash",
@@ -562,6 +578,29 @@ def test_yahoo_fail_cascade_lean_meta_names_the_open():
         )
         == "clash"
     )
+    # Hot cascade appends spoken stages (mix / Screener weight hot inventory).
+    cascade_body = (
+        "error/seed align · stale · error/fail align · fresh"
+        " · error seed/fail align · both align"
+        " · error/budget clash · held · not spent"
+        " · error sf/budget align · both clash"
+    )
+    assert (
+        yahoo_fail_cascade_lean_meta(
+            outer_bit="align · both clash",
+            outer_warn=True,
+            lean=cascade_body,
+        )
+        == "align · both clash · seed · fail · seed/fail · budget · +1"
+    )
+    assert (
+        yahoo_fail_cascade_lean_meta(
+            outer_bit="clash · seed/fail align · budget clash",
+            outer_warn=True,
+            lean="streak/seed align · stale · streak/budget clash · held · not spent",
+        )
+        == "clash · seed · budget"
+    )
     # Outer warn wins over inner.
     assert (
         yahoo_fail_cascade_lean_meta(
@@ -569,8 +608,9 @@ def test_yahoo_fail_cascade_lean_meta_names_the_open():
             outer_warn=True,
             inner_bit="clash · seed clash · fail align",
             inner_warn=True,
+            lean="streak/seed align · stale",
         )
-        == "align · both clash"
+        == "align · both clash · seed"
     )
     # Inner alone when outer quiet.
     assert (
@@ -581,6 +621,16 @@ def test_yahoo_fail_cascade_lean_meta_names_the_open():
             inner_warn=True,
         )
         == "clash"
+    )
+    assert (
+        yahoo_fail_cascade_lean_meta(
+            outer_bit="",
+            outer_warn=False,
+            inner_bit="clash · seed clash · fail align",
+            inner_warn=True,
+            lean="streak/seed clash · fresh · seed/fail clash · seed clash · fail align",
+        )
+        == "clash · seed · seed/fail"
     )
     # Non-warn outer does not open the chip; the body names what spoke.
     assert (

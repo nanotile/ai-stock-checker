@@ -258,7 +258,7 @@ def test_universe_discovery_glance_yahoo_fail_error_also_mix(tmp_path) -> None:
     assert "33%" not in half["line_core"]
     assert "+held" not in half["line_core"]
     assert half["yahoo_fail_error_also_counts"] == "1 timeout · 1 held"
-    assert half["mix_lean_meta"] == "clash"
+    assert half["mix_lean_meta"] == "clash · +held · counts · lean · Δ"
     assert half["mix_lean"] == (
         "+held · 1 timeout · 1 held · clash · hidden hot · winner ok"
         " · Δ thin · 0pp"
@@ -338,7 +338,9 @@ def test_universe_discovery_glance_yahoo_fail_error_also_mix(tmp_path) -> None:
         " · Δ lead size sides share vs gap align · wide"
     )
     assert owned["mix_lean_warn"] is True
-    assert owned["mix_lean_meta"] == "align · wide"
+    assert owned["mix_lean_meta"] == (
+        "align · wide · +timeout · counts · lean · Δ · +7"
+    )
     assert (
         "Yahoo fail · inflight · +timeout · 1 timeout · 3 held"
         " · align · quiet|strong · Δ wide · -50pp · Δ lead · held"
@@ -427,7 +429,7 @@ def test_universe_discovery_glance_yahoo_fail_error_vs_seed_first_fail(
     assert g["yahoo_fail_error_seed_fail_vs_budget"] == "align · both clash"
     assert g["yahoo_fail_error_seed_fail_vs_budget_warn"] is True
     assert g["error_lean_warn"] is True
-    assert g["error_lean_meta"] == "align · both clash"
+    assert g["error_lean_meta"] == "align · both clash · seed · sf/budget"
     assert "Yahoo fail · timeout · 0/3" in g["line_core"]
     assert "error/" not in g["line_core"]
     assert "error/seed clash · fresh" in g["error_lean"]
@@ -460,7 +462,8 @@ def test_universe_discovery_glance_yahoo_fail_error_vs_seed_first_fail(
     )
     assert stale["yahoo_fail_error_seed_fail_vs_budget_warn"] is True
     assert stale["error_lean_warn"] is True
-    assert stale["error_lean_meta"] == "clash"
+    # sf/budget clash body also names seed/fail · budget (inventory keeps both).
+    assert stale["error_lean_meta"] == "clash · seed · sf/budget · seed/fail"
     assert "error/" not in stale["line_core"]
     assert "error/seed align · stale" in stale["error_lean"]
     assert "error sf/budget clash · seed/fail align · budget clash" in stale[
@@ -566,7 +569,9 @@ def test_universe_discovery_glance_yahoo_fail_streak_speaks(tmp_path) -> None:
     assert "streak/seed clash · fresh" in g["streak_lean"]
     assert "sf/budget align · both clash" in g["streak_lean"]
     assert g["streak_lean_warn"] is True
-    assert g["streak_lean_meta"] == "align · both clash"
+    assert g["streak_lean_meta"] == (
+        "align · both clash · seed · seed/fail · sf/budget"
+    )
 
 
 def test_universe_discovery_glance_yahoo_fail_lean_quiet_inventory(

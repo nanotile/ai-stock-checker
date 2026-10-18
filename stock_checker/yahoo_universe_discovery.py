@@ -884,18 +884,31 @@ def yahoo_fail_mix_lean_meta(
     only the hidden flag plus counts. Empty text stays ``quiet``.
     A warned share-vs-gap speaks ``align · wide`` or ``clash`` (the fold
     body still holds the full bit). A lean-only warn speaks ``clash``.
-    ``align · thin`` does not warn, so it uses the quiet inventory.
+    Hot chips also append clipped spoken stages
+    (``align · wide · +timeout · counts · share · vs``) so severity alone
+    does not hide which ladder bits spoke (Screener weight / Hours inactive
+    hot inventory). ``align · thin`` does not warn, so it uses the quiet
+    inventory.
     """
+
+    def _hot(severity: str) -> str:
+        stage_tail = _quiet_inventory_chip(
+            mix_lean, _MIX_STAGE_RES, cap=_MIX_QUIET_NAME_CAP, quiet=False
+        )
+        if stage_tail:
+            return f"{severity} · {stage_tail}"
+        return severity
+
     if share_vs_gap_warn and str(share_vs_gap or "").strip():
         verb = str(share_vs_gap_verb or "").strip().lower()
         if verb == "align":
             tail = str(share_vs_gap).rsplit("·", 1)[-1].strip().lower()
             if tail in ("wide", "thin"):
-                return f"align · {tail}"
+                return _hot(f"align · {tail}")
         if verb == "clash":
-            return "clash"
+            return _hot("clash")
     if lean_warn:
-        return "clash"
+        return _hot("clash")
     return _mix_quiet_chip(mix_lean)
 
 
@@ -938,9 +951,21 @@ def yahoo_fail_cascade_lean_meta(
     not claim seed/fail/budget when the line is only a seed bit. Empty text
     stays ``quiet``. Prefer outer sf/budget warn over inner seed/fail.
     ``align · both clash`` / adverse ``align · both align`` keep that phrase;
-    any ``clash · …`` bit shortens to ``clash``. Fold body still holds the
-    full relationship text (mix-fold meta parity).
+    any ``clash · …`` bit shortens to ``clash``. Hot chips also append
+    clipped spoken stages (``align · both clash · seed · budget · +K``) so
+    severity alone does not hide which relationships spoke (mix / Screener
+    weight hot inventory). Fold body still holds the full relationship text
+    (mix-fold meta parity).
     """
+
+    def _hot(severity: str) -> str:
+        stage_tail = _quiet_inventory_chip(
+            lean, _CASCADE_STAGE_RES, cap=_CASCADE_QUIET_NAME_CAP, quiet=False
+        )
+        if stage_tail:
+            return f"{severity} · {stage_tail}"
+        return severity
+
     bit = ""
     if outer_warn and str(outer_bit or "").strip():
         bit = str(outer_bit).strip()
@@ -952,10 +977,10 @@ def yahoo_fail_cascade_lean_meta(
     if low.startswith("align · both "):
         tail = low[len("align · both ") :].strip()
         if tail in ("clash", "align"):
-            return f"align · both {tail}"
+            return _hot(f"align · both {tail}")
     if low.startswith("clash"):
-        return "clash"
-    return "clash"
+        return _hot("clash")
+    return _hot("clash")
 
 
 def yahoo_fail_error_vs_seed(error: str, seed_freshness: str) -> str:
