@@ -803,22 +803,27 @@ _MIX_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
 )
 
 
-def _mix_stage_at(text: str) -> tuple[str, int] | None:
-    for rx, label in _MIX_STAGE_RES:
-        match = rx.match(text)
-        if match:
-            return label, match.end()
-    return None
+def _quiet_inventory_chip(
+    text: str,
+    stages: tuple[tuple[re.Pattern[str], str], ...],
+    *,
+    cap: int,
+) -> str:
+    """``quiet · N folds · … · +K`` naming stages that actually spoke."""
 
+    def stage_at(blob: str) -> tuple[str, int] | None:
+        for rx, label in stages:
+            match = rx.match(blob)
+            if match:
+                return label, match.end()
+        return None
 
-def _mix_quiet_chip(mix_lean: str) -> str:
-    """``quiet · N folds · +timeout · counts · … · +K`` for bits on the line."""
-    rest = str(mix_lean or "").strip()
+    rest = str(text or "").strip()
     if not rest:
         return "quiet"
     names: list[str] = []
     for _ in range(24):
-        hit = _mix_stage_at(rest)
+        hit = stage_at(rest)
         if hit is None:
             break
         label, end = hit
@@ -828,7 +833,7 @@ def _mix_quiet_chip(mix_lean: str) -> str:
         while tail:
             if tail.startswith(" · "):
                 nxt = tail[3:]
-                if _mix_stage_at(nxt):
+                if stage_at(nxt):
                     rest = nxt
                     break
                 tail = nxt
@@ -840,11 +845,18 @@ def _mix_quiet_chip(mix_lean: str) -> str:
     if not names:
         return "quiet"
     unit = "fold" if len(names) == 1 else "folds"
-    extra = len(names) - _MIX_QUIET_NAME_CAP
-    shown = names[:_MIX_QUIET_NAME_CAP]
+    extra = len(names) - cap
+    shown = names[:cap]
     if extra > 0:
         shown.append(f"+{extra}")
     return f"quiet · {len(names)} {unit} · " + " · ".join(shown)
+
+
+def _mix_quiet_chip(mix_lean: str) -> str:
+    """``quiet · N folds · +timeout · counts · … · +K`` for bits on the line."""
+    return _quiet_inventory_chip(
+        mix_lean, _MIX_STAGE_RES, cap=_MIX_QUIET_NAME_CAP
+    )
 
 
 def yahoo_fail_mix_lean_meta(
@@ -878,19 +890,47 @@ def yahoo_fail_mix_lean_meta(
     return _mix_quiet_chip(mix_lean)
 
 
+# Quiet error/streak chip names spoken relationships (mix quiet inventory).
+# Longer prefixes first so ``error seed/fail`` is not read as ``seed/fail``.
+_CASCADE_QUIET_NAME_CAP = 4
+_CASCADE_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
+    (re.compile(r"^error sf/budget\b"), "sf/budget"),
+    (re.compile(r"^error seed/fail\b"), "seed/fail"),
+    (re.compile(r"^error/budget\b"), "budget"),
+    (re.compile(r"^error/fail\b"), "fail"),
+    (re.compile(r"^error/seed\b"), "seed"),
+    (re.compile(r"^sf/budget\b"), "sf/budget"),
+    (re.compile(r"^streak/budget\b"), "budget"),
+    (re.compile(r"^streak/fail\b"), "fail"),
+    (re.compile(r"^streak/seed\b"), "seed"),
+    (re.compile(r"^seed/fail\b"), "seed/fail"),
+)
+
+
+def _cascade_quiet_chip(lean: str) -> str:
+    """``quiet · N folds · seed · budget · …`` for bits on the lean line."""
+    return _quiet_inventory_chip(
+        lean, _CASCADE_STAGE_RES, cap=_CASCADE_QUIET_NAME_CAP
+    )
+
+
 def yahoo_fail_cascade_lean_meta(
     *,
     outer_bit: str = "",
     outer_warn: bool = False,
     inner_bit: str = "",
     inner_warn: bool = False,
+    lean: str = "",
 ) -> str:
     """Summary chip for error/streak lean folds — why open, not another body bit.
 
-    Quiet cascade stays ``cascade``. Prefer outer sf/budget warn over inner
-    seed/fail. ``align · both clash`` / adverse ``align · both align`` keep
-    that phrase; any ``clash · …`` bit shortens to ``clash``. Fold body still
-    holds the full relationship text (mix-fold meta parity).
+    A quiet fold names the stages that spoke
+    (``quiet · N folds · seed · budget``), clipped at 4, so ``cascade`` does
+    not claim seed/fail/budget when the line is only a seed bit. Empty text
+    stays ``quiet``. Prefer outer sf/budget warn over inner seed/fail.
+    ``align · both clash`` / adverse ``align · both align`` keep that phrase;
+    any ``clash · …`` bit shortens to ``clash``. Fold body still holds the
+    full relationship text (mix-fold meta parity).
     """
     bit = ""
     if outer_warn and str(outer_bit or "").strip():
@@ -898,7 +938,7 @@ def yahoo_fail_cascade_lean_meta(
     elif inner_warn and str(inner_bit or "").strip():
         bit = str(inner_bit).strip()
     else:
-        return "cascade"
+        return _cascade_quiet_chip(lean)
     low = bit.lower()
     if low.startswith("align · both "):
         tail = low[len("align · both ") :].strip()

@@ -525,8 +525,22 @@ def test_yahoo_fail_mix_lean_meta_names_the_open():
 
 
 def test_yahoo_fail_cascade_lean_meta_names_the_open():
-    """Quiet chip stays cascade; warned sf/budget or seed/fail names why."""
-    assert yahoo_fail_cascade_lean_meta() == "cascade"
+    """Quiet chip names spoken stages; warned sf/budget or seed/fail names why."""
+    assert yahoo_fail_cascade_lean_meta() == "quiet"
+    assert yahoo_fail_cascade_lean_meta(
+        lean="error/seed clash · fresh · error/budget align · due"
+    ) == "quiet · 2 folds · seed · budget"
+    assert yahoo_fail_cascade_lean_meta(
+        lean="streak/seed align · stale"
+    ) == "quiet · 1 fold · seed"
+    assert yahoo_fail_cascade_lean_meta(
+        lean=(
+            "error/seed align · stale · error/fail align · fresh"
+            " · error seed/fail align · both align"
+            " · error/budget clash · held · not spent"
+            " · error sf/budget align · both align"
+        )
+    ) == "quiet · 5 folds · seed · fail · seed/fail · budget · +1"
     assert (
         yahoo_fail_cascade_lean_meta(
             outer_bit="align · both clash",
@@ -568,15 +582,16 @@ def test_yahoo_fail_cascade_lean_meta_names_the_open():
         )
         == "clash"
     )
-    # Non-warn outer does not open the chip.
+    # Non-warn outer does not open the chip; the body names what spoke.
     assert (
         yahoo_fail_cascade_lean_meta(
             outer_bit="align · both align",
             outer_warn=False,
             inner_bit="",
             inner_warn=False,
+            lean="streak/seed align · stale · seed/fail align · both align",
         )
-        == "cascade"
+        == "quiet · 2 folds · seed · seed/fail"
     )
 
 

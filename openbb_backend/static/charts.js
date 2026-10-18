@@ -2709,7 +2709,7 @@
       summary.appendChild(document.createTextNode(label + " "));
       var meta = document.createElement("span");
       meta.className = "meta";
-      meta.textContent = metaLabel || "cascade";
+      meta.textContent = metaLabel || "quiet";
       summary.appendChild(meta);
       details.appendChild(summary);
       var leanBody = document.createElement("p");
@@ -2732,7 +2732,7 @@
       !!glance.error_lean_warn,
       "universe-error-lean",
       "universe-error-lean-body",
-      glance.error_lean_meta ? String(glance.error_lean_meta) : "cascade"
+      glance.error_lean_meta ? String(glance.error_lean_meta) : "quiet"
     );
     appendLean(
       "streak lean",
@@ -2740,7 +2740,7 @@
       !!glance.streak_lean_warn,
       "universe-streak-lean",
       "universe-streak-lean-body",
-      glance.streak_lean_meta ? String(glance.streak_lean_meta) : "cascade"
+      glance.streak_lean_meta ? String(glance.streak_lean_meta) : "quiet"
     );
     var sub = document.createElement("p");
     sub.className = "sub";

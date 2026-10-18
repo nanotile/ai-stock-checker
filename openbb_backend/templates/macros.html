@@ -759,10 +759,10 @@
 {% set mix_meta = glance.mix_lean_meta|default('quiet') %}
 {% set error_lean = glance.error_lean|default('') %}
 {% set error_warn = glance.error_lean_warn|default(false) %}
-{% set error_meta = glance.error_lean_meta|default('cascade') %}
+{% set error_meta = glance.error_lean_meta|default('quiet') %}
 {% set streak_lean = glance.streak_lean|default('') %}
 {% set lean_warn = glance.streak_lean_warn|default(false) %}
-{% set streak_meta = glance.streak_lean_meta|default('cascade') %}
+{% set streak_meta = glance.streak_lean_meta|default('quiet') %}
 <section class="universe-discovery-glance" aria-labelledby="{{ heading_id }}">
   <h2 id="{{ heading_id }}" class="visually-hidden">Universe discovery</h2>
   <p class="universe-discovery-glance-line">

@@ -21431,6 +21431,7 @@ def build_universe_discovery_glance(
             outer_warn=error_seed_fail_vs_budget_warn,
             inner_bit=error_seed_vs_fail,
             inner_warn=error_seed_vs_fail_warn,
+            lean=error_lean,
         )
         if error_lean
         else ""
@@ -21441,6 +21442,7 @@ def build_universe_discovery_glance(
             outer_warn=streak_seed_fail_vs_budget_warn,
             inner_bit=streak_seed_vs_fail,
             inner_warn=streak_seed_vs_fail_warn,
+            lean=streak_lean,
         )
         if streak_lean
         else ""

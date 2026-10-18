@@ -569,6 +569,46 @@ def test_universe_discovery_glance_yahoo_fail_streak_speaks(tmp_path) -> None:
     assert g["streak_lean_meta"] == "align · both clash"
 
 
+def test_universe_discovery_glance_yahoo_fail_lean_quiet_inventory(
+    tmp_path,
+) -> None:
+    """Calm error/streak folds name spoken stages (not a static cascade)."""
+    now = datetime(2026, 9, 11, 10, 0, tzinfo=timezone.utc)
+    last = (now - timedelta(hours=6)).replace(tzinfo=None).isoformat()
+    (tmp_path / "stock_universe.json").write_text(
+        json.dumps(
+            {
+                "stocks": {"AAPL": {}},
+                "meta": {
+                    "last_yahoo_discovery": last,
+                    "last_yahoo_discovery_status": "failed",
+                    "last_yahoo_discovery_error": "timeout",
+                    "yahoo_discovery_fail_streak": 1,
+                    "last_yahoo_screens_ok": 0,
+                    "last_yahoo_screens_failed": 3,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    g = build_universe_discovery_glance(tmp_path, now=now)
+    assert g["error_lean_warn"] is False
+    assert "error/seed clash · fresh" in g["error_lean"]
+    assert "error/budget align · due" in g["error_lean"]
+    assert g["error_lean_meta"] == "quiet · 2 folds · seed · budget"
+    meta = json.loads((tmp_path / "stock_universe.json").read_text(encoding="utf-8"))
+    meta["meta"]["yahoo_discovery_fail_streak"] = 3
+    meta["meta"].pop("last_yahoo_discovery_error", None)
+    (tmp_path / "stock_universe.json").write_text(
+        json.dumps(meta), encoding="utf-8"
+    )
+    streak = build_universe_discovery_glance(tmp_path, now=now)
+    assert streak["streak_lean_warn"] is False
+    assert "streak/seed clash · fresh" in streak["streak_lean"]
+    assert "streak/budget align · due" in streak["streak_lean"]
+    assert streak["streak_lean_meta"] == "quiet · 2 folds · seed · budget"
+
+
 def test_universe_discovery_glance_yahoo_fail_streak_vs_seed_stale(
     tmp_path,
 ) -> None:
