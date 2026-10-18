@@ -1600,7 +1600,15 @@ def _soft_allow_clock_tone(band: str) -> str:
 # gap/memory sit after soft≠* so N gap alone no longer hides those clocks.
 # Gap relationship stages (Screener weight lean parity) sit after N gap so a
 # bare ``gap`` chip no longer hides last/share · gap-vs-other · share/lean.
+# Share % and ``vs N other`` ride on the stage already in front of them so
+# the 4-name clip still keeps the cursor (absolute ownership ≠ the verb).
 _SOFT_LEAN_NAME_CAP = 4
+_SOFT_LEAN_SHARE = (
+    r"(?: · (hot|quiet))?(?: · (\d+(?:\.\d+)?%))?"
+)
+_SOFT_LEAN_VS_OTHER = (
+    r"(?: · (vs \d+ other)(?: · (strong|thin))? · (\d+(?:\.\d+)?%))?"
+)
 _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"^clash · scan\b"), "scan"),
     (re.compile(r"^clash · soft \S+ · gap\b"), "soft/gap"),
@@ -1614,15 +1622,18 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
     (
         re.compile(
             r"^\d+ gap(?: · last ([A-Za-z0-9][A-Za-z0-9.\-]{0,14}))?"
-            r"(?: · (fresh|aging|expired))?\b"
+            r"(?: · (fresh|aging|expired))?"
+            + _SOFT_LEAN_SHARE
+            + _SOFT_LEAN_VS_OTHER
         ),
         "gap",
     ),
     # Sample ownership after the cursor (last SYM ≠ ring owner). ``agree``
     # rides on the lead stage so the later ``last/lead … · agree`` tail is
-    # not a second fold.
-    (re.compile(r"^n=1\b"), "n=1"),
-    (re.compile(r"^tied\b"), "tied"),
+    # not a second fold. Share % (and ``vs N other`` when no last/share
+    # sits between them) rides here so ``n=1`` is not a silent count.
+    (re.compile(r"^n=1" + _SOFT_LEAN_SHARE + _SOFT_LEAN_VS_OTHER), "n=1"),
+    (re.compile(r"^tied" + _SOFT_LEAN_SHARE + _SOFT_LEAN_VS_OTHER), "tied"),
     (
         re.compile(
             r"^lead ([A-Za-z0-9][A-Za-z0-9.\-]{0,14}) · \d+%"
@@ -1637,6 +1648,8 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
         re.compile(
             r"^ahead (wide|thin) · (\+\d+)"
             r"(?: · (vs) ([A-Za-z0-9][A-Za-z0-9.\-]{0,14}) · (\d+) · (\d+%))?"
+            + _SOFT_LEAN_SHARE
+            + _SOFT_LEAN_VS_OTHER
         ),
         "ahead",
     ),
@@ -1656,6 +1669,7 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
             r"|hot"
             r"|quiet"
             r"))?"
+            + _SOFT_LEAN_VS_OTHER
         ),
         "",
     ),
@@ -1665,6 +1679,7 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
             r"(?: · (both (?:align|clash))"
             r"| · ((?:lead|share|lean) (?:align|clash))"
             r" · ((?:lead|share|lean) (?:align|clash)))?"
+            + _SOFT_LEAN_VS_OTHER
         ),
         "",
     ),
@@ -1697,6 +1712,10 @@ def soft_allow_lean_meta(soft_lean: str, *, warn: bool = False) -> str:
     that follow (``last/share align fresh hot``, ``gap/other align
     hot|thin``, ``share/lean clash share clash lean align``) so a verb
     is not a silent confirm of a live hot print or a crossed pair.
+    Gap share (``quiet 25%`` / ``hot 50%``) rides on the sample or ahead
+    stage, and ``vs N other`` rides on that stage or on last/share /
+    lead/share, so the verb is not a substitute for the two ownership
+    numbers (portfolio AI count≠share).
     ``both clash`` still pins into the 4-name clip. Warned folds speak
     ``clash`` / ``hot`` / ``warn`` and append the other stages. Display
     only; not a gate.
