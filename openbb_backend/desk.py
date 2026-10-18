@@ -1630,6 +1630,16 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
         ),
         "lead",
     ),
+    # Margin and runner ride one stage so ``lead SYM · N%`` does not hide
+    # how far ahead or who is #2, and last/lead still fits the 4-name clip.
+    # ``vs N other`` does not match: the runner needs ``· count · share%``.
+    (
+        re.compile(
+            r"^ahead (wide|thin) · (\+\d+)"
+            r"(?: · (vs) ([A-Za-z0-9][A-Za-z0-9.\-]{0,14}) · (\d+) · (\d+%))?"
+        ),
+        "ahead",
+    ),
     # Longer relationship prefixes first (Screener weight lean inventory).
     (re.compile(r"^share/lean\b"), "share/lean"),
     (re.compile(r"^lead/lean\b"), "lead/lean"),
@@ -1650,7 +1660,9 @@ def soft_allow_lean_meta(soft_lean: str, *, warn: bool = False) -> str:
     bare count does not hide the cursor (xang1234 #546 + RyanJHamby age) or
     age↔share / gap-vs-other lean (Screener weight + FinRobot last-row).
     ``n=1`` / ``tied`` / ``lead SYM`` (plus ``agree`` or ``vs lead``) follow
-    so the cursor name is not treated as ring ownership.
+    so the cursor name is not treated as ring ownership. When a runner
+    exists, one stage names ``ahead wide|thin +K vs SYM N P%`` so ownership
+    % is not how far ahead and not who is #2 (sole 100% stays silent).
     Warned folds speak ``clash`` / ``hot`` / ``warn`` and append clipped stage
     names. Display only; not a gate.
     """

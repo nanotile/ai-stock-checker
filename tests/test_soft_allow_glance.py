@@ -116,6 +116,34 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
         )
         == "quiet · 2 folds · gap MSFT fresh · lead AAPL vs lead · MSFT"
     )
+    # Owner % alone hid margin and the #2 name. Sole 100% stays silent.
+    assert (
+        soft_allow_lean_meta(
+            "3 gap · last MSFT · fresh · lead AAPL · 67% · "
+            "last vs lead · MSFT · ahead thin · +1 · vs MSFT · 1 · 33%"
+        )
+        == (
+            "quiet · 3 folds · gap MSFT fresh · "
+            "lead AAPL vs lead · MSFT · ahead thin +1 vs MSFT 1 33%"
+        )
+    )
+    assert (
+        soft_allow_lean_meta(
+            "4 gap · last MSFT · fresh · lead AAPL · 75% · "
+            "last vs lead · MSFT · ahead wide · +2 · vs MSFT · 1 · 25%",
+            warn=True,
+        )
+        == (
+            "warn · gap MSFT fresh · lead AAPL vs lead · MSFT · "
+            "ahead wide +2 vs MSFT 1 25%"
+        )
+    )
+    assert (
+        soft_allow_lean_meta(
+            "2 gap · last AAPL · fresh · lead AAPL · 100% · agree"
+        )
+        == "quiet · 2 folds · gap AAPL fresh · lead AAPL agree"
+    )
 
 
 def test_soft_allow_glance_empty() -> None:
@@ -358,6 +386,7 @@ def test_soft_allow_glance_anchor_gap_symbol_lead() -> None:
     assert "last/lead clash · fresh · vs MSFT" in g["line"]
     assert "ahead thin · +1" in g["line"]
     assert "vs MSFT · 1 · 33%" in g["line"]
+    assert "ahead thin +1 vs MSFT 1 33%" in g["soft_lean_meta"]
     assert "last/share align · fresh · hot" in g["line"]
     assert "lead/share clash · lead clash · share align" in g["line"]
     assert "last/lean align · fresh · hot|thin" in g["line"]
