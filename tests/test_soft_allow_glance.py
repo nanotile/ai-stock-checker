@@ -95,7 +95,26 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
             "last/share clash · expired · hot · "
             "lead/share clash · lead clash · share align"
         )
-        == "quiet · 4 folds · gap MSFT expired · last/lead · last/share · lead/share"
+        == (
+            "quiet · 5 folds · gap MSFT expired · lead MSFT agree · "
+            "last/lead · last/share · +1"
+        )
+    )
+    # Cursor name ≠ sample: tied / sole / other owner stay on the chip.
+    assert (
+        soft_allow_lean_meta("1 gap · last AAPL · fresh · n=1")
+        == "quiet · 2 folds · gap AAPL fresh · n=1"
+    )
+    assert (
+        soft_allow_lean_meta("2 gap · last AAPL · fresh · tied · hot · 50%")
+        == "quiet · 2 folds · gap AAPL fresh · tied"
+    )
+    assert (
+        soft_allow_lean_meta(
+            "3 gap · last MSFT · fresh · lead AAPL · 67% · "
+            "last vs lead · MSFT"
+        )
+        == "quiet · 2 folds · gap MSFT fresh · lead AAPL vs lead · MSFT"
     )
 
 
@@ -253,7 +272,7 @@ def test_soft_allow_glance_anchor_gap_count() -> None:
     assert g["soft_lean"] == g["anchor_gap_bit"]
     assert g["soft_lean_warn"] is True
     assert g["soft_lean_meta"] == (
-        "hot · gap AAPL fresh · last/share · gap/other · last/lean · +1"
+        "hot · gap AAPL fresh · tied · last/share · gap/other · +2"
     )
     assert g["anchor_gap_bit"] not in g["line_core"]
     assert "soft-allow" in g["line_core"]

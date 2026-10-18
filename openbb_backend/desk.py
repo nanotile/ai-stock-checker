@@ -1618,6 +1618,18 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
         ),
         "gap",
     ),
+    # Sample ownership after the cursor (last SYM ≠ ring owner). ``agree``
+    # rides on the lead stage so the later ``last/lead … · agree`` tail is
+    # not a second fold.
+    (re.compile(r"^n=1\b"), "n=1"),
+    (re.compile(r"^tied\b"), "tied"),
+    (
+        re.compile(
+            r"^lead ([A-Za-z0-9][A-Za-z0-9.\-]{0,14}) · \d+%"
+            r"(?: · (agree)| · last (vs lead · [A-Za-z0-9][A-Za-z0-9.\-]{0,14}))?"
+        ),
+        "lead",
+    ),
     # Longer relationship prefixes first (Screener weight lean inventory).
     (re.compile(r"^share/lean\b"), "share/lean"),
     (re.compile(r"^lead/lean\b"), "lead/lean"),
@@ -1637,6 +1649,8 @@ def soft_allow_lean_meta(soft_lean: str, *, warn: bool = False) -> str:
     absent. The gap stage keeps ``last SYM`` and ``fresh|aging|expired`` so a
     bare count does not hide the cursor (xang1234 #546 + RyanJHamby age) or
     age↔share / gap-vs-other lean (Screener weight + FinRobot last-row).
+    ``n=1`` / ``tied`` / ``lead SYM`` (plus ``agree`` or ``vs lead``) follow
+    so the cursor name is not treated as ring ownership.
     Warned folds speak ``clash`` / ``hot`` / ``warn`` and append clipped stage
     names. Display only; not a gate.
     """
