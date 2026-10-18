@@ -8,6 +8,7 @@ fees gates.
 
 from __future__ import annotations
 
+import re
 import threading
 from datetime import datetime, timezone
 from typing import Any, List, Sequence
@@ -780,19 +781,89 @@ def yahoo_fail_error_also_vs_delta_lead_size_sides_share_vs_gap(
     )
 
 
+# Quiet mix chip names spoken stages (Close honesty inventory). Cap matches
+# the calm fold-name clip so a long Δ ladder does not bury the hidden side.
+_MIX_QUIET_NAME_CAP = 4
+_MIX_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
+    (re.compile(r"^\+timeout\b"), "+timeout"),
+    (re.compile(r"^\+held\b"), "+held"),
+    (re.compile(r"^\d+ timeout · \d+ held\b"), "counts"),
+    (re.compile(r"^(?:hot|quiet) · \d+%"), "share"),
+    (re.compile(r"^\d+%"), "share"),
+    (re.compile(r"^vs (?:timeout|inflight) · (?:strong · )?\d+%"), "vs"),
+    (re.compile(r"^(?:align|clash) ·"), "lean"),
+    (re.compile(r"^Δ lead size sides share vs gap\b"), "vs gap"),
+    (re.compile(r"^Δ lead size sides share Δ\b"), "share Δ"),
+    (re.compile(r"^Δ lead size sides share ·"), "own"),
+    (re.compile(r"^Δ lead size sides Δ\b"), "screens"),
+    (re.compile(r"^Δ lead size sides ·"), "sides"),
+    (re.compile(r"^Δ lead size ·"), "size"),
+    (re.compile(r"^Δ lead ·"), "lead"),
+    (re.compile(r"^Δ "), "Δ"),
+)
+
+
+def _mix_stage_at(text: str) -> tuple[str, int] | None:
+    for rx, label in _MIX_STAGE_RES:
+        match = rx.match(text)
+        if match:
+            return label, match.end()
+    return None
+
+
+def _mix_quiet_chip(mix_lean: str) -> str:
+    """``quiet · N folds · +timeout · counts · … · +K`` for bits on the line."""
+    rest = str(mix_lean or "").strip()
+    if not rest:
+        return "quiet"
+    names: list[str] = []
+    for _ in range(24):
+        hit = _mix_stage_at(rest)
+        if hit is None:
+            break
+        label, end = hit
+        names.append(label)
+        tail = rest[end:]
+        rest = ""
+        while tail:
+            if tail.startswith(" · "):
+                nxt = tail[3:]
+                if _mix_stage_at(nxt):
+                    rest = nxt
+                    break
+                tail = nxt
+                continue
+            sep = tail.find(" · ")
+            if sep < 0:
+                break
+            tail = tail[sep:]
+    if not names:
+        return "quiet"
+    unit = "fold" if len(names) == 1 else "folds"
+    extra = len(names) - _MIX_QUIET_NAME_CAP
+    shown = names[:_MIX_QUIET_NAME_CAP]
+    if extra > 0:
+        shown.append(f"+{extra}")
+    return f"quiet · {len(names)} {unit} · " + " · ".join(shown)
+
+
 def yahoo_fail_mix_lean_meta(
     *,
     share_vs_gap: str,
     share_vs_gap_verb: str,
     share_vs_gap_warn: bool,
     lean_warn: bool,
+    mix_lean: str = "",
 ) -> str:
     """Summary chip for the mix fold — why it opened, not another body bit.
 
-    Quiet mix stays ``timeout · held``. A warned share-vs-gap speaks
-    ``align · wide`` or ``clash`` (the fold body still holds the full bit).
-    A lean-only warn (half mix, no share-vs-gap) speaks ``clash``.
-    ``align · thin`` does not warn, so it keeps the quiet chip.
+    A quiet fold names the stages that spoke
+    (``quiet · N folds · +timeout · counts · share · vs``), clipped at 4,
+    so ``timeout · held`` does not claim both spend sides when the line is
+    only the hidden flag plus counts. Empty text stays ``quiet``.
+    A warned share-vs-gap speaks ``align · wide`` or ``clash`` (the fold
+    body still holds the full bit). A lean-only warn speaks ``clash``.
+    ``align · thin`` does not warn, so it uses the quiet inventory.
     """
     if share_vs_gap_warn and str(share_vs_gap or "").strip():
         verb = str(share_vs_gap_verb or "").strip().lower()
@@ -804,7 +875,7 @@ def yahoo_fail_mix_lean_meta(
             return "clash"
     if lean_warn:
         return "clash"
-    return "timeout · held"
+    return _mix_quiet_chip(mix_lean)
 
 
 def yahoo_fail_cascade_lean_meta(

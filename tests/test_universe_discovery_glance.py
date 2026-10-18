@@ -208,7 +208,9 @@ def test_universe_discovery_glance_yahoo_fail_error_also_mix(tmp_path) -> None:
         "+timeout · 1 timeout · 2 held · 33% · vs inflight · 67%"
     )
     assert g["mix_lean_warn"] is False
-    assert g["mix_lean_meta"] == "timeout · held"
+    assert g["mix_lean_meta"] == (
+        "quiet · 4 folds · +timeout · counts · share · vs"
+    )
     assert (
         "+timeout · 1 timeout · 2 held · 33% · vs inflight · 67%"
     ) in g["line"]

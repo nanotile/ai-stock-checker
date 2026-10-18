@@ -20686,7 +20686,8 @@ def build_universe_discovery_glance(
     20 vs 14)
     sits in ``mix_lean``; ``line_core`` keeps the winning class.
     Counts stay when lean drops the percents. Warn opens that fold.
-    The summary chip stays ``timeout · held`` when quiet and names
+    The summary chip names spoken mix stages when quiet
+    (``quiet · N folds · +timeout · counts · …``) and
     ``align · wide`` or ``clash`` when the open is a warned relationship
     (share-vs-gap before a lean-only half mix).
     Mid Δ stays silent.
@@ -21419,6 +21420,7 @@ def build_universe_discovery_glance(
                 fail_error_also_vs_delta_lead_size_sides_share_vs_gap_warn
             ),
             lean_warn=fail_error_also_vs_lean_warn,
+            mix_lean=mix_lean,
         )
         if mix_lean
         else ""

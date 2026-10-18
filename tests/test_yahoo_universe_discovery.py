@@ -466,7 +466,7 @@ def test_yahoo_fail_error_also_vs_delta_lead_size_sides_share_vs_gap():
 
 
 def test_yahoo_fail_mix_lean_meta_names_the_open():
-    """Quiet chip stays timeout · held; a warned open names align or clash."""
+    """Quiet chip names spoken stages; a warned open names align or clash."""
     wide = "Δ lead size sides share vs gap align · wide"
     clash = "Δ lead size sides share vs gap clash · screens thin · % wide"
     assert yahoo_fail_mix_lean_meta(
@@ -474,18 +474,40 @@ def test_yahoo_fail_mix_lean_meta_names_the_open():
         share_vs_gap_verb="",
         share_vs_gap_warn=False,
         lean_warn=False,
-    ) == "timeout · held"
+    ) == "quiet"
+    body = "+timeout · 1 timeout · 2 held · 33% · vs inflight · 67%"
+    assert yahoo_fail_mix_lean_meta(
+        share_vs_gap="",
+        share_vs_gap_verb="",
+        share_vs_gap_warn=False,
+        lean_warn=False,
+        mix_lean=body,
+    ) == "quiet · 4 folds · +timeout · counts · share · vs"
+    long_body = (
+        "+held · 7 timeout · 1 held · clash · hidden hot · winner ok"
+        " · Δ wide · -76pp · Δ lead · held · Δ lead size · 7×"
+        " · Δ lead size sides · held 7 · timeout 1"
+    )
+    assert yahoo_fail_mix_lean_meta(
+        share_vs_gap="",
+        share_vs_gap_verb="",
+        share_vs_gap_warn=False,
+        lean_warn=False,
+        mix_lean=long_body,
+    ) == "quiet · 7 folds · +held · counts · lean · Δ · +3"
     assert yahoo_fail_mix_lean_meta(
         share_vs_gap="",
         share_vs_gap_verb="",
         share_vs_gap_warn=False,
         lean_warn=True,
+        mix_lean=body,
     ) == "clash"
     assert yahoo_fail_mix_lean_meta(
         share_vs_gap=wide,
         share_vs_gap_verb="align",
         share_vs_gap_warn=True,
         lean_warn=True,
+        mix_lean=body,
     ) == "align · wide"
     assert yahoo_fail_mix_lean_meta(
         share_vs_gap=clash,
@@ -498,7 +520,8 @@ def test_yahoo_fail_mix_lean_meta_names_the_open():
         share_vs_gap_verb="align",
         share_vs_gap_warn=False,
         lean_warn=False,
-    ) == "timeout · held"
+        mix_lean=body,
+    ) == "quiet · 4 folds · +timeout · counts · share · vs"
 
 
 def test_yahoo_fail_cascade_lean_meta_names_the_open():

@@ -756,7 +756,7 @@
 {% set body_line = glance.line_core|default(glance.line|default('')) %}
 {% set mix_lean = glance.mix_lean|default('') %}
 {% set mix_warn = glance.mix_lean_warn|default(false) %}
-{% set mix_meta = glance.mix_lean_meta|default('timeout · held') %}
+{% set mix_meta = glance.mix_lean_meta|default('quiet') %}
 {% set error_lean = glance.error_lean|default('') %}
 {% set error_warn = glance.error_lean_warn|default(false) %}
 {% set error_meta = glance.error_lean_meta|default('cascade') %}
