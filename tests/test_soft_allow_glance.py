@@ -78,8 +78,9 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
             "share/lean clash · share clash · lean clash"
         )
         == (
-            "quiet · 5 folds · gap AAPL fresh · last/share clash · "
-            "gap/other clash · last/lean clash · +1"
+            "quiet · 5 folds · gap AAPL fresh · last/share clash expired hot · "
+            "gap/other clash gap hot · other ok · "
+            "last/lean clash expired gap hot · other ok · +1"
         )
     )
     assert (
@@ -89,7 +90,10 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
             "gap vs other clash · gap hot · other ok",
             warn=True,
         )
-        == "clash · gap AAPL fresh · last/share clash · gap/other clash"
+        == (
+            "clash · gap AAPL fresh · last/share clash expired hot · "
+            "gap/other clash gap hot · other ok"
+        )
     )
     assert (
         soft_allow_lean_meta(
@@ -100,7 +104,7 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
         )
         == (
             "quiet · 5 folds · gap MSFT expired · lead MSFT agree · "
-            "last/lead clash · last/share clash · +1"
+            "last/lead clash expired agree · last/share clash expired hot · +1"
         )
     )
     # Cursor name ≠ sample: tied / sole / other owner stay on the chip.
@@ -303,7 +307,8 @@ def test_soft_allow_glance_anchor_gap_count() -> None:
     assert g["soft_lean"] == g["anchor_gap_bit"]
     assert g["soft_lean_warn"] is True
     assert g["soft_lean_meta"] == (
-        "hot · gap AAPL fresh · tied · last/share align · gap/other align · +2"
+        "hot · gap AAPL fresh · tied · last/share align fresh hot · "
+        "gap/other align hot|thin · +2"
     )
     assert g["anchor_gap_bit"] not in g["line_core"]
     assert "soft-allow" in g["line_core"]
@@ -390,6 +395,7 @@ def test_soft_allow_glance_anchor_gap_symbol_lead() -> None:
     assert "ahead thin · +1" in g["line"]
     assert "vs MSFT · 1 · 33%" in g["line"]
     assert "ahead thin +1 vs MSFT 1 33%" in g["soft_lean_meta"]
+    assert "last/lead clash fresh vs MSFT" in g["soft_lean_meta"]
     assert "last/share align · fresh · hot" in g["line"]
     assert "lead/share clash · lead clash · share align" in g["line"]
     assert "last/lean align · fresh · hot|thin" in g["line"]
@@ -436,6 +442,27 @@ def test_soft_allow_glance_anchor_gap_last_vs_lead_freshness_stale_agree() -> No
     assert "lead/lean align · both clash" in g["line"]
 
 
+def test_soft_allow_lean_meta_keeps_relationship_payload() -> None:
+    """Verb alone ≠ the print: age, heat, and crossed pairs stay on the chip."""
+    from openbb_backend.desk import soft_allow_lean_meta
+
+    crossed = soft_allow_lean_meta(
+        "lead/share clash · lead clash · share align",
+        warn=True,
+    )
+    assert crossed == "clash · lead/share clash lead clash share align"
+    gap_other = soft_allow_lean_meta(
+        "gap vs other clash · gap hot · other ok",
+        warn=True,
+    )
+    assert gap_other == "clash · gap/other clash gap hot · other ok"
+    calm = soft_allow_lean_meta(
+        "2 gap · last AAPL · fresh · last/share align · fresh · hot",
+        warn=False,
+    )
+    assert calm == "quiet · 2 folds · gap AAPL fresh · last/share align fresh hot"
+
+
 def test_soft_allow_glance_anchor_gap_share_lean_both_clash_warns() -> None:
     """Dual-clash agreement ≠ calm: align · both clash warns + tone."""
     now = datetime(2026, 10, 8, 12, 0, tzinfo=timezone.utc)
@@ -477,6 +504,7 @@ def test_soft_allow_glance_anchor_gap_share_lean_both_clash_warns() -> None:
     assert g["soft_lean_meta"].startswith(
         "clash · share/lean align both clash"
     )
+    assert "last/share clash expired hot" in g["soft_lean_meta"]
 
 
 def test_soft_allow_glance_anchor_gap_share_quiet() -> None:
@@ -541,6 +569,8 @@ def test_soft_allow_glance_anchor_gap_share_quiet() -> None:
         "last/lean align · fresh · quiet|strong · "
         "share/lean clash · share clash · lean align"
     ) in g["line"]
+    assert "last/share clash fresh quiet" in g["soft_lean_meta"]
+    assert "gap/other align quiet|strong" in g["soft_lean_meta"]
 
 
 def test_soft_allow_glance_anchor_gap_vs_other_clash() -> None:

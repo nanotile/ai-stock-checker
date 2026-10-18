@@ -1640,17 +1640,44 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
         ),
         "ahead",
     ),
-    # Verb rides on the sleeve so ``last/share`` is not a silent confirm
-    # and ``align · both clash`` is not clipped as a calm align
-    # (RyanJHamby dual-clash + portfolio AI speak-both-sides).
+    # Verb + payload ride on one stage so ``align`` is not a silent
+    # confirm of a live hot print, and ``align · both clash`` / a crossed
+    # lead-vs-share pair are not clipped as a calm align (RyanJHamby
+    # dual-clash + FinRobot last-row age + portfolio AI speak-both-sides).
     (
         re.compile(
-            r"^(share/lean|lead/lean|lead/share|last/lean|last/share|last/lead)"
-            r" (align|clash)(?: · (both (?:align|clash)))?\b"
+            r"^(last/(?:share|lean|lead)) (align|clash) · (fresh|expired)"
+            r"(?: · ("
+            r"gap (?:hot|quiet|ok) · other (?:strong|thin|ok)"
+            r"|hot\|thin"
+            r"|quiet\|strong"
+            r"|vs [A-Za-z0-9][A-Za-z0-9.\-]{0,14}"
+            r"|agree"
+            r"|hot"
+            r"|quiet"
+            r"))?"
         ),
         "",
     ),
-    (re.compile(r"^gap vs other (align|clash)\b"), "gap/other"),
+    (
+        re.compile(
+            r"^(share/lean|lead/(?:lean|share)) (align|clash)"
+            r"(?: · (both (?:align|clash))"
+            r"| · ((?:lead|share|lean) (?:align|clash))"
+            r" · ((?:lead|share|lean) (?:align|clash)))?"
+        ),
+        "",
+    ),
+    (
+        re.compile(
+            r"^gap vs other (align|clash)"
+            r"(?: · ("
+            r"hot\|thin|quiet\|strong"
+            r"|gap (?:hot|quiet|ok) · other (?:strong|thin|ok)"
+            r"))?"
+        ),
+        "gap/other",
+    ),
 )
 
 
@@ -1666,10 +1693,13 @@ def soft_allow_lean_meta(soft_lean: str, *, warn: bool = False) -> str:
     so the cursor name is not treated as ring ownership. When a runner
     exists, one stage names ``ahead wide|thin +K vs SYM N P%`` so ownership
     % is not how far ahead and not who is #2 (sole 100% stays silent).
-    Relationship stages keep ``align`` / ``clash`` (and ``both clash``) so
-    a sleeve name is not a silent confirm. Warned folds speak ``clash`` /
-    ``hot`` / ``warn``, pin ``both clash`` into the 4-name clip, and append
-    the other stages. Display only; not a gate.
+    Relationship stages keep ``align`` / ``clash`` plus the age and heat
+    that follow (``last/share align fresh hot``, ``gap/other align
+    hot|thin``, ``share/lean clash share clash lean align``) so a verb
+    is not a silent confirm of a live hot print or a crossed pair.
+    ``both clash`` still pins into the 4-name clip. Warned folds speak
+    ``clash`` / ``hot`` / ``warn`` and append the other stages. Display
+    only; not a gate.
     """
     lean = str(soft_lean or "").strip()
     if not lean:
