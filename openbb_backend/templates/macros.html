@@ -312,21 +312,21 @@
     {% endif %}
     {% if glance.fee_pressure_line %}
     <details class="promote-honesty promote-fee-pressure{% if 'fee pressure' in warns %} warn{% endif %}"{% if 'fee pressure' in warns %} open{% endif %}>
-      <summary>Fee pressure <span class="meta">{{ fold_meta['fee pressure']|default('leftover vs book') }}</span></summary>
+      <summary>Fee pressure <span class="meta">{{ fold_meta['fee pressure']|default('quiet') }}</span></summary>
       <p class="sub">Clash leftover fees versus window fees. Warn only. Not a gate.</p>
       <p class="weight">{{ glance.fee_pressure_line }}</p>
     </details>
     {% endif %}
     {% if glance.align_nest_line %}
     <details class="promote-honesty promote-align-nest{% if 'align nest' in warns %} warn{% endif %}"{% if 'align nest' in warns %} open{% endif %}>
-      <summary>Align nest <span class="meta">{{ fold_meta['align nest']|default('size · lead · share') }}</span></summary>
+      <summary>Align nest <span class="meta">{{ fold_meta['align nest']|default('quiet') }}</span></summary>
       <p class="sub">Nested align cascade after first share vs Δ. Warn only. Not a gate.</p>
       <p class="weight">{{ glance.align_nest_line }}</p>
     </details>
     {% endif %}
     {% if glance.align_deep_line %}
     <details class="promote-honesty promote-align-deep{% if 'align deep' in warns %} warn{% endif %}"{% if 'align deep' in warns %} open{% endif %}>
-      <summary>Align deep <span class="meta">{{ fold_meta['align deep']|default('nested size · lead · share') }}</span></summary>
+      <summary>Align deep <span class="meta">{{ fold_meta['align deep']|default('quiet') }}</span></summary>
       <p class="sub">Second nest after nested share vs Δ align. Warn only. Not a gate.</p>
       <p class="weight">{{ glance.align_deep_line }}</p>
     </details>

@@ -16372,6 +16372,57 @@ _EXIT_EURO_QUIET_LABELS: tuple[tuple[str, str], ...] = (
     ("A exits € offset", "offset"),
     ("A exits € lead", "lead"),
 )
+# Longer prefixes first so ``… share vs Δ align`` is not read as ``… share vs Δ``.
+_FEE_KEEP = "A exits € size clash keep fees"
+_FEE_PRESSURE_QUIET_LABELS: tuple[tuple[str, str], ...] = (
+    (f"{_FEE_KEEP} vs drag gap dir sides share vs Δ align", "align"),
+    (f"{_FEE_KEEP} vs drag gap dir sides share vs Δ", "vs Δ"),
+    (f"{_FEE_KEEP} vs drag gap dir sides share Δ", "share Δ"),
+    (f"{_FEE_KEEP} vs drag gap dir sides share", "share"),
+    (f"{_FEE_KEEP} vs drag gap dir sides Δ", "sides Δ"),
+    (f"{_FEE_KEEP} vs drag gap dir sides", "sides"),
+    (f"{_FEE_KEEP} vs drag gap dir", "dir"),
+    (f"{_FEE_KEEP} vs drag gap", "gap"),
+    (f"{_FEE_KEEP} vs drag", "vs book"),
+    (_FEE_KEEP, "keep"),
+)
+# Two align cycles (nest, then deep). Each tail is the bit's own ending;
+# a later cycle repeats the same short names under the fold title.
+_ALIGN_CYCLE_TAILS: tuple[tuple[str, str], ...] = (
+    ("align lead size sides share vs Δ align", "align"),
+    ("align lead size sides share vs Δ", "vs Δ"),
+    ("align lead size sides share Δ", "share Δ"),
+    ("align lead size sides share", "share"),
+    ("align lead size sides Δ", "sides Δ"),
+    ("align lead size sides", "sides"),
+    ("align lead size", "lead size"),
+    ("align lead", "lead"),
+    ("align size", "size"),
+)
+_ALIGN_DEEP_TAILS: tuple[tuple[str, str], ...] = (
+    ("lead size sides share vs Δ align", "align"),
+    ("lead size sides share vs Δ", "vs Δ"),
+    ("lead size sides share Δ", "share Δ"),
+    ("lead size sides share", "share"),
+    ("lead size sides Δ", "sides Δ"),
+    ("lead size sides", "sides"),
+    ("lead size", "lead size"),
+    ("lead", "lead"),
+    ("size", "size"),
+)
+
+
+def _align_quiet_labels() -> tuple[tuple[str, str], ...]:
+    """Longest-prefix labels for Align nest and Align deep bits."""
+    root = f"{_FEE_KEEP} vs drag gap dir sides share vs Δ "
+    labels = [(root + tail, label) for tail, label in _ALIGN_CYCLE_TAILS]
+    deep = root + "align lead size sides share vs Δ align "
+    labels.extend((deep + tail, label) for tail, label in _ALIGN_DEEP_TAILS)
+    labels.sort(key=lambda item: len(item[0]), reverse=True)
+    return tuple(labels)
+
+
+_ALIGN_QUIET_LABELS = _align_quiet_labels()
 
 
 def _honesty_bits_in_line(line: str) -> list[str]:
@@ -16437,12 +16488,14 @@ def promote_honesty_fold_meta(
 ) -> dict[str, str]:
     """Summary chips for Close honesty child folds — why open, not body text.
 
-    Quiet edge / streaks / exit mix / Kelly / exit euros name the bits that
-    spoke (``quiet · N folds · payoff · …``), clipped like Policy honesty, so
-    a full-Kelly fold does not claim half vs sizer and a euro-lead fold does
-    not claim count ≠ €. Hot folds still name the severity (Yahoo mix /
-    Screener weight lean meta). Static ``drag · comfortable`` lied when fees
-    were thin or drag was heavy.
+    Quiet edge / streaks / exit mix / Kelly / exit euros / fee pressure /
+    align nest / align deep name the bits that spoke
+    (``quiet · N folds · payoff · …``), clipped like Policy honesty, so a
+    full-Kelly fold does not claim half vs sizer, a euro-lead fold does not
+    claim count ≠ €, and a keep-fees fold does not claim leftover vs book.
+    Hot folds still name the severity (Yahoo mix / Screener weight lean
+    meta). Static ``drag · comfortable`` lied when fees were thin or drag
+    was heavy.
     """
 
     warns = {str(w).strip() for w in (honesty_warns or []) if str(w).strip()}
@@ -16561,25 +16614,28 @@ def promote_honesty_fold_meta(
             )
 
     if str(fee_pressure_line or "").strip():
-        quiet = "leftover vs book"
         if "fee pressure" in warns:
             out["fee pressure"] = _rel_chip(fee_pressure_line, quiet="warn")
         else:
-            out["fee pressure"] = quiet
+            out["fee pressure"] = _quiet_spoken_chip(
+                fee_pressure_line, _FEE_PRESSURE_QUIET_LABELS
+            )
 
     if str(align_nest_line or "").strip():
-        quiet = "size · lead · share"
         if "align nest" in warns:
             out["align nest"] = _rel_chip(align_nest_line, quiet="warn")
         else:
-            out["align nest"] = quiet
+            out["align nest"] = _quiet_spoken_chip(
+                align_nest_line, _ALIGN_QUIET_LABELS
+            )
 
     if str(align_deep_line or "").strip():
-        quiet = "nested size · lead · share"
         if "align deep" in warns:
             out["align deep"] = _rel_chip(align_deep_line, quiet="warn")
         else:
-            out["align deep"] = quiet
+            out["align deep"] = _quiet_spoken_chip(
+                align_deep_line, _ALIGN_QUIET_LABELS
+            )
 
     return out
 

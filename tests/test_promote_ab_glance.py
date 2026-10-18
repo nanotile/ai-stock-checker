@@ -154,6 +154,31 @@ def test_promote_honesty_quiet_chips_name_spoken_bits() -> None:
         ),
     )["exit euros"]
     assert many_euro == "quiet · 5 folds · lead · offset · gap · conc · +1"
+    pressure = promote_honesty_fold_meta(
+        fee_pressure_line="A exits € size clash keep fees comfortable · 0.1×",
+    )["fee pressure"]
+    assert pressure == "quiet · 1 fold · keep"
+    pressure_vs = promote_honesty_fold_meta(
+        fee_pressure_line=(
+            "A exits € size clash keep fees comfortable · 0.1× · "
+            "A exits € size clash keep fees vs drag better · comfortable · mild"
+        ),
+    )["fee pressure"]
+    assert pressure_vs == "quiet · 2 folds · keep · vs book"
+    nest = promote_honesty_fold_meta(
+        align_nest_line=(
+            "A exits € size clash keep fees vs drag gap dir sides share vs Δ "
+            "align size · +0.5× · +20pp"
+        ),
+    )["align nest"]
+    assert nest == "quiet · 1 fold · size"
+    deep = promote_honesty_fold_meta(
+        align_deep_line=(
+            "A exits € size clash keep fees vs drag gap dir sides share vs Δ "
+            "align lead size sides share vs Δ align size · +0.5× · +20pp"
+        ),
+    )["align deep"]
+    assert deep == "quiet · 1 fold · size"
 
 
 def test_promote_ab_glance_running() -> None:

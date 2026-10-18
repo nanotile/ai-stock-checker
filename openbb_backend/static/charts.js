@@ -1888,7 +1888,7 @@
       appendHonestyFold(
         "promote-fee-pressure",
         "Fee pressure",
-        "leftover vs book",
+        "quiet",
         "Clash leftover fees versus window fees. Warn only. Not a gate.",
         pressure,
         "fee pressure"
@@ -1896,7 +1896,7 @@
       appendHonestyFold(
         "promote-align-nest",
         "Align nest",
-        "size · lead · share",
+        "quiet",
         "Nested align cascade after first share vs Δ. Warn only. Not a gate.",
         alignNest,
         "align nest"
@@ -1904,7 +1904,7 @@
       appendHonestyFold(
         "promote-align-deep",
         "Align deep",
-        "nested size · lead · share",
+        "quiet",
         "Second nest after nested share vs Δ align. Warn only. Not a gate.",
         alignDeep,
         "align deep"
