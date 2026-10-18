@@ -1598,6 +1598,8 @@ def _soft_allow_clock_tone(band: str) -> str:
 # Bands are one token (``\S+``) so soft≠gap cannot greedily swallow a later
 # ``clash · gap … · scan`` (xang1234 #549 / e3c84e1). gap/scan · gap/cash ·
 # gap/memory sit after soft≠* so N gap alone no longer hides those clocks.
+# Gap relationship stages (Screener weight lean parity) sit after N gap so a
+# bare ``gap`` chip no longer hides last/share · gap-vs-other · share/lean.
 _SOFT_LEAN_NAME_CAP = 4
 _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"^clash · scan\b"), "scan"),
@@ -1608,16 +1610,25 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"^clash · gap \S+ · cash\b"), "gap/cash"),
     (re.compile(r"^clash · gap \S+ · (?:laya|debate)\b"), "gap/memory"),
     (re.compile(r"^\d+ gap\b"), "gap"),
+    # Longer relationship prefixes first (Screener weight lean inventory).
+    (re.compile(r"^share/lean\b"), "share/lean"),
+    (re.compile(r"^lead/lean\b"), "lead/lean"),
+    (re.compile(r"^lead/share\b"), "lead/share"),
+    (re.compile(r"^last/lean\b"), "last/lean"),
+    (re.compile(r"^last/share\b"), "last/share"),
+    (re.compile(r"^last/lead\b"), "last/lead"),
+    (re.compile(r"^gap vs other\b"), "gap/other"),
 )
 
 
 def soft_allow_lean_meta(soft_lean: str, *, warn: bool = False) -> str:
     """Summary chip for soft-allow lean fold — which cascades spoke / why open.
 
-    Quiet names sleeves that spoke (``quiet · N folds · scan · gap``), so the
-    primary line does not claim gen-clash or RS-gap when those bits are absent.
-    Warned folds speak ``clash`` / ``hot`` / ``warn`` and append clipped stage
-    names (Yahoo mix / Screener weight hot inventory). Display only; not a gate.
+    Quiet names sleeves that spoke (``quiet · N folds · scan · gap · last/share``),
+    so the primary line does not claim gen-clash or RS-gap when those bits are
+    absent — and a bare ``N gap`` no longer hides age↔share / gap-vs-other lean
+    (Screener weight + FinRobot last-row). Warned folds speak ``clash`` /
+    ``hot`` / ``warn`` and append clipped stage names. Display only; not a gate.
     """
     lean = str(soft_lean or "").strip()
     if not lean:

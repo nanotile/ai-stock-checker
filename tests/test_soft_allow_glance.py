@@ -67,6 +67,36 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
         )
         == "hot · gap"
     )
+    # Bare N gap hid age↔share / gap-vs-other / share↔lean on the chip.
+    assert (
+        soft_allow_lean_meta(
+            "2 gap · last AAPL · fresh · hot · 66.7% · "
+            "last/share clash · expired · hot · "
+            "vs 1 other · thin · 33.3% · "
+            "gap vs other clash · gap hot · other ok · "
+            "last/lean clash · expired · gap hot · other ok · "
+            "share/lean clash · share clash · lean clash"
+        )
+        == "quiet · 5 folds · gap · last/share · gap/other · last/lean · +1"
+    )
+    assert (
+        soft_allow_lean_meta(
+            "2 gap · last AAPL · fresh · hot · 66.7% · "
+            "last/share clash · expired · hot · "
+            "gap vs other clash · gap hot · other ok",
+            warn=True,
+        )
+        == "clash · gap · last/share · gap/other"
+    )
+    assert (
+        soft_allow_lean_meta(
+            "2 gap · last MSFT · expired · lead MSFT · 60% · agree · "
+            "last/lead clash · expired · agree · "
+            "last/share clash · expired · hot · "
+            "lead/share clash · lead clash · share align"
+        )
+        == "quiet · 4 folds · gap · last/lead · last/share · lead/share"
+    )
 
 
 def test_soft_allow_glance_empty() -> None:
@@ -222,7 +252,9 @@ def test_soft_allow_glance_anchor_gap_count() -> None:
     ) in g["line"]
     assert g["soft_lean"] == g["anchor_gap_bit"]
     assert g["soft_lean_warn"] is True
-    assert g["soft_lean_meta"] == "hot · gap"
+    assert g["soft_lean_meta"] == (
+        "hot · gap · last/share · gap/other · last/lean · +1"
+    )
     assert g["anchor_gap_bit"] not in g["line_core"]
     assert "soft-allow" in g["line_core"]
     assert "last/share" not in g["line_core"]
