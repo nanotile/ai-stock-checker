@@ -181,6 +181,18 @@ def test_promote_honesty_quiet_chips_name_spoken_bits() -> None:
     assert deep == "quiet · 1 fold · size"
 
 
+def test_promote_honesty_unclassified_fees_polarity_name_the_bit() -> None:
+    """A fees or polarity line without severity must not invent a mood."""
+    fees = promote_honesty_fold_meta(
+        fees_line="A fee drag mild · net −€1 · fees 2×",
+    )["fees"]
+    assert fees == "quiet · 1 fold · drag"
+    polarity = promote_honesty_fold_meta(
+        polarity_line="A mixed · 2w/2l",
+    )["polarity"]
+    assert polarity == "quiet · 1 fold · mixed"
+
+
 def test_promote_ab_glance_running() -> None:
     g = build_promote_ab_glance(
         {"promote_experiment_strategy": False},

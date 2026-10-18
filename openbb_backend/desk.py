@@ -16337,6 +16337,18 @@ _STREAK_QUIET_LABELS: tuple[tuple[str, str], ...] = (
     ("A win streak", "win"),
     ("A flats", "flats"),
 )
+_FEES_QUIET_LABELS: tuple[tuple[str, str], ...] = (
+    ("A fee drag", "drag"),
+    ("A fees", "fees"),
+)
+_POLARITY_QUIET_LABELS: tuple[tuple[str, str], ...] = (
+    ("A all-loss", "all-loss"),
+    ("A all-win", "all-win"),
+    ("A mixed · mostly losses", "mostly losses"),
+    ("A mixed · mostly wins", "mostly wins"),
+    ("A mixed · even", "even"),
+    ("A mixed", "mixed"),
+)
 _EXIT_MIX_QUIET_LABELS: tuple[tuple[str, str], ...] = (
     ("A exits unknown", "unknown"),
     ("A exits tp share", "tp"),
@@ -16488,11 +16500,12 @@ def promote_honesty_fold_meta(
 ) -> dict[str, str]:
     """Summary chips for Close honesty child folds — why open, not body text.
 
-    Quiet edge / streaks / exit mix / Kelly / exit euros / fee pressure /
-    align nest / align deep name the bits that spoke
+    Quiet fees / polarity / edge / streaks / exit mix / Kelly / exit euros /
+    fee pressure / align nest / align deep name the bits that spoke
     (``quiet · N folds · payoff · …``), clipped like Policy honesty, so a
     full-Kelly fold does not claim half vs sizer, a euro-lead fold does not
-    claim count ≠ €, and a keep-fees fold does not claim leftover vs book.
+    claim count ≠ €, a fees line without a severity does not claim
+    comfortable drag, and a keep-fees fold does not claim leftover vs book.
     Hot folds still name the severity (Yahoo mix / Screener weight lean
     meta). Static ``drag · comfortable`` lied when fees were thin or drag
     was heavy.
@@ -16534,7 +16547,7 @@ def promote_honesty_fold_meta(
             elif ok:
                 out["fees"] = "ok"
             else:
-                out["fees"] = "quiet"
+                out["fees"] = _quiet_spoken_chip(fees_line, _FEES_QUIET_LABELS)
 
     if str(polarity_line or "").strip():
         pol = str(closes_polarity or "").strip().lower().replace("-", "_")
@@ -16550,7 +16563,9 @@ def promote_honesty_fold_meta(
         elif lean == "even":
             out["polarity"] = "even"
         else:
-            out["polarity"] = "wins · losses"
+            out["polarity"] = _quiet_spoken_chip(
+                polarity_line, _POLARITY_QUIET_LABELS
+            )
 
     if str(edge_line or "").strip():
         if "edge" in warns:

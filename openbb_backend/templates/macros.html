@@ -270,7 +270,7 @@
     {% endif %}
     {% if glance.polarity_line %}
     <details class="promote-honesty promote-polarity{% if 'polarity' in warns %} warn{% endif %}"{% if 'polarity' in warns %} open{% endif %}>
-      <summary>Polarity <span class="meta">{{ fold_meta.polarity|default('wins · losses') }}</span></summary>
+      <summary>Polarity <span class="meta">{{ fold_meta.polarity|default('quiet') }}</span></summary>
       <p class="sub">How the closes split. Warn only. Not a gate.</p>
       <p class="weight">{{ glance.polarity_line }}</p>
     </details>
@@ -284,7 +284,7 @@
     {% endif %}
     {% if glance.kelly_line %}
     <details class="promote-honesty promote-kelly{% if 'Kelly' in warns %} warn{% endif %}"{% if 'Kelly' in warns %} open{% endif %}>
-      <summary>Kelly <span class="meta">{{ fold_meta.Kelly|default('size vs sizer') }}</span></summary>
+      <summary>Kelly <span class="meta">{{ fold_meta.Kelly|default('quiet') }}</span></summary>
       <p class="sub">Full, half, and quarter Kelly versus the cash slice. Warn only. Not a gate.</p>
       <p class="weight">{{ glance.kelly_line }}</p>
     </details>
@@ -305,7 +305,7 @@
     {% endif %}
     {% if glance.exit_euro_line %}
     <details class="promote-honesty promote-exit-euros{% if 'exit euros' in warns %} warn{% endif %}"{% if 'exit euros' in warns %} open{% endif %}>
-      <summary>Exit euros <span class="meta">{{ fold_meta['exit euros']|default('count ≠ €') }}</span></summary>
+      <summary>Exit euros <span class="meta">{{ fold_meta['exit euros']|default('quiet') }}</span></summary>
       <p class="sub">Which close reason owns the euros. Warn only. Not a gate.</p>
       <p class="weight">{{ glance.exit_euro_line }}</p>
     </details>

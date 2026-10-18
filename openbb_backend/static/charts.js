@@ -1832,7 +1832,7 @@
       appendHonestyFold(
         "promote-fees",
         "Fees",
-        "drag · comfortable",
+        "quiet",
         "Window fees versus realized. Warn only. Not a gate.",
         fees,
         "fees"
@@ -1840,7 +1840,7 @@
       appendHonestyFold(
         "promote-polarity",
         "Polarity",
-        "wins · losses",
+        "quiet",
         "How the closes split. Warn only. Not a gate.",
         polarity,
         "polarity"
@@ -1856,7 +1856,7 @@
       appendHonestyFold(
         "promote-kelly",
         "Kelly",
-        "size vs sizer",
+        "quiet",
         "Full, half, and quarter Kelly versus the cash slice. Warn only. Not a gate.",
         kelly,
         "Kelly"
@@ -1880,7 +1880,7 @@
       appendHonestyFold(
         "promote-exit-euros",
         "Exit euros",
-        "count ≠ €",
+        "quiet",
         "Which close reason owns the euros. Warn only. Not a gate.",
         euros,
         "exit euros"

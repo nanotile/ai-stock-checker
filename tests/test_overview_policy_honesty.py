@@ -129,6 +129,13 @@ def test_promote_honesty_fold_in_macro_and_charts() -> None:
     assert "glance.honesty_fold_meta" in macro
     assert "fold_meta.fees" in macro
     assert "drag · comfortable" not in macro
+    assert "drag · comfortable" not in js
+    assert "size vs sizer" not in macro
+    assert "size vs sizer" not in js
+    assert "count ≠ €" not in macro
+    assert "count ≠ €" not in js
+    assert "wins · losses" not in macro
+    assert "wins · losses" not in js
     assert "glance.align_nest_line" in macro
     assert "glance.align_deep_line" in macro
     assert ".promote-kelly" in css
