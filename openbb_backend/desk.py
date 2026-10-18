@@ -1634,9 +1634,11 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
     # sits between them) rides here so ``n=1`` is not a silent count.
     (re.compile(r"^n=1" + _SOFT_LEAN_SHARE + _SOFT_LEAN_VS_OTHER), "n=1"),
     (re.compile(r"^tied" + _SOFT_LEAN_SHARE + _SOFT_LEAN_VS_OTHER), "tied"),
+    # Lead ownership % rides on this stage (``lead AAPL 67%``). The
+    # runner's ``33%`` on ``ahead`` is not the owner's share (count≠share).
     (
         re.compile(
-            r"^lead ([A-Za-z0-9][A-Za-z0-9.\-]{0,14}) · \d+%"
+            r"^lead ([A-Za-z0-9][A-Za-z0-9.\-]{0,14}) · (\d+(?:\.\d+)?%)"
             r"(?: · (agree)| · last (vs lead · [A-Za-z0-9][A-Za-z0-9.\-]{0,14}))?"
         ),
         "lead",
@@ -1704,8 +1706,9 @@ def soft_allow_lean_meta(soft_lean: str, *, warn: bool = False) -> str:
     absent. The gap stage keeps ``last SYM`` and ``fresh|aging|expired`` so a
     bare count does not hide the cursor (xang1234 #546 + RyanJHamby age) or
     age↔share / gap-vs-other lean (Screener weight + FinRobot last-row).
-    ``n=1`` / ``tied`` / ``lead SYM`` (plus ``agree`` or ``vs lead``) follow
-    so the cursor name is not treated as ring ownership. When a runner
+    ``n=1`` / ``tied`` / ``lead SYM N%`` (plus ``agree`` or ``vs lead``)
+    follow so the cursor name is not treated as ring ownership and the
+    owner's share is not dropped while the runner keeps ``P%``. When a runner
     exists, one stage names ``ahead wide|thin +K vs SYM N P%`` so ownership
     % is not how far ahead and not who is #2 (sole 100% stays silent).
     Relationship stages keep ``align`` / ``clash`` plus the age and heat

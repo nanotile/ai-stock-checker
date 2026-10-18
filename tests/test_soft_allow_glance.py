@@ -104,7 +104,7 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
             "lead/share clash · lead clash · share align"
         )
         == (
-            "quiet · 5 folds · gap MSFT expired · lead MSFT agree · "
+            "quiet · 5 folds · gap MSFT expired · lead MSFT 60% agree · "
             "last/lead clash expired agree · last/share clash expired hot · +1"
         )
     )
@@ -122,7 +122,7 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
             "3 gap · last MSFT · fresh · lead AAPL · 67% · "
             "last vs lead · MSFT"
         )
-        == "quiet · 2 folds · gap MSFT fresh · lead AAPL vs lead · MSFT"
+        == "quiet · 2 folds · gap MSFT fresh · lead AAPL 67% vs lead · MSFT"
     )
     # Owner % alone hid margin and the #2 name. Sole 100% stays silent.
     assert (
@@ -132,7 +132,7 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
         )
         == (
             "quiet · 3 folds · gap MSFT fresh · "
-            "lead AAPL vs lead · MSFT · ahead thin +1 vs MSFT 1 33%"
+            "lead AAPL 67% vs lead · MSFT · ahead thin +1 vs MSFT 1 33%"
         )
     )
     assert (
@@ -142,7 +142,7 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
             warn=True,
         )
         == (
-            "warn · gap MSFT fresh · lead AAPL vs lead · MSFT · "
+            "warn · gap MSFT fresh · lead AAPL 75% vs lead · MSFT · "
             "ahead wide +2 vs MSFT 1 25%"
         )
     )
@@ -150,7 +150,7 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
         soft_allow_lean_meta(
             "2 gap · last AAPL · fresh · lead AAPL · 100% · agree"
         )
-        == "quiet · 2 folds · gap AAPL fresh · lead AAPL agree"
+        == "quiet · 2 folds · gap AAPL fresh · lead AAPL 100% agree"
     )
 
 
