@@ -1594,6 +1594,50 @@ def _soft_allow_clock_tone(band: str) -> str:
     return ""
 
 
+# Soft-allow lean fold names gen-clash sleeves + RS-gap cascade (Yahoo lean).
+_SOFT_LEAN_NAME_CAP = 4
+_SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
+    (re.compile(r"^clash · scan\b"), "scan"),
+    (re.compile(r"^clash · soft .+ · gap\b"), "soft/gap"),
+    (re.compile(r"^clash · soft .+ · cash\b"), "soft/cash"),
+    (re.compile(r"^clash · (?:laya|debate)\b"), "memory"),
+    (re.compile(r"^\d+ gap\b"), "gap"),
+)
+
+
+def soft_allow_lean_meta(soft_lean: str, *, warn: bool = False) -> str:
+    """Summary chip for soft-allow lean fold — which cascades spoke / why open.
+
+    Quiet names sleeves that spoke (``quiet · N folds · scan · gap``), so the
+    primary line does not claim gen-clash or RS-gap when those bits are absent.
+    Warned folds speak ``clash`` / ``hot`` / ``warn`` and append clipped stage
+    names (Yahoo mix / Screener weight hot inventory). Display only; not a gate.
+    """
+    lean = str(soft_lean or "").strip()
+    if not lean:
+        return "quiet"
+    if warn:
+        low = f" · {lean.lower()} · "
+        if "clash ·" in lean.lower() or lean.lower().startswith("clash"):
+            sev = "clash"
+        elif " · hot ·" in low or low.startswith(" · hot ·"):
+            sev = "hot"
+        else:
+            sev = "warn"
+        stage_tail = _quiet_inventory_chip(
+            lean,
+            _SOFT_LEAN_STAGE_RES,
+            cap=_SOFT_LEAN_NAME_CAP,
+            quiet=False,
+        )
+        if stage_tail:
+            return f"{sev} · {stage_tail}"
+        return sev
+    return _quiet_inventory_chip(
+        lean, _SOFT_LEAN_STAGE_RES, cap=_SOFT_LEAN_NAME_CAP
+    )
+
+
 def build_soft_allow_glance(
     events: list[dict[str, Any]] | None,
     *,
@@ -1708,10 +1752,15 @@ def build_soft_allow_glance(
     Ops lead inventory reuses the same share / ahead margin / Δ / vs-Δ
     fields so ``Lead · gate ×N · band · M% · ahead … · +K`` shows
     ownership and how far ahead (counts ≠ share ≠ margin) without
-    parsing the glance line. Ops runner inventory speaks
+    parsing the glance line.     Ops runner inventory speaks
     ``Runner · gate ×K · band · P%`` on its own line when ahead already
     spoke; when margin spoke it also shows ``behind … · −K`` (same K,
     speak-both-sides; not a lead÷runner ratio; not buried in Lead).
+    Generation-clash sleeves (soft≠scan/gap/cash/memory) and the RS
+    anchor-gap cascade sit in ``soft_lean`` under a desk fold;
+    ``line_core`` keeps severity · lead · counts · last reason
+    (MonsterDeveloper + Yahoo mix/streak lean declutter — full ``line``
+    join kept for tests). Warn opens the fold. Display only; not a gate.
     """
     from stock_checker.gate_audit import (
         SOFT_ALLOW_AGING_HOURS,
@@ -1838,6 +1887,10 @@ def build_soft_allow_glance(
         "anchor_gap_vs_memory_clock_clash": "",
         "anchor_gap_vs_memory_clock_clash_warn": False,
         "line": "",
+        "line_core": "",
+        "soft_lean": "",
+        "soft_lean_warn": False,
+        "soft_lean_meta": "quiet",
         "last_gate": "",
         "last_reason": "",
     }
@@ -2088,6 +2141,10 @@ def build_soft_allow_glance(
     # pinned cash print (soft↔cash↔scan after soft↔gap↔scan). Soft≠memory
     # follows so soft matching scan/cash cannot hide a staler LAYA or
     # debate print (soft↔laya↔debate after soft↔cash↔scan).
+    # Gen-clash + RS-gap lean sit in soft_lean; line_core keeps severity ·
+    # lead · counts · last reason (Yahoo mix/streak lean fold parity). Full
+    # line join kept for tests (severity · gen · lead · counts · gap · reason).
+    line_core = f"{line} {reason_short}" if reason_short else line
     gen_clash_bits = [
         b
         for b in (
@@ -2098,6 +2155,27 @@ def build_soft_allow_glance(
         )
         if b
     ]
+    soft_lean_parts = [b for b in (*gen_clash_bits, anchor_gap_bit) if b]
+    soft_lean = " · ".join(soft_lean_parts)
+    soft_lean_warn = bool(
+        scan_vs_soft_allow_clash
+        or soft_vs_gap_clock_clash_warn
+        or soft_vs_cash_clock_clash_warn
+        or soft_vs_memory_clock_clash_warn
+        or anchor_gap_last_freshness == "expired"
+        or anchor_gap_share_severity == "hot"
+        or anchor_gap_vs_other_warn
+        or anchor_gap_last_vs_lead_freshness_warn
+        or anchor_gap_last_vs_share_warn
+        or anchor_gap_last_lead_vs_share_warn
+        or anchor_gap_last_vs_lean_warn
+        or anchor_gap_last_lead_vs_lean_warn
+        or anchor_gap_last_share_vs_lean_warn
+        or anchor_gap_vs_scan_clash_warn
+        or anchor_gap_vs_cash_clock_clash_warn
+        or anchor_gap_vs_memory_clock_clash_warn
+    )
+    soft_lean_meta = soft_allow_lean_meta(soft_lean, warn=soft_lean_warn)
     if gen_clash_bits and line.startswith(f"{severity} · "):
         rest = line[len(severity) + 3 :]
         line = f"{severity} · {' · '.join(gen_clash_bits)} · {rest}"
@@ -2214,6 +2292,10 @@ def build_soft_allow_glance(
         "laya_freshness": laya_tone,
         "debate_freshness": debate_tone,
         "line": line,
+        "line_core": line_core,
+        "soft_lean": soft_lean,
+        "soft_lean_warn": soft_lean_warn,
+        "soft_lean_meta": soft_lean_meta,
         "last_gate": gate,
         "last_reason": reason_short,
     }

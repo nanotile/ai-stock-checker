@@ -85,19 +85,29 @@
   heading_id='soft-allow-glance-h',
   link_href='/desk/ops#soft-h',
   link_label='Ops memory →',
-  sub='Gate passed with missing data — not a hard block. Full list on Ops.'
+  sub='Gate passed with missing data — not a hard block. Generation-clash sleeves and RS-gap lean sit under soft lean. Full list on Ops.'
 ) -%}
 {% set glance = snap.soft_allow_glance if snap.soft_allow_glance is mapping else {} %}
 {% if glance.ready %}
+{% set body_line = glance.line_core|default(glance.line|default('')) %}
+{% set soft_lean = glance.soft_lean|default('') %}
+{% set soft_lean_warn = glance.soft_lean_warn|default(false) %}
+{% set soft_lean_meta = glance.soft_lean_meta|default('quiet') %}
 <section class="soft-allow-glance" aria-labelledby="{{ heading_id }}">
   <h2 id="{{ heading_id }}" class="visually-hidden">Fail-open soft-allows</h2>
   <p class="soft-allow-glance-line">
     <span class="soft-allow-glance-tone {{ glance.tone }}">Soft-allow</span>
     <span class="pretrade-sep" aria-hidden="true">·</span>
-    <span class="soft-allow-glance-body">{{ glance.line }}</span>
+    <span class="soft-allow-glance-body">{{ body_line }}</span>
     <span class="pretrade-sep" aria-hidden="true">·</span>
     <a class="soft-allow-glance-link" href="{{ link_href }}">{{ link_label }}</a>
   </p>
+  {% if soft_lean %}
+  <details class="soft-allow-lean{% if soft_lean_warn %} warn{% endif %}"{% if soft_lean_warn %} open{% endif %}>
+    <summary>soft lean <span class="meta">{{ soft_lean_meta }}</span></summary>
+    <p class="soft-allow-lean-body{% if soft_lean_warn %} warn{% endif %}">{{ soft_lean }}</p>
+  </details>
+  {% endif %}
   <p class="sub">{{ sub }}</p>
 </section>
 {% endif %}

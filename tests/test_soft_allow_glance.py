@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
-from openbb_backend.desk import build_soft_allow_glance
+from openbb_backend.desk import build_soft_allow_glance, soft_allow_lean_meta
 from stock_checker.gate_audit import soft_allow_last_vs_lead
 
 
@@ -15,9 +16,37 @@ def test_soft_allow_last_vs_lead_helper() -> None:
     assert soft_allow_last_vs_lead("rs", "") == ""
 
 
+def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
+    """Quiet chip names gen/gap sleeves; hot appends stages after clash|hot."""
+    assert soft_allow_lean_meta("") == "quiet"
+    assert soft_allow_lean_meta("clash · scan fresh") == "quiet · 1 fold · scan"
+    assert (
+        soft_allow_lean_meta(
+            "clash · scan fresh · clash · soft fresh · gap expired · "
+            "2 gap · last AAPL · fresh"
+        )
+        == "quiet · 3 folds · scan · soft/gap · gap"
+    )
+    assert (
+        soft_allow_lean_meta("clash · scan stale", warn=True)
+        == "clash · scan"
+    )
+    assert (
+        soft_allow_lean_meta(
+            "2 gap · last AAPL · fresh · hot · 66.7%", warn=True
+        )
+        == "hot · gap"
+    )
+
+
 def test_soft_allow_glance_empty() -> None:
     assert build_soft_allow_glance(None)["ready"] is False
     assert build_soft_allow_glance([])["ready"] is False
+    empty = build_soft_allow_glance(None)
+    assert empty["line_core"] == ""
+    assert empty["soft_lean"] == ""
+    assert empty["soft_lean_warn"] is False
+    assert empty["soft_lean_meta"] == "quiet"
 
 
 def test_soft_allow_glance_one() -> None:
@@ -98,6 +127,10 @@ def test_soft_allow_glance_one() -> None:
     assert "no SPY bars" in g["line"]
     assert " gap" not in g["line"]
     assert "clash" not in g["line"]
+    assert g["line_core"] == g["line"]
+    assert g["soft_lean"] == ""
+    assert g["soft_lean_warn"] is False
+    assert g["soft_lean_meta"] == "quiet"
 
 
 def test_soft_allow_glance_anchor_gap_count() -> None:
@@ -157,6 +190,12 @@ def test_soft_allow_glance_anchor_gap_count() -> None:
         "last/lean align · fresh · hot|thin · "
         "share/lean align · both align"
     ) in g["line"]
+    assert g["soft_lean"] == g["anchor_gap_bit"]
+    assert g["soft_lean_warn"] is True
+    assert g["soft_lean_meta"] == "hot · gap"
+    assert g["anchor_gap_bit"] not in g["line_core"]
+    assert "soft-allow" in g["line_core"]
+    assert "last/share" not in g["line_core"]
     assert "last [rs]" in g["line"]
     assert "anchor gap" in g["line"]
 
@@ -1137,6 +1176,12 @@ def test_soft_allow_glance_scan_clash_expired_vs_fresh() -> None:
     assert g["severity"] == "cool"
     assert g["line"].startswith("cool · clash · scan fresh · ")
     assert "clash" in g["line"]
+    assert g["line_core"].startswith("cool · ")
+    assert "clash · scan" not in g["line_core"]
+    assert g["soft_lean"].startswith("clash · scan fresh")
+    assert g["soft_lean_warn"] is True
+    assert g["soft_lean_meta"].startswith("clash · scan")
+    assert "scan" in g["soft_lean_meta"]
     same = build_soft_allow_glance(
         [
             {
@@ -1507,3 +1552,22 @@ def test_soft_allow_glance_gap_vs_memory_when_soft_matches_memory() -> None:
     assert same["anchor_gap_vs_memory_clock_clash_warn"] is False
     assert "laya" not in same["anchor_gap_bit"]
     assert "debate" not in same["anchor_gap_bit"]
+
+
+def test_soft_allow_lean_fold_in_templates_css_charts() -> None:
+    """Desk + Charts render soft lean fold (Yahoo mix lean parity)."""
+    root = Path(__file__).resolve().parents[1]
+    macros = (root / "openbb_backend/templates/macros.html").read_text(
+        encoding="utf-8"
+    )
+    assert "soft-allow-lean" in macros
+    assert "soft_lean_meta" in macros
+    assert "line_core" in macros
+    css = (root / "openbb_backend/static/desk.css").read_text(encoding="utf-8")
+    assert ".soft-allow-glance .soft-allow-lean" in css
+    charts = (root / "openbb_backend/static/charts.js").read_text(
+        encoding="utf-8"
+    )
+    assert "soft_lean" in charts
+    assert "soft-allow-lean" in charts
+    assert "line_core" in charts

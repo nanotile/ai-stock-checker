@@ -750,6 +750,52 @@ a:active {
   margin: 0.35rem 0 0;
 }
 
+/* Soft-allow gen-clash + RS-gap lean fold (MonsterDeveloper declutter). */
+.soft-allow-glance .soft-allow-lean {
+  margin: 0.25rem 0 0.15rem;
+  padding: 0;
+  border: 0;
+}
+
+.soft-allow-glance .soft-allow-lean > summary {
+  cursor: pointer;
+  color: var(--link);
+  font-family: var(--font-body, system-ui, sans-serif);
+  font-size: 0.78rem;
+  list-style: none;
+}
+
+.soft-allow-glance .soft-allow-lean > summary::-webkit-details-marker {
+  display: none;
+}
+
+.soft-allow-glance .soft-allow-lean > summary .meta {
+  margin-left: 0.25rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.soft-allow-glance .soft-allow-lean.warn > summary,
+.soft-allow-glance .soft-allow-lean.warn > summary .meta {
+  color: var(--down);
+}
+
+.soft-allow-glance .soft-allow-lean[open] > summary {
+  margin-bottom: 0.15rem;
+}
+
+.soft-allow-glance .soft-allow-lean-body {
+  margin: 0;
+  font-family: var(--font-data, ui-monospace, monospace);
+  font-size: 0.78rem;
+  color: var(--ink);
+  line-height: 1.35;
+}
+
+.soft-allow-glance .soft-allow-lean-body.warn {
+  color: var(--down);
+}
+
 .entry-gates-glance {
   margin: 0 0 2.25rem;
   padding: 0 0 1rem;

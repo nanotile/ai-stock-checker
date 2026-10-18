@@ -1369,7 +1369,7 @@
 
   function renderSoftAllowGlance(payload) {
     var glance = payload && payload.soft_allow_glance;
-    if (!glance || !glance.ready || !glance.line) return;
+    if (!glance || !glance.ready || !(glance.line_core || glance.line)) return;
     var wrap = document.createElement("section");
     wrap.className = "soft-allow-glance";
     wrap.setAttribute("aria-labelledby", "charts-soft-allow-h");
@@ -1391,7 +1391,7 @@
     line.appendChild(sep1);
     var body = document.createElement("span");
     body.className = "soft-allow-glance-body";
-    body.textContent = String(glance.line);
+    body.textContent = String(glance.line_core || glance.line);
     line.appendChild(body);
     var sep2 = document.createElement("span");
     sep2.className = "pretrade-sep";
@@ -1404,10 +1404,31 @@
     link.textContent = "Ops memory →";
     line.appendChild(link);
     wrap.appendChild(line);
+    if (glance.soft_lean) {
+      var leanWarn = !!glance.soft_lean_warn;
+      var fold = document.createElement("details");
+      fold.className = "soft-allow-lean" + (leanWarn ? " warn" : "");
+      if (leanWarn) fold.open = true;
+      var summary = document.createElement("summary");
+      summary.appendChild(document.createTextNode("soft lean "));
+      var foldMeta = document.createElement("span");
+      foldMeta.className = "meta";
+      foldMeta.textContent = glance.soft_lean_meta
+        ? String(glance.soft_lean_meta)
+        : "quiet";
+      summary.appendChild(foldMeta);
+      fold.appendChild(summary);
+      var leanBody = document.createElement("p");
+      leanBody.className =
+        "soft-allow-lean-body" + (leanWarn ? " warn" : "");
+      leanBody.textContent = String(glance.soft_lean);
+      fold.appendChild(leanBody);
+      wrap.appendChild(fold);
+    }
     var sub = document.createElement("p");
     sub.className = "sub";
     sub.textContent =
-      "Gate passed with missing data — not a hard block. Full list on Ops.";
+      "Gate passed with missing data — not a hard block. Generation-clash and RS-gap lean under soft lean. Full list on Ops.";
     wrap.appendChild(sub);
     appendGlance(wrap);
   }
