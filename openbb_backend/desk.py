@@ -16345,6 +16345,33 @@ _EXIT_MIX_QUIET_LABELS: tuple[tuple[str, str], ...] = (
     ("A exits trim share", "trim"),
     ("A exits ", "mix"),
 )
+# Longer prefixes first so ``A Kelly sample`` is not read as ``A Kelly``.
+_KELLY_QUIET_LABELS: tuple[tuple[str, str], ...] = (
+    ("A half-Kelly vs sizer", "half/sizer"),
+    ("A half-Kelly vs slot", "half/slot"),
+    ("A half-Kelly vs cap", "half/cap"),
+    ("A quarter-Kelly vs sizer", "qtr/sizer"),
+    ("A quarter-Kelly vs slot", "qtr/slot"),
+    ("A quarter-Kelly vs cap", "qtr/cap"),
+    ("A practical Kelly", "practical"),
+    ("A Kelly sample", "sample"),
+    ("A Kelly", "Kelly"),
+)
+_EXIT_EURO_QUIET_LABELS: tuple[tuple[str, str], ...] = (
+    ("A exits € size rest n", "rest n"),
+    ("A exits € size rest sign", "rest sign"),
+    ("A exits € size clash keep", "keep"),
+    ("A exits € size clash net", "clash net"),
+    ("A exits € size clash", "clash"),
+    ("A exits € size n", "size n"),
+    ("A exits € size sign", "sign"),
+    ("A exits € size", "size"),
+    ("A exits € skew", "skew"),
+    ("A exits € conc", "conc"),
+    ("A exits € gap", "gap"),
+    ("A exits € offset", "offset"),
+    ("A exits € lead", "lead"),
+)
 
 
 def _honesty_bits_in_line(line: str) -> list[str]:
@@ -16410,11 +16437,12 @@ def promote_honesty_fold_meta(
 ) -> dict[str, str]:
     """Summary chips for Close honesty child folds — why open, not body text.
 
-    Quiet edge / streaks / exit mix name the bits that spoke
-    (``quiet · N folds · payoff · …``), clipped like Policy honesty, so a
-    payoff-only fold does not claim WR and PF. Hot folds still name the
-    severity (Yahoo mix / Screener weight lean meta). Static
-    ``drag · comfortable`` lied when fees were thin or drag was heavy.
+    Quiet edge / streaks / exit mix / Kelly / exit euros name the bits that
+    spoke (``quiet · N folds · payoff · …``), clipped like Policy honesty, so
+    a full-Kelly fold does not claim half vs sizer and a euro-lead fold does
+    not claim count ≠ €. Hot folds still name the severity (Yahoo mix /
+    Screener weight lean meta). Static ``drag · comfortable`` lied when fees
+    were thin or drag was heavy.
     """
 
     warns = {str(w).strip() for w in (honesty_warns or []) if str(w).strip()}
@@ -16497,7 +16525,7 @@ def promote_honesty_fold_meta(
             else:
                 out["Kelly"] = "under"
         else:
-            out["Kelly"] = "size vs sizer"
+            out["Kelly"] = _quiet_spoken_chip(kelly_line, _KELLY_QUIET_LABELS)
 
     if str(streak_line or "").strip():
         if "streaks" in warns:
@@ -16528,7 +16556,9 @@ def promote_honesty_fold_meta(
         if "exit euros" in warns:
             out["exit euros"] = _rel_chip(exit_euro_line, quiet="warn")
         else:
-            out["exit euros"] = "count ≠ €"
+            out["exit euros"] = _quiet_spoken_chip(
+                exit_euro_line, _EXIT_EURO_QUIET_LABELS
+            )
 
     if str(fee_pressure_line or "").strip():
         quiet = "leftover vs book"

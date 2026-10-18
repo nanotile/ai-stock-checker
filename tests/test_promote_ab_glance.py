@@ -138,6 +138,22 @@ def test_promote_honesty_quiet_chips_name_spoken_bits() -> None:
         streak_line="A loss streak quiet · 1 · A flats · 2",
     )["streaks"]
     assert streaks == "quiet · 2 folds · loss · flats"
+    kelly = promote_honesty_fold_meta(
+        kelly_line="A Kelly · 12%",
+    )["Kelly"]
+    assert kelly == "quiet · 1 fold · Kelly"
+    euros = promote_honesty_fold_meta(
+        exit_euro_line="A exits € lead sl · −€40",
+    )["exit euros"]
+    assert euros == "quiet · 1 fold · lead"
+    many_euro = promote_honesty_fold_meta(
+        exit_euro_line=(
+            "A exits € lead sl · −€40 · A exits € offset quiet · tp +€10 · "
+            "A exits € gap quiet · 1.2× · A exits € conc quiet · sl · 40% · "
+            "A exits € skew quiet · sl · n 40% · € 20%"
+        ),
+    )["exit euros"]
+    assert many_euro == "quiet · 5 folds · lead · offset · gap · conc · +1"
 
 
 def test_promote_ab_glance_running() -> None:
