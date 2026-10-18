@@ -2326,6 +2326,18 @@ _POLICY_HONESTY_FOLD_LABELS: tuple[tuple[str, str], ...] = (
     ("ai_validate_scope_glance", "AI scope"),
     ("session_glance", "session"),
     ("postmortem_glance", "rounds"),
+    # Fold-resident glances the earlier census skipped (desk + Charts render
+    # them inside #policy-honesty). Static tones stay calm.
+    ("exit_policy_glance", "exits"),
+    ("earnings_blackout_glance", "earnings"),
+    ("ai_roles_glance", "roles"),
+    ("breakout_guard_glance", "breakout"),
+    ("loss_rotation_glance", "no-loss"),
+    ("stale_rotation_glance", "stale-rot"),
+    ("junk_filter_glance", "junk"),
+    ("entry_slots_glance", "slots"),
+    ("gate_roles_glance", "gates"),
+    ("gate_params_glance", "knobs"),
 )
 
 
@@ -2337,13 +2349,14 @@ def policy_honesty_fold_meta(
     An empty snapshot keeps the category index
     (``crypto · exits · AI · gates · fees``). When every ready glance is calm,
     the chip names those glances (``quiet · N folds · fees · LAYA``) so the
-    index does not pretend exits/gates are loaded. Nested glances with
+    index does not pretend exits/gates are loaded. The census also includes
+    fold-resident static glances (exits, earnings, roles, breakout, rotations,
+    junk, slots, gates, knobs) once they are ready. Nested glances with
     ``warn`` / ``aging`` / ``stale`` tones open the fold and speak
     Close-honesty inventory
     (``warn · N hot of M · … · quiet · K folds · crypto · AI · …``).
-    An all-hot storm still speaks ``quiet · 0 folds`` so a missing calm
-    side is not the same as a dropped remainder
-    (Close honesty hot quiet fold count + Book matrix / Hours / Yahoo fold-meta).
+    Stale-rotation's tone ``stale`` is the policy name, not a clock band, so
+    it stays calm. An all-hot storm still speaks ``quiet · 0 folds``.
     Aging/stale append the severity word. Display only; not a gate.
     """
     if not isinstance(snap, dict):
@@ -2357,6 +2370,11 @@ def policy_honesty_fold_meta(
             continue
         ready += 1
         tone = str(glance.get("tone") or "").strip().lower()
+        # Identity tone, not a clock: always-ready stale-rotation would
+        # otherwise warn-open every desk and Charts policy fold.
+        if key == "stale_rotation_glance" and tone == "stale":
+            quiet_labels.append(label)
+            continue
         if tone not in _POLICY_HONESTY_ADVERSE:
             quiet_labels.append(label)
             continue

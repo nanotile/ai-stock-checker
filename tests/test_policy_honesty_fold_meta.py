@@ -148,6 +148,29 @@ def test_policy_honesty_fold_meta_caps_storm() -> None:
     assert "fees · stuck · LAYA · debate · Yahoo · Hours · +2 · quiet · 0 folds" in meta
 
 
+def test_policy_honesty_fold_meta_counts_static_fold_glances() -> None:
+    """Exits/earnings/roles sit in the fold; the census used to skip them."""
+    meta, warn = policy_honesty_fold_meta(
+        {
+            "exit_policy_glance": {"ready": True, "tone": "stock"},
+            "earnings_blackout_glance": {"ready": True, "tone": "stock"},
+            "ai_roles_glance": {"ready": True, "tone": "roles"},
+            "stale_rotation_glance": {"ready": True, "tone": "stale"},
+        }
+    )
+    assert warn is False
+    assert meta == "quiet · 4 folds · exits · earnings · roles · stale-rot"
+
+
+def test_policy_honesty_fold_meta_stale_rotation_warn_still_hot() -> None:
+    """Identity tone stale stays calm; a real warn on that glance still opens."""
+    meta, warn = policy_honesty_fold_meta(
+        {"stale_rotation_glance": {"ready": True, "tone": "warn"}}
+    )
+    assert warn is True
+    assert meta == "warn · 1 hot of 1 · stale-rot · quiet · 0 folds"
+
+
 def test_policy_honesty_templates_use_fold_meta() -> None:
     for name in POLICY_SCREENS:
         text = (TEMPLATES / name).read_text(encoding="utf-8")

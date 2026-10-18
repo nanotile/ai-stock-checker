@@ -98,6 +98,12 @@ def test_chart_payload_offline(tmp_path: Path, monkeypatch):
     assert payload["postmortem_glance"]["ready"] is False
     assert any(a["symbol"] == "CASH" for a in payload["allocation"])
     assert any(a["symbol"] == "AAPL" for a in payload["allocation"])
+    # Charts used to omit the chip and fall back to the static category index.
+    assert payload["policy_honesty_warn"] is True
+    assert payload["policy_honesty_meta"].startswith("warn · ")
+    assert "Yahoo stale" in payload["policy_honesty_meta"]
+    assert "quiet ·" in payload["policy_honesty_meta"]
+    assert payload["policy_honesty_meta"] != "crypto · exits · AI · gates · fees"
 
 
 def test_chart_payload_entry_gates_glance(tmp_path: Path, monkeypatch):

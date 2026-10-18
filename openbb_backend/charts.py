@@ -1244,6 +1244,7 @@ def load_chart_payload(data_dir: Path) -> dict[str, Any]:
         build_scan_freshness,
         build_session_glance,
         build_soft_allow_glance,
+        policy_honesty_fold_meta,
         memory_advisory_clock_tones,
         scan_list_rows,
     )
@@ -1261,7 +1262,7 @@ def load_chart_payload(data_dir: Path) -> dict[str, Any]:
     pretrade_level, pretrade_notes = pretrade_status(data_dir, initial_cash=initial)
     laya_tone, debate_tone = memory_advisory_clock_tones(data_dir)
 
-    return {
+    payload = {
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "equity": build_equity_curve(data_dir),
         "unrealized": build_unrealized_curve(data_dir),
@@ -1328,3 +1329,9 @@ def load_chart_payload(data_dir: Path) -> dict[str, Any]:
         "mark_coverage": _mark_coverage_from_data(data_dir, portfolio),
         "ledger_health": _ledger_health_from_data(data_dir),
     }
+    # Charts JS reads these; a missing key fell back to the static category
+    # index and hid a hot fee / stale Yahoo glance inside the fold.
+    meta, warn = policy_honesty_fold_meta(payload)
+    payload["policy_honesty_meta"] = meta
+    payload["policy_honesty_warn"] = warn
+    return payload
