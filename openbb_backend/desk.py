@@ -16494,8 +16494,15 @@ def _honesty_bits_in_line(line: str) -> list[str]:
 def _quiet_spoken_chip(
     line: str,
     labels: tuple[tuple[str, str], ...],
+    *,
+    quiet: bool = True,
 ) -> str:
-    """``quiet · N folds · payoff · … · +K`` for bits that actually spoke."""
+    """Name honesty bits that actually spoke.
+
+    Quiet: ``quiet · N folds · payoff · … · +K``. Hot tail (``quiet=False``):
+    clipped names only (``payoff · exp · PF · WR · +K``), or ``""`` when none
+    — Yahoo mix / Screener weight / Hours inactive hot-inventory parity.
+    """
     names: list[str] = []
     for bit in _honesty_bits_in_line(line):
         for prefix, label in labels:
@@ -16503,10 +16510,25 @@ def _quiet_spoken_chip(
                 names.append(label)
                 break
     if not names:
-        return "quiet"
-    unit = "fold" if len(names) == 1 else "folds"
+        return "quiet" if quiet else ""
     named = cap_honesty_fold_names(names, cap=_HONESTY_QUIET_NAME_CAP)
-    return f"quiet · {len(names)} {unit} · " + " · ".join(named)
+    joined = " · ".join(named)
+    if not quiet:
+        return joined
+    unit = "fold" if len(names) == 1 else "folds"
+    return f"quiet · {len(names)} {unit} · {joined}"
+
+
+def _hot_spoken_chip(
+    severity: str,
+    line: str,
+    labels: tuple[tuple[str, str], ...],
+) -> str:
+    """``thin · payoff · exp · PF · WR · +K`` — severity plus spoken stages."""
+    stage_tail = _quiet_spoken_chip(line, labels, quiet=False)
+    if stage_tail:
+        return f"{severity} · {stage_tail}"
+    return severity
 
 
 def promote_honesty_fold_meta(
@@ -16545,9 +16567,12 @@ def promote_honesty_fold_meta(
     full-Kelly fold does not claim half vs sizer, a euro-lead fold does not
     claim count ≠ €, a fees line without a severity does not claim
     comfortable drag, and a keep-fees fold does not claim leftover vs book.
-    Hot folds still name the severity (Yahoo mix / Screener weight lean
-    meta). Static ``drag · comfortable`` lied when fees were thin or drag
-    was heavy.
+    Hot folds name severity and append clipped spoken stages
+    (``thin · payoff · exp · PF · WR``) so bare severity does not hide which
+    ladder bits spoke (Yahoo mix / Screener weight / Hours inactive hot
+    inventory). Typed fees / polarity severity stays identity-only (the
+    severity *is* the bit). Static ``drag · comfortable`` lied when fees
+    were thin or drag was heavy.
     """
 
     warns = {str(w).strip() for w in (honesty_warns or []) if str(w).strip()}
@@ -16609,39 +16634,44 @@ def promote_honesty_fold_meta(
     if str(edge_line or "").strip():
         if "edge" in warns:
             if closes_net_expectancy_eats_edge:
-                out["edge"] = "fees eat edge"
+                sev = "fees eat edge"
             elif closes_expectancy_neg or closes_net_expectancy_neg:
-                out["edge"] = "expect −"
+                sev = "expect −"
             elif closes_wr_below_be:
-                out["edge"] = "below BE"
+                sev = "below BE"
             elif closes_payoff_thin:
-                out["edge"] = "payoff thin"
+                sev = "payoff thin"
             elif closes_win_rate_thin:
-                out["edge"] = "WR thin"
+                sev = "WR thin"
             else:
-                out["edge"] = "thin"
+                sev = "thin"
+            out["edge"] = _hot_spoken_chip(sev, edge_line, _EDGE_QUIET_LABELS)
         else:
             out["edge"] = _quiet_spoken_chip(edge_line, _EDGE_QUIET_LABELS)
 
     if str(kelly_line or "").strip():
         if "Kelly" in warns:
             if closes_kelly_neg:
-                out["Kelly"] = "neg"
+                sev = "neg"
             elif closes_kelly_thin:
-                out["Kelly"] = "thin"
+                sev = "thin"
             else:
-                out["Kelly"] = "under"
+                sev = "under"
+            out["Kelly"] = _hot_spoken_chip(sev, kelly_line, _KELLY_QUIET_LABELS)
         else:
             out["Kelly"] = _quiet_spoken_chip(kelly_line, _KELLY_QUIET_LABELS)
 
     if str(streak_line or "").strip():
         if "streaks" in warns:
             if closes_loss_streak_hot:
-                out["streaks"] = "loss hot"
+                sev = "loss hot"
             elif closes_flat_warn:
-                out["streaks"] = "flats"
+                sev = "flats"
             else:
-                out["streaks"] = "hot"
+                sev = "hot"
+            out["streaks"] = _hot_spoken_chip(
+                sev, streak_line, _STREAK_QUIET_LABELS
+            )
         else:
             out["streaks"] = _quiet_spoken_chip(
                 streak_line, _STREAK_QUIET_LABELS
@@ -16650,10 +16680,10 @@ def promote_honesty_fold_meta(
     if str(exit_mix_line or "").strip():
         if "exit mix" in warns:
             low = exit_mix_line.lower()
-            if "unknown" in low:
-                out["exit mix"] = "unknown"
-            else:
-                out["exit mix"] = "stops lead"
+            sev = "unknown" if "unknown" in low else "stops lead"
+            out["exit mix"] = _hot_spoken_chip(
+                sev, exit_mix_line, _EXIT_MIX_QUIET_LABELS
+            )
         else:
             out["exit mix"] = _quiet_spoken_chip(
                 exit_mix_line, _EXIT_MIX_QUIET_LABELS
@@ -16661,7 +16691,11 @@ def promote_honesty_fold_meta(
 
     if str(exit_euro_line or "").strip():
         if "exit euros" in warns:
-            out["exit euros"] = _rel_chip(exit_euro_line, quiet="warn")
+            out["exit euros"] = _hot_spoken_chip(
+                _rel_chip(exit_euro_line, quiet="warn"),
+                exit_euro_line,
+                _EXIT_EURO_QUIET_LABELS,
+            )
         else:
             out["exit euros"] = _quiet_spoken_chip(
                 exit_euro_line, _EXIT_EURO_QUIET_LABELS
@@ -16669,7 +16703,11 @@ def promote_honesty_fold_meta(
 
     if str(fee_pressure_line or "").strip():
         if "fee pressure" in warns:
-            out["fee pressure"] = _rel_chip(fee_pressure_line, quiet="warn")
+            out["fee pressure"] = _hot_spoken_chip(
+                _rel_chip(fee_pressure_line, quiet="warn"),
+                fee_pressure_line,
+                _FEE_PRESSURE_QUIET_LABELS,
+            )
         else:
             out["fee pressure"] = _quiet_spoken_chip(
                 fee_pressure_line, _FEE_PRESSURE_QUIET_LABELS
@@ -16677,7 +16715,11 @@ def promote_honesty_fold_meta(
 
     if str(align_nest_line or "").strip():
         if "align nest" in warns:
-            out["align nest"] = _rel_chip(align_nest_line, quiet="warn")
+            out["align nest"] = _hot_spoken_chip(
+                _rel_chip(align_nest_line, quiet="warn"),
+                align_nest_line,
+                _ALIGN_QUIET_LABELS,
+            )
         else:
             out["align nest"] = _quiet_spoken_chip(
                 align_nest_line, _ALIGN_QUIET_LABELS
@@ -16685,7 +16727,11 @@ def promote_honesty_fold_meta(
 
     if str(align_deep_line or "").strip():
         if "align deep" in warns:
-            out["align deep"] = _rel_chip(align_deep_line, quiet="warn")
+            out["align deep"] = _hot_spoken_chip(
+                _rel_chip(align_deep_line, quiet="warn"),
+                align_deep_line,
+                _ALIGN_QUIET_LABELS,
+            )
         else:
             out["align deep"] = _quiet_spoken_chip(
                 align_deep_line, _ALIGN_QUIET_LABELS

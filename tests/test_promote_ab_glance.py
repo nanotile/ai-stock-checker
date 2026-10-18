@@ -112,9 +112,76 @@ def test_promote_honesty_fold_meta_names_fees_severity() -> None:
         promote_honesty_fold_meta(
             fee_pressure_line="A exits € size clash keep fees eat · 2×",
             honesty_warns=["fee pressure"],
-        )        ["fee pressure"]
-        == "eat"
+        )["fee pressure"]
+        == "eat · keep"
     )
+
+
+def test_promote_honesty_hot_chips_append_spoken_stages() -> None:
+    """Hot severity alone must not hide which ladder bits spoke (Yahoo hot)."""
+    edge = promote_honesty_fold_meta(
+        edge_line=(
+            "A payoff thin · 0.5× · A expectancy · −€2 · A PF · 0.8× · "
+            "A win rate · 35% · A WR below BE · −8pp"
+        ),
+        closes_payoff_thin=True,
+        honesty_warns=["edge"],
+    )["edge"]
+    assert edge == "payoff thin · payoff · exp · PF · WR · +1"
+    kelly = promote_honesty_fold_meta(
+        kelly_line="A Kelly thin · 3% · A half-Kelly vs sizer under · 2% vs 10%",
+        closes_kelly_thin=True,
+        honesty_warns=["Kelly"],
+    )["Kelly"]
+    assert kelly == "thin · Kelly · half/sizer"
+    streaks = promote_honesty_fold_meta(
+        streak_line="A loss streak hot · 3 · A flats · 1",
+        closes_loss_streak_hot=True,
+        honesty_warns=["streaks"],
+    )["streaks"]
+    assert streaks == "loss hot · loss · flats"
+    mix = promote_honesty_fold_meta(
+        exit_mix_line="A exits tp · sl · rot · A exits sl share hot · 70%",
+        honesty_warns=["exit mix"],
+    )["exit mix"]
+    assert mix == "stops lead · mix · sl"
+    euros = promote_honesty_fold_meta(
+        exit_euro_line=(
+            "A exits € size clash · lead loss · rest win · "
+            "A exits € lead sl · −€40"
+        ),
+        honesty_warns=["exit euros"],
+    )["exit euros"]
+    assert euros.startswith("clash · ")
+    assert "lead" in euros
+    pressure = promote_honesty_fold_meta(
+        fee_pressure_line=(
+            "A exits € size clash keep fees eat · 2× · "
+            "A exits € size clash keep fees vs drag worse · eat · heavy"
+        ),
+        honesty_warns=["fee pressure"],
+    )["fee pressure"]
+    assert pressure == "eat · keep · vs book"
+    nest = promote_honesty_fold_meta(
+        align_nest_line=(
+            "A exits € size clash keep fees vs drag gap dir sides share vs Δ "
+            "align size · +0.5× · +20pp · "
+            "A exits € size clash keep fees vs drag gap dir sides share vs Δ "
+            "align lead · ×"
+        ),
+        honesty_warns=["align nest"],
+    )["align nest"]
+    # Bit path contains ``clash keep``; severity stays clash, stages still speak.
+    assert nest == "clash · size · lead"
+    wide = promote_honesty_fold_meta(
+        align_nest_line=(
+            "A exits € size clash keep fees vs drag gap dir sides share vs Δ "
+            "align · wide"
+        ),
+        honesty_warns=["align nest"],
+    )["align nest"]
+    # Bare align · wide has no stage label (quiet inventory same); severity alone.
+    assert wide == "align · wide"
 
 
 def test_promote_honesty_quiet_chips_name_spoken_bits() -> None:
