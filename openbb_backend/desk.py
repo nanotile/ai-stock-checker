@@ -20132,6 +20132,21 @@ def build_session_glance(
 _HOURS_INACTIVE_QUIET_NAME_CAP = 4
 
 
+def _hours_inactive_venue_chip(names: list[str], *, quiet: bool) -> str:
+    """Clip dark-venue names for Hours inactive summary (cap 4 +``+N``)."""
+    if not names:
+        return ""
+    unit = "fold" if len(names) == 1 else "folds"
+    extra = len(names) - _HOURS_INACTIVE_QUIET_NAME_CAP
+    shown = names[:_HOURS_INACTIVE_QUIET_NAME_CAP]
+    if extra > 0:
+        shown.append(f"+{extra}")
+    joined = " · ".join(shown)
+    if quiet:
+        return f"quiet · {len(names)} {unit} · {joined}"
+    return joined
+
+
 def equity_hours_inactive_meta(
     *,
     attention_vs_open: str = "",
@@ -20147,26 +20162,27 @@ def equity_hours_inactive_meta(
     ``all cash`` / a venue join do not hide which sleeves are dark (Close
     honesty / Screener weight / Yahoo mix quiet inventory). Prefer warned
     attn-vs-open lean (Yahoo mix / Screener weight lean / Close honesty
-    fold-meta parity). ``align · hot|thin`` and ``clash`` short-copy; hot
-    chips unchanged. Missing names still fall back to all/half cash labels
-    or ``closed``.
+    fold-meta parity). Hot ``align · hot|thin`` / ``clash`` also append
+    clipped dark venues so lean alone does not hide which sleeve is dark
+    (Book matrix / Breadth chop warn inventory). Missing names still fall
+    back to lean-only / all/half cash labels or ``closed``.
     """
 
+    names = [str(n).strip() for n in (inactive_markets or []) if str(n).strip()]
+    venue_tail = _hours_inactive_venue_chip(names, quiet=False)
     if attention_vs_open_warn:
         low = str(attention_vs_open or "").strip().lower()
         if low.startswith("align ·"):
-            return str(attention_vs_open).strip()
-        if low.startswith("clash"):
-            return "clash"
-        return "warn"
-    names = [str(n).strip() for n in (inactive_markets or []) if str(n).strip()]
+            lean = str(attention_vs_open).strip()
+        elif low.startswith("clash"):
+            lean = "clash"
+        else:
+            lean = "warn"
+        if venue_tail:
+            return f"{lean} · {venue_tail}"
+        return lean
     if names:
-        unit = "fold" if len(names) == 1 else "folds"
-        extra = len(names) - _HOURS_INACTIVE_QUIET_NAME_CAP
-        shown = names[:_HOURS_INACTIVE_QUIET_NAME_CAP]
-        if extra > 0:
-            shown.append(f"+{extra}")
-        return f"quiet · {len(names)} {unit} · " + " · ".join(shown)
+        return _hours_inactive_venue_chip(names, quiet=True)
     if attention_all_cash:
         return "all cash"
     if attention_half_cash:
@@ -20223,7 +20239,10 @@ def build_equity_hours_glance(
     as the only summary hid adverse align|clash (Yahoo/Screener/Close
     fold-meta parity); warn opens the fold. Calm summaries name dark
     venues ``quiet · N folds · US · …`` so bare half/all cash does not hide
-    which sleeve is dark (Close honesty quiet inventory).
+    which sleeve is dark (Close honesty quiet inventory). Hot lean chips
+    also append clipped dark venues (``align · hot|thin · US · Xetra``)
+    so lean alone does not hide which sleeve is dark (Book matrix /
+    Breadth chop warn inventory).
     """
     from stock_checker.market_hours import (
         is_us_cash_session_closed,

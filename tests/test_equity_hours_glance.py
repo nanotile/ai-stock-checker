@@ -16,6 +16,7 @@ from openbb_backend.desk import (
 
 def test_equity_hours_inactive_meta_names_the_open() -> None:
     assert equity_hours_inactive_meta() == "closed"
+    # Hot lean without venue list stays lean-only.
     assert (
         equity_hours_inactive_meta(
             attention_vs_open="align · hot|thin",
@@ -30,6 +31,32 @@ def test_equity_hours_inactive_meta_names_the_open() -> None:
             attention_vs_open_warn=True,
         )
         == "clash"
+    )
+    # Hot lean appends dark venues (Book matrix / Breadth chop warn inventory).
+    assert (
+        equity_hours_inactive_meta(
+            attention_vs_open="align · hot|thin",
+            attention_vs_open_warn=True,
+            attention_all_cash=True,
+            inactive_markets=["US", "Xetra"],
+        )
+        == "align · hot|thin · US · Xetra"
+    )
+    assert (
+        equity_hours_inactive_meta(
+            attention_vs_open="clash · attention hot · open strong",
+            attention_vs_open_warn=True,
+            inactive_markets=["US"],
+        )
+        == "clash · US"
+    )
+    assert (
+        equity_hours_inactive_meta(
+            attention_vs_open="align · hot|thin",
+            attention_vs_open_warn=True,
+            inactive_markets=["US", "Xetra", "A", "B", "C"],
+        )
+        == "align · hot|thin · US · Xetra · A · B · +1"
     )
     # Missing venue list still falls back to ownership labels.
     assert (
@@ -125,7 +152,7 @@ def test_equity_hours_glance_both_closed_weekend() -> None:
     assert g["attention_vs_open_warn"] is True
     assert g["cash_open"] is False
     assert g["inactive_line"] == "Inactive markets (2): US · Xetra"
-    assert g["inactive_meta"] == "align · hot|thin"
+    assert g["inactive_meta"] == "align · hot|thin · US · Xetra"
     assert g["inactive_warn"] is True
     assert g["inactive_count"] == 2
     assert g["active_markets"] == ["crypto"]
