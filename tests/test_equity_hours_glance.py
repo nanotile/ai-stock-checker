@@ -31,15 +31,36 @@ def test_equity_hours_inactive_meta_names_the_open() -> None:
         )
         == "clash"
     )
+    # Missing venue list still falls back to ownership labels.
     assert (
         equity_hours_inactive_meta(attention_all_cash=True) == "all cash"
     )
     assert (
         equity_hours_inactive_meta(attention_half_cash=True) == "half cash"
     )
+    # Calm fold names dark venues (not bare half/all cash or a venue join).
     assert (
         equity_hours_inactive_meta(inactive_markets=["US", "Xetra"])
-        == "US · Xetra"
+        == "quiet · 2 folds · US · Xetra"
+    )
+    assert (
+        equity_hours_inactive_meta(
+            attention_half_cash=True, inactive_markets=["US"]
+        )
+        == "quiet · 1 fold · US"
+    )
+    assert (
+        equity_hours_inactive_meta(
+            attention_all_cash=True, inactive_markets=["US", "Xetra"]
+        )
+        == "quiet · 2 folds · US · Xetra"
+    )
+    # Cap quiet names at 4 then +N (Close honesty / Policy honesty parity).
+    assert (
+        equity_hours_inactive_meta(
+            inactive_markets=["US", "Xetra", "A", "B", "C"]
+        )
+        == "quiet · 5 folds · US · Xetra · A · B · +1"
     )
 
 
@@ -146,7 +167,7 @@ def test_equity_hours_glance_split_xetra_only() -> None:
     assert g["attention_vs_open_warn"] is False
     assert g["cash_open"] is False
     assert g["inactive_line"] == "Inactive markets (1): US"
-    assert g["inactive_meta"] == "half cash"
+    assert g["inactive_meta"] == "quiet · 1 fold · US"
     assert g["inactive_warn"] is False
     assert g["inactive_count"] == 1
     assert g["active_markets"] == ["Xetra", "crypto"]
