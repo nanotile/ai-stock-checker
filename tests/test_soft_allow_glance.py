@@ -77,7 +77,10 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
             "last/lean clash · expired · gap hot · other ok · "
             "share/lean clash · share clash · lean clash"
         )
-        == "quiet · 5 folds · gap AAPL fresh · last/share · gap/other · last/lean · +1"
+        == (
+            "quiet · 5 folds · gap AAPL fresh · last/share clash · "
+            "gap/other clash · last/lean clash · +1"
+        )
     )
     assert (
         soft_allow_lean_meta(
@@ -86,7 +89,7 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
             "gap vs other clash · gap hot · other ok",
             warn=True,
         )
-        == "clash · gap AAPL fresh · last/share · gap/other"
+        == "clash · gap AAPL fresh · last/share clash · gap/other clash"
     )
     assert (
         soft_allow_lean_meta(
@@ -97,7 +100,7 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
         )
         == (
             "quiet · 5 folds · gap MSFT expired · lead MSFT agree · "
-            "last/lead · last/share · +1"
+            "last/lead clash · last/share clash · +1"
         )
     )
     # Cursor name ≠ sample: tied / sole / other owner stay on the chip.
@@ -300,7 +303,7 @@ def test_soft_allow_glance_anchor_gap_count() -> None:
     assert g["soft_lean"] == g["anchor_gap_bit"]
     assert g["soft_lean_warn"] is True
     assert g["soft_lean_meta"] == (
-        "hot · gap AAPL fresh · tied · last/share · gap/other · +2"
+        "hot · gap AAPL fresh · tied · last/share align · gap/other align · +2"
     )
     assert g["anchor_gap_bit"] not in g["line_core"]
     assert "soft-allow" in g["line_core"]
@@ -471,6 +474,9 @@ def test_soft_allow_glance_anchor_gap_share_lean_both_clash_warns() -> None:
     assert g["tone"] == "warn"
     assert "share/lean align · both clash" in g["anchor_gap_bit"]
     assert "share/lean align · both clash" in g["line"]
+    assert g["soft_lean_meta"].startswith(
+        "clash · share/lean align both clash"
+    )
 
 
 def test_soft_allow_glance_anchor_gap_share_quiet() -> None:

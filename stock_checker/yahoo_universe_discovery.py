@@ -809,12 +809,15 @@ def _quiet_inventory_chip(
     *,
     cap: int,
     quiet: bool = True,
+    front_if: str = "",
 ) -> str:
     """Name stages that actually spoke.
 
     Quiet: ``quiet · N folds · … · +K``. Hot tail (``quiet=False``): clipped
     names only (``unique · Δ · lean · lead · +K``), or ``""`` when none —
-    Hours inactive hot-venue append parity.
+    Hours inactive hot-venue append parity. ``front_if`` moves matching
+    names ahead of the clip so an adverse tail (``both clash``) is not
+    hidden behind ``+K``.
     """
 
     def stage_at(blob: str) -> tuple[str, int] | None:
@@ -859,6 +862,10 @@ def _quiet_inventory_chip(
             tail = tail[sep:]
     if not names:
         return "quiet" if quiet else ""
+    if front_if:
+        front = [name for name in names if front_if in name]
+        back = [name for name in names if front_if not in name]
+        names = front + back
     extra = len(names) - cap
     shown = names[:cap]
     if extra > 0:

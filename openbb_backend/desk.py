@@ -1640,14 +1640,17 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
         ),
         "ahead",
     ),
-    # Longer relationship prefixes first (Screener weight lean inventory).
-    (re.compile(r"^share/lean\b"), "share/lean"),
-    (re.compile(r"^lead/lean\b"), "lead/lean"),
-    (re.compile(r"^lead/share\b"), "lead/share"),
-    (re.compile(r"^last/lean\b"), "last/lean"),
-    (re.compile(r"^last/share\b"), "last/share"),
-    (re.compile(r"^last/lead\b"), "last/lead"),
-    (re.compile(r"^gap vs other\b"), "gap/other"),
+    # Verb rides on the sleeve so ``last/share`` is not a silent confirm
+    # and ``align · both clash`` is not clipped as a calm align
+    # (RyanJHamby dual-clash + portfolio AI speak-both-sides).
+    (
+        re.compile(
+            r"^(share/lean|lead/lean|lead/share|last/lean|last/share|last/lead)"
+            r" (align|clash)(?: · (both (?:align|clash)))?\b"
+        ),
+        "",
+    ),
+    (re.compile(r"^gap vs other (align|clash)\b"), "gap/other"),
 )
 
 
@@ -1663,8 +1666,10 @@ def soft_allow_lean_meta(soft_lean: str, *, warn: bool = False) -> str:
     so the cursor name is not treated as ring ownership. When a runner
     exists, one stage names ``ahead wide|thin +K vs SYM N P%`` so ownership
     % is not how far ahead and not who is #2 (sole 100% stays silent).
-    Warned folds speak ``clash`` / ``hot`` / ``warn`` and append clipped stage
-    names. Display only; not a gate.
+    Relationship stages keep ``align`` / ``clash`` (and ``both clash``) so
+    a sleeve name is not a silent confirm. Warned folds speak ``clash`` /
+    ``hot`` / ``warn``, pin ``both clash`` into the 4-name clip, and append
+    the other stages. Display only; not a gate.
     """
     lean = str(soft_lean or "").strip()
     if not lean:
@@ -1682,6 +1687,7 @@ def soft_allow_lean_meta(soft_lean: str, *, warn: bool = False) -> str:
             _SOFT_LEAN_STAGE_RES,
             cap=_SOFT_LEAN_NAME_CAP,
             quiet=False,
+            front_if="both clash",
         )
         if stage_tail:
             return f"{sev} · {stage_tail}"
