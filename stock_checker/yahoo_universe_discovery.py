@@ -808,8 +808,14 @@ def _quiet_inventory_chip(
     stages: tuple[tuple[re.Pattern[str], str], ...],
     *,
     cap: int,
+    quiet: bool = True,
 ) -> str:
-    """``quiet · N folds · … · +K`` naming stages that actually spoke."""
+    """Name stages that actually spoke.
+
+    Quiet: ``quiet · N folds · … · +K``. Hot tail (``quiet=False``): clipped
+    names only (``unique · Δ · lean · lead · +K``), or ``""`` when none —
+    Hours inactive hot-venue append parity.
+    """
 
     def stage_at(blob: str) -> tuple[str, int] | None:
         for rx, label in stages:
@@ -820,7 +826,7 @@ def _quiet_inventory_chip(
 
     rest = str(text or "").strip()
     if not rest:
-        return "quiet"
+        return "quiet" if quiet else ""
     names: list[str] = []
     for _ in range(24):
         hit = stage_at(rest)
@@ -843,13 +849,16 @@ def _quiet_inventory_chip(
                 break
             tail = tail[sep:]
     if not names:
-        return "quiet"
-    unit = "fold" if len(names) == 1 else "folds"
+        return "quiet" if quiet else ""
     extra = len(names) - cap
     shown = names[:cap]
     if extra > 0:
         shown.append(f"+{extra}")
-    return f"quiet · {len(names)} {unit} · " + " · ".join(shown)
+    joined = " · ".join(shown)
+    if not quiet:
+        return joined
+    unit = "fold" if len(names) == 1 else "folds"
+    return f"quiet · {len(names)} {unit} · {joined}"
 
 
 def _mix_quiet_chip(mix_lean: str) -> str:

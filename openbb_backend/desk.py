@@ -795,9 +795,11 @@ def screener_weight_lean_meta(
     lean vs Δ → junk vs ok → unique lean vs Δ → unique vs dup (Yahoo
     mix/cascade meta parity). Adverse ``align · wide`` and any ``clash``
     shorten; bare junk with no warned relationship speaks ``junk``
-    (damage alone opened the fold). Favorable
-    ``align · quiet|strong`` / ``align · strong|quiet`` stay calm
-    upstream so this chip is not consulted for them.
+    (damage alone opened the fold). Hot lean/junk also append clipped
+    spoken stages (``align · wide · unique · Δ · lean · lead``) so severity
+    alone does not hide which ladder bits spoke (Hours inactive hot-venue
+    inventory). Favorable ``align · quiet|strong`` / ``align · strong|quiet``
+    stay calm upstream so this chip is not consulted for them.
     """
 
     def _chip(bit: str) -> str:
@@ -814,25 +816,36 @@ def screener_weight_lean_meta(
             return "clash"
         return "clash"
 
+    def _hot(lean: str) -> str:
+        stage_tail = _quiet_inventory_chip(
+            weight_lean,
+            _WEIGHT_LEAN_STAGE_RES,
+            cap=_WEIGHT_LEAN_QUIET_NAME_CAP,
+            quiet=False,
+        )
+        if stage_tail:
+            return f"{lean} · {stage_tail}"
+        return lean
+
     if junk_list_lead_vs_lean_warn and str(junk_list_lead_vs_lean or "").strip():
-        return _chip(junk_list_lead_vs_lean)
+        return _hot(_chip(junk_list_lead_vs_lean))
     if junk_list_lead_vs_share_warn and str(junk_list_lead_vs_share or "").strip():
-        return _chip(junk_list_lead_vs_share)
+        return _hot(_chip(junk_list_lead_vs_share))
     if junk_vs_ok_lean_vs_delta_warn and str(
         junk_vs_ok_lean_vs_delta or ""
     ).strip():
-        return _chip(junk_vs_ok_lean_vs_delta)
+        return _hot(_chip(junk_vs_ok_lean_vs_delta))
     if junk_vs_ok_warn and str(junk_vs_ok or "").strip():
-        return _chip(junk_vs_ok)
+        return _hot(_chip(junk_vs_ok))
     if unique_vs_dup_lean_vs_delta_warn and str(
         unique_vs_dup_lean_vs_delta or ""
     ).strip():
-        return _chip(unique_vs_dup_lean_vs_delta)
+        return _hot(_chip(unique_vs_dup_lean_vs_delta))
     if unique_vs_dup_warn and str(unique_vs_dup or "").strip():
-        return _chip(unique_vs_dup)
+        return _hot(_chip(unique_vs_dup))
     try:
         if int(n_junk or 0) > 0:
-            return "junk"
+            return _hot("junk")
     except (TypeError, ValueError):
         pass
     return _quiet_inventory_chip(
