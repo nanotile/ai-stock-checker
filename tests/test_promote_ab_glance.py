@@ -83,7 +83,7 @@ def test_promote_honesty_fold_meta_names_fees_severity() -> None:
             fees_ok_severity="thin",
             honesty_warns=["fees"],
         )["fees"]
-        == "thin"
+        == "thin · fees"
     )
     assert (
         promote_honesty_fold_meta(
@@ -91,7 +91,18 @@ def test_promote_honesty_fold_meta_names_fees_severity() -> None:
             fee_drag_severity="heavy",
             honesty_warns=["fees"],
         )["fees"]
-        == "heavy"
+        == "heavy · drag"
+    )
+    assert (
+        promote_honesty_fold_meta(
+            fees_line=(
+                "A fee drag mild · net −€1 · fees 2× · "
+                "A fees thin · net +€20 · fees 0.8×"
+            ),
+            fee_drag_severity="mild",
+            honesty_warns=["fees"],
+        )["fees"]
+        == "mild · drag · fees"
     )
     assert (
         promote_honesty_fold_meta(
@@ -1136,8 +1147,8 @@ def test_promote_ab_glance_fees_thin_warns_but_ready_for_b() -> None:
     assert g["honesty_folds"]
     assert "fees" in g["honesty_folds"]
     assert set(g["honesty_warns"]).issubset(set(g["honesty_folds"]))
-    # Child-fold summary names thin (not static drag · comfortable).
-    assert g["honesty_fold_meta"]["fees"] == "thin"
+    # Child-fold summary names thin + fees triad (not static drag · comfortable).
+    assert g["honesty_fold_meta"]["fees"] == "thin · fees"
     # Hot also names calm folds + calm count (speak-both-sides after quiet
     # fold names; tradermonty preserve diagnostics when hot).
     assert "fees" not in g["honesty_quiet_folds"]

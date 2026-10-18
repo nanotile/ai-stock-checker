@@ -16568,10 +16568,11 @@ def promote_honesty_fold_meta(
     claim count ≠ €, a fees line without a severity does not claim
     comfortable drag, and a keep-fees fold does not claim leftover vs book.
     Hot folds name severity and append clipped spoken stages
-    (``thin · payoff · exp · PF · WR``) so bare severity does not hide which
-    ladder bits spoke (Yahoo mix / Screener weight / Hours inactive hot
-    inventory). Typed fees / polarity severity stays identity-only (the
-    severity *is* the bit). Static ``drag · comfortable`` lied when fees
+    (``thin · payoff · exp · PF · WR`` / ``thin · fees`` / ``heavy · drag``)
+    so bare severity does not hide which ladder bits spoke (Yahoo mix /
+    Screener weight / Hours inactive hot inventory). Typed fees severity
+    alone hid drag vs fees-ok triad; polarity severity *is* the spoken bit
+    so it stays identity-only. Static ``drag · comfortable`` lied when fees
     were thin or drag was heavy.
     """
 
@@ -16600,18 +16601,26 @@ def promote_honesty_fold_meta(
     out: dict[str, str] = {}
     if str(fees_line or "").strip():
         drag = str(fee_drag_severity or "").strip().lower()
+        sev = ""
         if drag in ("mild", "heavy", "severe", "total"):
-            out["fees"] = drag
+            sev = drag
         else:
             ok = str(fees_ok_severity or "").strip().lower()
             if ok == "thin":
-                out["fees"] = "thin"
+                sev = "thin"
             elif ok == "comfortable":
-                out["fees"] = "comfortable"
+                sev = "comfortable"
             elif ok:
-                out["fees"] = "ok"
+                sev = "ok"
+        if sev:
+            if "fees" in warns:
+                out["fees"] = _hot_spoken_chip(
+                    sev, fees_line, _FEES_QUIET_LABELS
+                )
             else:
-                out["fees"] = _quiet_spoken_chip(fees_line, _FEES_QUIET_LABELS)
+                out["fees"] = sev
+        else:
+            out["fees"] = _quiet_spoken_chip(fees_line, _FEES_QUIET_LABELS)
 
     if str(polarity_line or "").strip():
         pol = str(closes_polarity or "").strip().lower().replace("-", "_")
