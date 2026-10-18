@@ -27,6 +27,36 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
         )
         == "quiet · 3 folds · scan · soft/gap · gap"
     )
+    # gap↔scan / cash / memory were silent on the chip (N gap alone ≠ generation).
+    assert (
+        soft_allow_lean_meta("clash · gap expired · scan fresh")
+        == "quiet · 1 fold · gap/scan"
+    )
+    assert (
+        soft_allow_lean_meta("clash · gap aging · cash stale")
+        == "quiet · 1 fold · gap/cash"
+    )
+    assert (
+        soft_allow_lean_meta(
+            "clash · gap expired · laya fresh · debate fresh"
+        )
+        == "quiet · 1 fold · gap/memory"
+    )
+    assert (
+        soft_allow_lean_meta(
+            "2 gap · last AAPL · fresh · clash · gap expired · scan stale",
+            warn=True,
+        )
+        == "clash · gap · gap/scan"
+    )
+    # soft≠gap must not greedily eat a later gap↔scan on the same lean line.
+    assert (
+        soft_allow_lean_meta(
+            "clash · soft fresh · gap expired · 2 gap · last AAPL · fresh · "
+            "clash · gap expired · scan stale"
+        )
+        == "quiet · 3 folds · soft/gap · gap · gap/scan"
+    )
     assert (
         soft_allow_lean_meta("clash · scan stale", warn=True)
         == "clash · scan"

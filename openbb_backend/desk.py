@@ -1595,12 +1595,18 @@ def _soft_allow_clock_tone(band: str) -> str:
 
 
 # Soft-allow lean fold names gen-clash sleeves + RS-gap cascade (Yahoo lean).
+# Bands are one token (``\S+``) so soft≠gap cannot greedily swallow a later
+# ``clash · gap … · scan`` (xang1234 #549 / e3c84e1). gap/scan · gap/cash ·
+# gap/memory sit after soft≠* so N gap alone no longer hides those clocks.
 _SOFT_LEAN_NAME_CAP = 4
 _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"^clash · scan\b"), "scan"),
-    (re.compile(r"^clash · soft .+ · gap\b"), "soft/gap"),
-    (re.compile(r"^clash · soft .+ · cash\b"), "soft/cash"),
+    (re.compile(r"^clash · soft \S+ · gap\b"), "soft/gap"),
+    (re.compile(r"^clash · soft \S+ · cash\b"), "soft/cash"),
     (re.compile(r"^clash · (?:laya|debate)\b"), "memory"),
+    (re.compile(r"^clash · gap \S+ · scan\b"), "gap/scan"),
+    (re.compile(r"^clash · gap \S+ · cash\b"), "gap/cash"),
+    (re.compile(r"^clash · gap \S+ · (?:laya|debate)\b"), "gap/memory"),
     (re.compile(r"^\d+ gap\b"), "gap"),
 )
 
