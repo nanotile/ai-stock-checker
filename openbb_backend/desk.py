@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import time
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
 from datetime import date, datetime, timezone
@@ -18,6 +19,7 @@ from typing import Any, Callable, Mapping, Optional, Sequence
 from openbb_backend.symbol_names import display_name, resolve_symbol_names
 from stock_checker.trade_postmortem import DEFAULT_LIMIT as POSTMORTEM_LIMIT
 from stock_checker.trade_postmortem import closed_rounds
+from stock_checker.yahoo_universe_discovery import _quiet_inventory_chip
 
 
 def load_json_checked(path: Path, default: Any) -> tuple[Any, dict[str, Any]]:
@@ -751,6 +753,22 @@ def scan_list_junk_count(raw: Any) -> int:
     return sum(1 for item in raw if not isinstance(item, Mapping))
 
 
+# Quiet weight-lean chip names spoken stages (Yahoo mix/cascade inventory).
+# Longer prefixes first so ``Δ lead size sides`` is not read as ``Δ lead``.
+_WEIGHT_LEAN_QUIET_NAME_CAP = 4
+_WEIGHT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
+    (re.compile(r"^lead/lean\b"), "lead/lean"),
+    (re.compile(r"^lead/share\b"), "lead/share"),
+    (re.compile(r"^junk vs ok\b"), "junk"),
+    (re.compile(r"^unique vs dup\b"), "unique"),
+    (re.compile(r"^lean vs Δ\b"), "lean"),
+    (re.compile(r"^Δ lead size sides\b"), "sides"),
+    (re.compile(r"^Δ lead size\b"), "size"),
+    (re.compile(r"^Δ lead\b"), "lead"),
+    (re.compile(r"^Δ "), "Δ"),
+)
+
+
 def screener_weight_lean_meta(
     *,
     junk_list_lead_vs_lean: str = "",
@@ -766,21 +784,26 @@ def screener_weight_lean_meta(
     unique_vs_dup: str = "",
     unique_vs_dup_warn: bool = False,
     n_junk: int = 0,
+    weight_lean: str = "",
 ) -> str:
     """Summary chip for Screener weight lean fold — why open, not another body bit.
 
-    Quiet stays ``cascade``. Prefer junk lead/lean → lead/share → lean vs Δ
-    → junk vs ok → unique lean vs Δ → unique vs dup (Yahoo mix/cascade meta
-    parity). Adverse ``align · wide`` and any ``clash`` shorten; bare junk
-    with no warned relationship speaks ``junk`` (damage alone opened the
-    fold). Favorable ``align · quiet|strong`` / ``align · strong|quiet``
-    stay calm upstream so this chip is not consulted for them.
+    A quiet fold names the stages that spoke
+    (``quiet · N folds · unique · Δ · lean · lead``), clipped at 4, so
+    ``cascade`` does not claim unique/Δ/lead when the line is only a lean
+    bit. Empty text stays ``quiet``. Prefer junk lead/lean → lead/share →
+    lean vs Δ → junk vs ok → unique lean vs Δ → unique vs dup (Yahoo
+    mix/cascade meta parity). Adverse ``align · wide`` and any ``clash``
+    shorten; bare junk with no warned relationship speaks ``junk``
+    (damage alone opened the fold). Favorable
+    ``align · quiet|strong`` / ``align · strong|quiet`` stay calm
+    upstream so this chip is not consulted for them.
     """
 
     def _chip(bit: str) -> str:
         low = str(bit or "").strip().lower()
         if not low:
-            return "cascade"
+            return "quiet"
         if low.startswith("align · both "):
             tail = low[len("align · both ") :].strip()
             if tail in ("clash", "align"):
@@ -812,7 +835,9 @@ def screener_weight_lean_meta(
             return "junk"
     except (TypeError, ValueError):
         pass
-    return "cascade"
+    return _quiet_inventory_chip(
+        weight_lean, _WEIGHT_LEAN_STAGE_RES, cap=_WEIGHT_LEAN_QUIET_NAME_CAP
+    )
 
 
 def build_screener_opportunity_counts(
@@ -913,7 +938,7 @@ def build_screener_opportunity_counts(
         "junk_vs_ok_delta_severity": "",
         "junk_vs_ok_lean_vs_delta": "",
         "junk_vs_ok_lean_vs_delta_warn": False,
-        "weight_lean_meta": "cascade",
+        "weight_lean_meta": "quiet",
         "lists_populated": 0,
         "overlap": False,
         "unique_share_pct": None,
@@ -1343,6 +1368,7 @@ def build_screener_opportunity_counts(
         unique_vs_dup=unique_vs_dup,
         unique_vs_dup_warn=unique_vs_dup_warn,
         n_junk=n_junk,
+        weight_lean=weight_lean,
     )
     return {
         "n_rec": n_rec,

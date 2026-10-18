@@ -9,7 +9,7 @@ from openbb_backend.desk import (
 
 
 def test_screener_weight_lean_meta_names_the_open():
-    assert screener_weight_lean_meta() == "cascade"
+    assert screener_weight_lean_meta() == "quiet"
     assert screener_weight_lean_meta(n_junk=2) == "junk"
     assert (
         screener_weight_lean_meta(
@@ -43,6 +43,23 @@ def test_screener_weight_lean_meta_names_the_open():
             unique_vs_dup_lean_vs_delta_warn=True,
         )
         == "align · wide"
+    )
+    # Calm fold names spoken stages (not a static cascade label).
+    assert (
+        screener_weight_lean_meta(
+            weight_lean=(
+                "unique vs dup align · strong|quiet · Δ wide · +50pp · "
+                "lean vs Δ align · wide · Δ lead · unique · "
+                "Δ lead size · 3× · Δ lead size sides · louder 75% · quieter 25%"
+            ),
+        )
+        == "quiet · 6 folds · unique · Δ · lean · lead · +2"
+    )
+    assert (
+        screener_weight_lean_meta(
+            weight_lean="unique vs dup align · strong|quiet",
+        )
+        == "quiet · 1 fold · unique"
     )
 
 
@@ -165,7 +182,7 @@ def test_empty_and_non_mapping():
     assert empty["junk_vs_ok_delta_severity"] == ""
     assert empty["junk_vs_ok_lean_vs_delta"] == ""
     assert empty["junk_vs_ok_lean_vs_delta_warn"] is False
-    assert empty["weight_lean_meta"] == "cascade"
+    assert empty["weight_lean_meta"] == "quiet"
     assert empty["lists_populated"] == 0
     assert empty["weight"] == "row slots"
     assert empty["unique_share_pct"] is None
@@ -285,7 +302,7 @@ def test_overlap_speaks_unique_share_ok():
     assert c["unique_vs_dup_delta_severity"] == "wide"
     assert c["unique_vs_dup_lean_vs_delta"] == "align · wide"
     assert c["unique_vs_dup_lean_vs_delta_warn"] is False
-    assert c["weight_lean_meta"] == "cascade"
+    assert c["weight_lean_meta"] == "quiet · 6 folds · unique · Δ · lean · lead · +2"
     assert c["unique_vs_dup_delta_lead"] == "unique"
     assert c["unique_vs_dup_delta_lead_size"] == 3.0
     assert c["unique_vs_dup_delta_lead_size_louder_pct"] == 75.0
