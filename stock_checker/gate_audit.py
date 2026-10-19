@@ -1516,6 +1516,39 @@ def soft_allow_last_lead_vs_config(
     )
 
 
+def soft_allow_last_vs_lead_freshness(
+    last_vs_lead: str,
+    last_freshness: str,
+) -> tuple[str, bool]:
+    """Newest soft-allow age vs gate last-vs-lead (display only).
+
+    Returns ``(bit, warn)``. Cursor age ≠ name-vs-lead agreement.
+    Extremes only: ``fresh``↔``agree`` and ``expired``↔ name clash speak
+    ``last/lead align · …``; crossed pairs speak ``last/lead clash · …``
+    (warn). ``aging`` / silent last-vs-lead stay silent — gap
+    ``soft_allow_anchor_gap_last_vs_lead_freshness`` parity + RyanJHamby
+    triad + FinRobot last-row age + portfolio AI speak-both-sides after
+    bare ``agree`` / ``last vs lead`` hid whether the gate match is
+    still live (stale agree ≠ calm confirm). Not a gate.
+    """
+    last_fresh = str(last_freshness or "").strip().casefold()
+    last_vs = str(last_vs_lead or "").strip()
+    if last_fresh not in {"fresh", "expired"} or not last_vs:
+        return "", False
+    if last_vs.startswith("agree"):
+        name_agree = True
+        name_tail = "agree"
+    elif last_vs.startswith("last vs lead · "):
+        name_agree = False
+        name_tail = f"vs {last_vs[len('last vs lead · ') :]}"
+    else:
+        return "", False
+    live_age = last_fresh == "fresh"
+    if live_age == name_agree:
+        return f"last/lead align · {last_fresh} · {name_tail}", False
+    return f"last/lead clash · {last_fresh} · {name_tail}", True
+
+
 def soft_allow_sample_gap(
     events: list[dict[str, Any]] | None,
     *,
