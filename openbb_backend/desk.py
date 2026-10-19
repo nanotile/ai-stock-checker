@@ -1649,6 +1649,7 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
             r"(?: · (both (?:agree|clash))"
             r"| · (last (?:agree|clash))"
             r" · (config (?:agree|clash)))?"
+            r"(?: · (×\d+))?(?: · (\d+(?:\.\d+)?%))?"
         ),
         "",
     ),
@@ -1770,9 +1771,10 @@ def soft_allow_lean_meta(soft_lean: str, *, warn: bool = False) -> str:
     ownership is not treated as a nameless live knob (tradermonty #576
     + portfolio AI count≠share). ``last/lead`` keeps the
     newest gate so ``rs leads`` is not treated as the live last row
-    (FinRobot last≠tilt). ``last/config`` keeps align|clash plus
-    both/crossed polarity so side-by-side last/lead + lead/config alone
-    do not hide whether the two relationships agree. Gate ``last/lead
+    (FinRobot last≠tilt).     ``last/config`` keeps align|clash plus
+    both/crossed polarity and ``×N`` / share so side-by-side last/lead
+    + lead/config alone do not hide whether the two relationships
+    agree or how large that ring is. Gate ``last/lead
     align|clash · fresh|expired`` and ``lead/config align|clash ·
     fresh|expired · on|off`` keep age vs name / knob agreement so bare
     ``agree`` is not a silent confirm of a stale print (gap last/lead
@@ -1895,6 +1897,9 @@ def build_soft_allow_glance(
     When lead already spoke and the matching Ops soft toggle is off,
     speak ``clash · lead rs · ×N · P% · RS off`` (tradermonty #576 same-run
     provenance — ring handoff ≠ live config; escalate warn).
+    When last≠lead and lead↔Ops already spoke, ``last/config align|clash
+    · … · ×N · P%`` keeps the ring size on the polarity (count≠share —
+    ``both agree`` is not a nameless ring).
     When no lead, 1 band row speaks ``n=1``; ≥2 with no strict lead
     speaks ``tied`` (``soft_allow_sample_gap``; empty still ready=false;
     lead cases stay silent on gap; not cool-off ``aging``) — Window A
@@ -2366,7 +2371,12 @@ def build_soft_allow_glance(
     if lead_vs_config.startswith("clash") and tone != "warn":
         tone = "warn"
     last_lead_vs_config, last_lead_vs_config_warn = (
-        soft_allow_last_lead_vs_config(last_vs_lead, lead_vs_config)
+        soft_allow_last_lead_vs_config(
+            last_vs_lead,
+            lead_vs_config,
+            lead_count=lead_count,
+            lead_share_pct=lead_share_pct,
+        )
     )
     # Newest row stamp (fresh/aging/expired) — not scan clock tone
     # (expired≡stale). Extremes only; aging silent.

@@ -1478,19 +1478,24 @@ def soft_allow_lead_vs_config(
 def soft_allow_last_lead_vs_config(
     last_vs_lead: str,
     lead_vs_config: str,
+    *,
+    lead_count: int = 0,
+    lead_share_pct: float | None = None,
 ) -> tuple[str, bool]:
     """Last≠lead vs lead↔Ops relationship agreement (display only).
 
     Returns ``(bit, warn)``. Newest print vs band lead ≠ lead ring vs
     Ops toggle. When both already spoke: same polarity speaks
-    ``last/config align · both agree|clash`` — ``both agree`` stays
-    calm; ``both clash`` warns (dual-clash agreement ≠ quiet confirm).
-    Crossed speaks ``last/config clash · last agree|clash · config
-    agree|clash`` (warn). Missing either stays silent — FinRobot
-    last≠tilt + tradermonty #576 provenance + portfolio AI
-    speak-both-sides + RyanJHamby dual-clash after last/lead +
-    lead/config alone hid whether the two relationships agree *and*
-    whether dual-clash agreement is adverse. Not a gate.
+    ``last/config align · both agree|clash · ×N · P%`` — ``both agree``
+    stays calm; ``both clash`` warns (dual-clash agreement ≠ quiet
+    confirm). Crossed speaks ``last/config clash · last agree|clash ·
+    config agree|clash · ×N · P%`` (warn). Count and share ride on the
+    bit so polarity is not a nameless ring (portfolio AI count≠share).
+    Missing count omits the size. Missing either relationship stays
+    silent — FinRobot last≠tilt + tradermonty #576 provenance +
+    portfolio AI speak-both-sides + RyanJHamby dual-clash after
+    last/lead + lead/config alone hid whether the two relationships
+    agree *and* whether dual-clash agreement is adverse. Not a gate.
     """
     last_bit = str(last_vs_lead or "").strip()
     config_bit = str(lead_vs_config or "").strip()
@@ -1515,13 +1520,18 @@ def soft_allow_last_lead_vs_config(
     config_verb = _config_verb(config_bit)
     if last_verb is None or config_verb is None:
         return "", False
+    size = ""
+    if lead_count > 0:
+        size = f" · ×{lead_count}"
+        if lead_share_pct is not None:
+            size += f" · {int(round(float(lead_share_pct)))}%"
     if last_verb == config_verb:
         return (
-            f"last/config align · both {last_verb}",
+            f"last/config align · both {last_verb}{size}",
             last_verb == "clash",
         )
     return (
-        f"last/config clash · last {last_verb} · config {config_verb}",
+        f"last/config clash · last {last_verb} · config {config_verb}{size}",
         True,
     )
 
