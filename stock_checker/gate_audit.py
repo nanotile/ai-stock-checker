@@ -445,6 +445,47 @@ def soft_allow_anchor_gap_symbol_last_vs_lead(
     return soft_allow_last_vs_lead(lead_name, last)
 
 
+def soft_allow_clock_band_size(
+    events: list[dict[str, Any]] | None,
+    *,
+    clock: str,
+) -> str:
+    """`` · ×N · P%`` for rows on one scan clock (display only).
+
+    Soft≠cash names a generation verb. Gap bits already carry the gap
+    sleeve; this is the last-clock band (``expired``≡``stale``,
+    ``unknown``≡``fresh``) so the cash clash is not a nameless ring.
+    Missing band stays silent. Not a gate.
+    """
+    want = str(clock or "").strip().casefold()
+    if want == "expired":
+        want = "stale"
+    elif want == "unknown":
+        want = "fresh"
+    if want not in {"fresh", "aging", "stale"}:
+        return ""
+    rows = [r for r in (events or []) if isinstance(r, dict)]
+    if not rows:
+        return ""
+    n = 0
+    for row in rows:
+        band = str(row.get("freshness") or "").strip().casefold()
+        if not band and row.get("expired"):
+            band = "expired"
+        if band == "unknown":
+            mapped = "fresh"
+        elif band:
+            mapped = _soft_allow_gap_clock_tone(band)
+        else:
+            mapped = ""
+        if mapped == want:
+            n += 1
+    if n <= 0:
+        return ""
+    share = int(round(100.0 * n / len(rows)))
+    return f" · ×{n} · {share}%"
+
+
 def _anchor_gap_ring_size(events: list[dict[str, Any]] | None) -> str:
     """`` · ×N · P%`` for the gap sleeve (display only).
 

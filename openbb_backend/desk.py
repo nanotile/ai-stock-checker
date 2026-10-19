@@ -1683,7 +1683,15 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
         ),
         "soft/gap",
     ),
-    (re.compile(r"^clash · soft \S+ · cash\b"), "soft/cash"),
+    # ``×N`` / share ride so soft≠cash is not a nameless ring
+    # (soft≠gap ring-size parity; last-clock band, not the gap sleeve).
+    (
+        re.compile(
+            r"^clash · soft \S+ · cash \S+"
+            r"(?: · (×\d+))?(?: · (\d+(?:\.\d+)?%))?"
+        ),
+        "soft/cash",
+    ),
     (re.compile(r"^clash · (?:laya|debate)\b"), "memory"),
     # ``×N`` / share ride so a generation verb is not a nameless gap sleeve
     # (portfolio AI count≠share; relationship ring-size parity).
@@ -1909,8 +1917,9 @@ def build_soft_allow_glance(
     ``clash · gap expired|aging|fresh · scan …`` (e3c84e1 generation
     coherence — soft-allow last ≠ gap cursor). When soft-allow last
     disagrees with the worst pinned cash print, speak
-    ``clash · soft … · cash …`` (soft↔cash↔scan — soft matching the
-    scan archive ≠ a live cash sleeve). When soft-allow last disagrees
+    ``clash · soft … · cash … · ×N · P%`` (soft↔cash↔scan — soft
+    matching the scan archive ≠ a live cash sleeve; last-clock band
+    size so the verb is not a nameless ring). When soft-allow last disagrees
     with LAYA and/or AI-debate clocks, speak
     ``clash · laya … · debate …`` (soft↔memory — soft matching the scan
     archive ≠ a live advisory print; FinRobot last-row). When a gap
@@ -2046,6 +2055,7 @@ def build_soft_allow_glance(
         soft_allow_anchor_gap_vs_cash_clock_clash,
         soft_allow_anchor_gap_vs_memory_clock_clash,
         soft_allow_anchor_gap_vs_scan_clash,
+        soft_allow_clock_band_size,
         soft_allow_vs_gap_clock_clash,
         soft_allow_last_vs_lead,
         soft_allow_last_vs_lead_freshness,
@@ -2194,6 +2204,10 @@ def build_soft_allow_glance(
     soft_vs_cash_clock_clash, soft_vs_cash_clock_clash_warn = (
         soft_allow_vs_cash_clock_clash(last_clock, cash_band)
     )
+    if soft_vs_cash_clock_clash:
+        soft_vs_cash_clock_clash += soft_allow_clock_band_size(
+            rows, clock=last_clock
+        )
     laya_tone = str(laya_freshness or "").strip()
     debate_tone = str(debate_freshness or "").strip()
     soft_vs_memory_clock_clash = (

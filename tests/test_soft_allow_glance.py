@@ -366,6 +366,12 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
         == "quiet · 1 fold · soft/gap ×1 50%"
     )
     assert (
+        soft_allow_lean_meta(
+            "clash · soft fresh · cash aging · ×1 · 100%"
+        )
+        == "quiet · 1 fold · soft/cash ×1 100%"
+    )
+    assert (
         soft_allow_lean_meta("clash · scan stale", warn=True)
         == "clash · scan"
     )
@@ -2132,6 +2138,7 @@ def test_soft_allow_glance_soft_vs_cash_when_soft_matches_scan() -> None:
     assert g["scan_vs_soft_allow_clash"] == ""
     cash = g["soft_vs_cash_clock_clash"]
     assert cash.startswith("clash · soft fresh · cash ")
+    assert cash.endswith(" · ×1 · 100%")
     assert g["soft_vs_cash_clock_clash_warn"] is True
     assert cash in g["line"]
     assert g["tone"] == "warn"
