@@ -438,6 +438,18 @@ def soft_allow_anchor_gap_symbol_last_vs_lead(
     return soft_allow_last_vs_lead(lead_name, last)
 
 
+def _anchor_gap_ring_size(events: list[dict[str, Any]] | None) -> str:
+    """`` · ×N · P%`` for the gap sleeve (display only).
+
+    Relationship verbs hid how many gap rows and what share of the ring
+    they describe (portfolio AI count≠share). Missing gaps stay silent.
+    """
+    gap_n, share, _severity = soft_allow_anchor_gap_share(events)
+    if gap_n <= 0 or share is None:
+        return ""
+    return f" · ×{int(gap_n)} · {int(round(float(share)))}%"
+
+
 def soft_allow_anchor_gap_last_vs_lead_freshness(
     events: list[dict[str, Any]] | None,
     *,
@@ -451,7 +463,8 @@ def soft_allow_anchor_gap_last_vs_lead_freshness(
     last-vs-lead stay silent — RyanJHamby triad + FinRobot last-row age
     + portfolio AI speak-both-sides after bare ``agree`` / ``last vs
     lead`` hid whether the cursor match is still live (stale agree ≠
-    calm confirm). Not a gate.
+    calm confirm). Gap count and share ride the bit (``×N · P%``) so
+    the verb is not a nameless sleeve. Not a gate.
     """
     last_fresh = soft_allow_anchor_gap_last_freshness(events, now=now)
     last_vs = soft_allow_anchor_gap_symbol_last_vs_lead(events)
@@ -466,9 +479,10 @@ def soft_allow_anchor_gap_last_vs_lead_freshness(
     else:
         return "", False
     live_age = last_fresh == "fresh"
+    size = _anchor_gap_ring_size(events)
     if live_age == name_agree:
-        return f"align · {last_fresh} · {name_tail}", False
-    return f"clash · {last_fresh} · {name_tail}", True
+        return f"align · {last_fresh} · {name_tail}{size}", False
+    return f"clash · {last_fresh} · {name_tail}{size}", True
 
 
 def soft_allow_anchor_gap_share(
@@ -581,9 +595,10 @@ def soft_allow_anchor_gap_last_vs_share(
         return "", False
     live_age = last_fresh == "fresh"
     hot_share = severity == "hot"
+    size = _anchor_gap_ring_size(events)
     if live_age == hot_share:
-        return f"align · {last_fresh} · {severity}", False
-    return f"clash · {last_fresh} · {severity}", True
+        return f"align · {last_fresh} · {severity}{size}", False
+    return f"clash · {last_fresh} · {severity}{size}", True
 
 
 def soft_allow_anchor_gap_last_vs_lean(
@@ -613,9 +628,10 @@ def soft_allow_anchor_gap_last_vs_lean(
     else:
         return "", False
     live_age = last_fresh == "fresh"
+    size = _anchor_gap_ring_size(events)
     if live_age == lean_align:
-        return f"align · {last_fresh} · {lean_tail}", False
-    return f"clash · {last_fresh} · {lean_tail}", True
+        return f"align · {last_fresh} · {lean_tail}{size}", False
+    return f"clash · {last_fresh} · {lean_tail}{size}", True
 
 
 def soft_allow_anchor_gap_last_share_vs_lean(
@@ -651,10 +667,11 @@ def soft_allow_anchor_gap_last_share_vs_lean(
     lean_verb = _verb(lean_bit)
     if share_verb is None or lean_verb is None:
         return "", False
+    size = _anchor_gap_ring_size(events)
     if share_verb == lean_verb:
         # Dual-clash agreement is adverse; dual-align is calm.
-        return f"align · both {share_verb}", share_verb == "clash"
-    return f"clash · share {share_verb} · lean {lean_verb}", True
+        return f"align · both {share_verb}{size}", share_verb == "clash"
+    return f"clash · share {share_verb} · lean {lean_verb}{size}", True
 
 
 def soft_allow_anchor_gap_last_lead_vs_share(
@@ -692,9 +709,10 @@ def soft_allow_anchor_gap_last_lead_vs_share(
     share_verb = _verb(share_bit)
     if lead_verb is None or share_verb is None:
         return "", False
+    size = _anchor_gap_ring_size(events)
     if lead_verb == share_verb:
-        return f"align · both {lead_verb}", lead_verb == "clash"
-    return f"clash · lead {lead_verb} · share {share_verb}", True
+        return f"align · both {lead_verb}{size}", lead_verb == "clash"
+    return f"clash · lead {lead_verb} · share {share_verb}{size}", True
 
 
 def soft_allow_anchor_gap_last_lead_vs_lean(
@@ -733,9 +751,10 @@ def soft_allow_anchor_gap_last_lead_vs_lean(
     lean_verb = _verb(lean_bit)
     if lead_verb is None or lean_verb is None:
         return "", False
+    size = _anchor_gap_ring_size(events)
     if lead_verb == lean_verb:
-        return f"align · both {lead_verb}", lead_verb == "clash"
-    return f"clash · lead {lead_verb} · lean {lean_verb}", True
+        return f"align · both {lead_verb}{size}", lead_verb == "clash"
+    return f"clash · lead {lead_verb} · lean {lean_verb}{size}", True
 
 
 def format_soft_allow_anchor_gap_bit(

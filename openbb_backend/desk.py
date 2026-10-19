@@ -1740,8 +1740,8 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
             r"|hot"
             r"|quiet"
             r"))?"
-            + _SOFT_LEAN_VS_OTHER
             + r"(?: · (×\d+))?(?: · (\d+(?:\.\d+)?%))?"
+            + _SOFT_LEAN_VS_OTHER
         ),
         "",
     ),
@@ -1751,6 +1751,7 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
             r"(?: · (both (?:align|clash))"
             r"| · ((?:lead|share|lean) (?:align|clash))"
             r" · ((?:lead|share|lean) (?:align|clash)))?"
+            + r"(?: · (×\d+))?(?: · (\d+(?:\.\d+)?%))?"
             + _SOFT_LEAN_VS_OTHER
         ),
         "",
@@ -1789,6 +1790,8 @@ def soft_allow_lean_meta(soft_lean: str, *, warn: bool = False) -> str:
     ``agree`` is not a silent confirm of a stale print, and ``×N`` /
     share ride so age is not a nameless ring (gap last/lead
     freshness parity + RyanJHamby + #576 + portfolio AI count≠share).
+    Gap last/share, last/lean, lead/share, lead/lean, and share/lean
+    keep the same ``×N`` / share so a verb is not a nameless gap sleeve.
     ``last/config age`` keeps align|clash plus both/crossed polarity,
     the shared ``fresh|expired|mixed`` clock, and ``×N`` / share so
     ``both clash`` is not a silent confirm of a stale agree or a live
