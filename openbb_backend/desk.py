@@ -1605,6 +1605,11 @@ def _soft_allow_clock_tone(band: str) -> str:
 # Share % and ``vs N other`` ride on the stage already in front of them so
 # the 4-name clip still keeps the cursor (absolute ownership ≠ the verb).
 _SOFT_LEAN_NAME_CAP = 4
+# Gate last≠lead (not gap ticker ``last vs lead · MSFT``).
+_SOFT_LEAN_GATE_LAST_VS = re.compile(
+    r"(?:^| · )last vs lead · (?:rs|regime|breadth|promote|earnings)\b",
+    re.IGNORECASE,
+)
 _SOFT_LEAN_SHARE = (
     r"(?: · (hot|quiet))?(?: · (\d+(?:\.\d+)?%))?"
 )
@@ -1620,6 +1625,19 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
             r"^(?:agree|clash) · lead ([a-z]+) · \S+ (on|off)\b"
         ),
         "lead/config",
+    ),
+    # Newest print vs band lead (FinRobot last≠tilt). Agree keeps one
+    # gate name; clash keeps the newest sleeve so ``rs leads`` is not
+    # treated as the live last row (lead/config fold parity).
+    (
+        re.compile(r"^agree · last ([a-z]+) · lead [a-z]+\b"),
+        "last/lead",
+    ),
+    (
+        re.compile(
+            r"^last vs lead · ([A-Za-z0-9][A-Za-z0-9.\-]{0,14})\b"
+        ),
+        "last/lead",
     ),
     (re.compile(r"^clash · scan\b"), "scan"),
     (re.compile(r"^clash · soft \S+ · gap\b"), "soft/gap"),
@@ -1716,10 +1734,12 @@ def soft_allow_lean_meta(soft_lean: str, *, warn: bool = False) -> str:
     """Summary chip for soft-allow lean fold — which cascades spoke / why open.
 
     Quiet names sleeves that spoke (``quiet · N folds · lead/config rs on ·
-    scan · gap AAPL fresh``), so the primary line does not claim gen-clash,
-    lead↔Ops, or RS-gap when those bits are absent. ``lead/config`` keeps
-    the gate and on|off so ring ownership is not treated as live knob
-    (tradermonty #576). The gap stage keeps ``last SYM`` and
+    last/lead rs · scan · gap AAPL fresh``), so the primary line does not
+    claim gen-clash, lead↔Ops, last≠lead, or RS-gap when those bits are
+    absent. ``lead/config`` keeps the gate and on|off so ring ownership
+    is not treated as live knob (tradermonty #576). ``last/lead`` keeps
+    the newest gate so ``rs leads`` is not treated as the live last row
+    (FinRobot last≠tilt). The gap stage keeps ``last SYM`` and
     ``fresh|aging|expired`` so a bare count does not hide the cursor
     (xang1234 #546 + RyanJHamby age) or age↔share / gap-vs-other lean
     (Screener weight + FinRobot last-row). ``n=1`` / ``tied`` /
@@ -1745,7 +1765,15 @@ def soft_allow_lean_meta(soft_lean: str, *, warn: bool = False) -> str:
         return "quiet"
     if warn:
         low = f" · {lean.lower()} · "
-        if "clash ·" in lean.lower() or lean.lower().startswith("clash"):
+        lean_l = lean.lower()
+        # Gate ``last vs lead · breadth`` is clash polarity without a
+        # ``clash ·`` prefix (gap ticker ``last vs lead · MSFT`` stays
+        # inside the lead stage and must not flip severity to clash).
+        if (
+            "clash ·" in lean_l
+            or lean_l.startswith("clash")
+            or _SOFT_LEAN_GATE_LAST_VS.search(lean) is not None
+        ):
             sev = "clash"
         elif " · hot ·" in low or low.startswith(" · hot ·"):
             sev = "hot"
@@ -2254,9 +2282,18 @@ def build_soft_allow_glance(
     lead_share_vs_delta = share_vs[0] if share_vs else ""
     lead_share_vs_delta_ahead = share_vs[1] if share_vs else ""
     lead_share_vs_delta_share = share_vs[2] if share_vs else ""
-    last_vs_lead = (
+    last_vs_lead_raw = (
         soft_allow_last_vs_lead(lead_gate, gate) if lead_gate else ""
     )
+    # Bare ``agree`` hid which gate matched on the lean chip — expand
+    # speak-both-sides like lead/config (gap symbol path keeps raw).
+    if last_vs_lead_raw == "agree":
+        g = str(lead_gate or gate or "").strip().casefold()
+        last_vs_lead = (
+            f"agree · last {g} · lead {g}" if g else "agree"
+        )
+    else:
+        last_vs_lead = last_vs_lead_raw
     lead_vs_config = (
         soft_allow_lead_vs_config(lead_gate, runtime) if lead_gate else ""
     )
@@ -2299,17 +2336,24 @@ def build_soft_allow_glance(
         )
         if b
     ]
-    # lead↔Ops sits in the lean fold so a config clash can open the chip
-    # when gen-clash / RS-gap are quiet (aging ring + RS off), and so the
-    # inventory names lead/config when other sleeves already opened it.
+    # lead↔Ops + last≠lead sit in the lean fold so a config clash or a
+    # newest-print clash can open the chip when gen-clash / RS-gap are
+    # quiet, and so the inventory names lead/config + last/lead when
+    # other sleeves already opened it (FinRobot last≠tilt + #576).
     soft_lean_parts = [
         b
-        for b in (lead_vs_config, *gen_clash_bits, anchor_gap_bit)
+        for b in (
+            lead_vs_config,
+            last_vs_lead,
+            *gen_clash_bits,
+            anchor_gap_bit,
+        )
         if b
     ]
     soft_lean = " · ".join(soft_lean_parts)
     soft_lean_warn = bool(
         lead_vs_config.startswith("clash")
+        or last_vs_lead.startswith("last vs lead")
         or scan_vs_soft_allow_clash
         or soft_vs_gap_clock_clash_warn
         or soft_vs_cash_clock_clash_warn

@@ -1413,9 +1413,12 @@ def soft_allow_last_vs_lead(lead_gate: str, last_gate: str) -> str:
     severity-band tilt. When lead already spoke: same gate speaks
     ``agree`` (silent confirm hid match); different speaks
     ``last vs lead · breadth``. Lead ownership ≠ newest print.
-    FinRobot last-debate ≠ ring tilt + portfolio AI speak-both-sides
-    after soft-allow lead sides share (LAYA/debate ``last vs lead`` /
-    ``agree`` parity). No tone escalate. Not a gate.
+    Desk expands bare ``agree`` to ``agree · last rs · lead rs`` on the
+    lean chip (lead/config parity) without changing this helper — gap
+    symbol last-vs-lead reuses the bare form. FinRobot last-debate ≠
+    ring tilt + portfolio AI speak-both-sides after soft-allow lead
+    sides share (LAYA/debate ``last vs lead`` / ``agree`` parity). No
+    tone escalate. Not a gate.
     """
     lead = str(lead_gate or "").strip()
     last = str(last_gate or "").strip()
