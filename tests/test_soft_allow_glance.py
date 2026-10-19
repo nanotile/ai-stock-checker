@@ -208,6 +208,18 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
     )
     assert (
         soft_allow_lean_meta(
+            "agree · last rs · lead rs · ×2 · 67%"
+        )
+        == "quiet · 1 fold · last/lead rs ×2 67%"
+    )
+    assert (
+        soft_allow_lean_meta(
+            "last vs lead · breadth · ×2 · 67%", warn=True
+        )
+        == "clash · last/lead breadth ×2 67%"
+    )
+    assert (
+        soft_allow_lean_meta(
             "agree · lead rs · RS on · agree · last rs · lead rs"
         )
         == "quiet · 2 folds · lead/config rs on · last/lead rs"
@@ -578,15 +590,16 @@ def test_soft_allow_glance_anchor_gap_count() -> None:
         "share/lean align · both align"
     ) in g["line"]
     # Gate last=lead agree + fresh age ride the lean fold beside RS-gap.
-    assert g["last_vs_lead"] == "agree · last rs · lead rs"
+    assert g["last_vs_lead"] == "agree · last rs · lead rs · ×3 · 100%"
     assert g["last_vs_lead_freshness"] == "last/lead align · fresh · agree"
     assert g["soft_lean"].startswith(
-        "agree · last rs · lead rs · last/lead align · fresh · agree · "
+        "agree · last rs · lead rs · ×3 · 100% · "
+        "last/lead align · fresh · agree · "
     )
     assert g["soft_lean"].endswith(g["anchor_gap_bit"])
     assert g["soft_lean_warn"] is True
     assert g["soft_lean_meta"] == (
-        "hot · last/lead rs · last/lead align fresh agree · "
+        "hot · last/lead rs ×3 100% · last/lead align fresh agree · "
         "gap AAPL fresh · tied hot 66.7% · +4"
     )
     assert g["anchor_gap_bit"] not in g["line_core"]
@@ -1330,7 +1343,7 @@ def test_soft_allow_glance_lead_vs_config_off() -> None:
     assert "agree · lead rs · ×2 · 67% · RS on" in on["line"]
     assert "agree · lead rs · ×2 · 67% · RS on" in on["soft_lean"]
     # Newest row matches lead → last/lead agree rides the lean chip.
-    assert on["last_vs_lead"] == "agree · last rs · lead rs"
+    assert on["last_vs_lead"] == "agree · last rs · lead rs · ×2 · 67%"
     assert on["last_lead_vs_config"] == (
         "last/config align · both agree · ×2 · 67%"
     )
@@ -1346,7 +1359,7 @@ def test_soft_allow_glance_lead_vs_config_off() -> None:
     assert on["last_lead_vs_config_freshness_warn"] is False
     assert on["soft_lean_warn"] is False
     assert on["soft_lean_meta"] == (
-        "quiet · 6 folds · lead/config rs ×2 67% on · last/lead rs · "
+        "quiet · 6 folds · lead/config rs ×2 67% on · last/lead rs ×2 67% · "
         "last/config align both agree ×2 67% · last/lead align fresh agree · +2"
     )
     assert on["line"].index("rs leads") < on["line"].index(
@@ -1361,7 +1374,7 @@ def test_soft_allow_glance_lead_vs_config_off() -> None:
     assert "clash · lead rs · ×2 · 67% · RS off" in off["line"]
     assert "clash · lead rs · ×2 · 67% · RS off" in off["soft_lean"]
     # last matches lead + config off → crossed (last agree · config clash).
-    assert off["last_vs_lead"] == "agree · last rs · lead rs"
+    assert off["last_vs_lead"] == "agree · last rs · lead rs · ×2 · 67%"
     assert off["last_lead_vs_config"] == (
         "last/config clash · last agree · config clash · ×2 · 67%"
     )
@@ -1378,7 +1391,7 @@ def test_soft_allow_glance_lead_vs_config_off() -> None:
     assert off["last_lead_vs_config_freshness_warn"] is True
     assert off["soft_lean_warn"] is True
     assert off["soft_lean_meta"] == (
-        "clash · lead/config rs ×2 67% off · last/lead rs · "
+        "clash · lead/config rs ×2 67% off · last/lead rs ×2 67% · "
         "last/config clash last agree config clash ×2 67% · "
         "last/lead align fresh agree · +2"
     )
@@ -1401,7 +1414,7 @@ def test_soft_allow_glance_lead_vs_config_off() -> None:
     assert cooling["tone"] == "warn"
     # Config clash alone opens the lean fold (no gen-clash / RS-gap).
     # Aging extremes stay silent on last/lead freshness.
-    assert cooling["last_vs_lead"] == "agree · last rs · lead rs"
+    assert cooling["last_vs_lead"] == "agree · last rs · lead rs · ×2 · 100%"
     assert cooling["last_vs_lead_freshness"] == ""
     assert cooling["lead_vs_config_freshness"] == ""
     assert cooling["last_lead_vs_config_freshness"] == ""
@@ -1409,12 +1422,13 @@ def test_soft_allow_glance_lead_vs_config_off() -> None:
         "last/config clash · last agree · config clash · ×2 · 100%"
     )
     assert cooling["soft_lean"] == (
-        "clash · lead rs · ×2 · 100% · RS off · agree · last rs · lead rs · "
+        "clash · lead rs · ×2 · 100% · RS off · "
+        "agree · last rs · lead rs · ×2 · 100% · "
         "last/config clash · last agree · config clash · ×2 · 100%"
     )
     assert cooling["soft_lean_warn"] is True
     assert cooling["soft_lean_meta"] == (
-        "clash · lead/config rs ×2 100% off · last/lead rs · "
+        "clash · lead/config rs ×2 100% off · last/lead rs ×2 100% · "
         "last/config clash last agree config clash ×2 100%"
     )
     # Agree on aging does not escalate flat → warn.
@@ -1433,12 +1447,13 @@ def test_soft_allow_glance_lead_vs_config_off() -> None:
         "last/config align · both agree · ×2 · 100%"
     )
     assert cooling_on["soft_lean"] == (
-        "agree · lead rs · ×2 · 100% · RS on · agree · last rs · lead rs · "
+        "agree · lead rs · ×2 · 100% · RS on · "
+        "agree · last rs · lead rs · ×2 · 100% · "
         "last/config align · both agree · ×2 · 100%"
     )
     assert cooling_on["soft_lean_warn"] is False
     assert cooling_on["soft_lean_meta"] == (
-        "quiet · 3 folds · lead/config rs ×2 100% on · last/lead rs · "
+        "quiet · 3 folds · lead/config rs ×2 100% on · last/lead rs ×2 100% · "
         "last/config align both agree ×2 100%"
     )
     # Expired + RS on → stale knob agree warns (last/lead freshness parity).
@@ -1480,7 +1495,7 @@ def test_soft_allow_glance_lead_vs_config_off() -> None:
         now=now,
         runtime={"rs_gate": False, "breadth_gate": True},
     )
-    assert dual["last_vs_lead"] == "last vs lead · breadth"
+    assert dual["last_vs_lead"] == "last vs lead · breadth · ×2 · 67%"
     assert dual["lead_vs_config"] == "clash · lead rs · ×2 · 67% · RS off"
     assert dual["last_lead_vs_config"] == (
         "last/config align · both clash · ×2 · 67%"
@@ -1502,7 +1517,7 @@ def test_soft_allow_glance_lead_vs_config_off() -> None:
     assert dual["soft_lean_meta"] == (
         "clash · last/config align both clash ×2 67% · "
         "last/config age align both clash fresh · lead/config rs ×2 67% off · "
-        "last/lead breadth · +2"
+        "last/lead breadth ×2 67% · +2"
     )
 
 
@@ -1727,7 +1742,7 @@ def test_soft_allow_glance_last_vs_lead() -> None:
     )
     assert clash["lead_gate"] == "rs"
     assert clash["last_gate"] == "breadth"
-    assert clash["last_vs_lead"] == "last vs lead · breadth"
+    assert clash["last_vs_lead"] == "last vs lead · breadth · ×2 · 67%"
     assert clash["last_vs_lead_freshness"] == (
         "last/lead clash · fresh · vs breadth"
     )
@@ -1735,7 +1750,7 @@ def test_soft_allow_glance_last_vs_lead() -> None:
     assert "last vs lead · breadth" in clash["soft_lean"]
     assert clash["soft_lean_warn"] is True
     assert clash["soft_lean_meta"] == (
-        "clash · last/lead breadth · last/lead clash fresh vs breadth"
+        "clash · last/lead breadth ×2 67% · last/lead clash fresh vs breadth"
     )
     assert clash["line"].startswith(
         "hot · rs leads · fresh · ×2 · 67% · ahead thin · +1 · vs breadth ×1 · 33% · "
@@ -1754,12 +1769,12 @@ def test_soft_allow_glance_last_vs_lead() -> None:
         now=now,
     )
     assert cooling["severity"] == "aging"
-    assert cooling["last_vs_lead"] == "last vs lead · breadth"
+    assert cooling["last_vs_lead"] == "last vs lead · breadth · ×2 · 67%"
     assert cooling["last_vs_lead_freshness"] == ""
     assert cooling["tone"] == "flat"  # last≠lead does not escalate tone
-    assert cooling["soft_lean"] == "last vs lead · breadth"
+    assert cooling["soft_lean"] == "last vs lead · breadth · ×2 · 67%"
     assert cooling["soft_lean_warn"] is True
-    assert cooling["soft_lean_meta"] == "clash · last/lead breadth"
+    assert cooling["soft_lean_meta"] == "clash · last/lead breadth ×2 67%"
 
     # Newest matches lead — speak agree (silent confirm hid match).
     match = build_soft_allow_glance(
@@ -1772,7 +1787,7 @@ def test_soft_allow_glance_last_vs_lead() -> None:
     )
     assert match["lead_gate"] == "rs"
     assert match["last_gate"] == "rs"
-    assert match["last_vs_lead"] == "agree · last rs · lead rs"
+    assert match["last_vs_lead"] == "agree · last rs · lead rs · ×2 · 67%"
     assert match["last_vs_lead_freshness"] == (
         "last/lead align · fresh · agree"
     )
@@ -1780,7 +1795,7 @@ def test_soft_allow_glance_last_vs_lead() -> None:
     assert "agree · last rs · lead rs" in match["soft_lean"]
     assert match["soft_lean_warn"] is False
     assert match["soft_lean_meta"] == (
-        "quiet · 2 folds · last/lead rs · last/lead align fresh agree"
+        "quiet · 2 folds · last/lead rs ×2 67% · last/lead align fresh agree"
     )
     assert "last vs lead" not in match["line"]
 
@@ -1794,7 +1809,7 @@ def test_soft_allow_glance_last_vs_lead() -> None:
         now=now,
     )
     assert stale_agree["severity"] == "cool"
-    assert stale_agree["last_vs_lead"] == "agree · last rs · lead rs"
+    assert stale_agree["last_vs_lead"] == "agree · last rs · lead rs · ×2 · 100%"
     assert stale_agree["last_vs_lead_freshness"] == (
         "last/lead clash · expired · agree"
     )
@@ -1803,7 +1818,7 @@ def test_soft_allow_glance_last_vs_lead() -> None:
     assert stale_agree["soft_lean_warn"] is True
     assert "last/lead clash · expired · agree" in stale_agree["soft_lean"]
     assert stale_agree["soft_lean_meta"] == (
-        "clash · last/lead rs · last/lead clash expired agree"
+        "clash · last/lead rs ×2 100% · last/lead clash expired agree"
     )
 
     # No lead (thin) — speak n=1 (last-row ≠ ring tilt; LAYA sample-gap parity).

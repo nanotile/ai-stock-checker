@@ -1630,14 +1630,20 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
     ),
     # Newest print vs band lead (FinRobot last≠tilt). Agree keeps one
     # gate name; clash keeps the newest sleeve so ``rs leads`` is not
-    # treated as the live last row (lead/config fold parity).
+    # treated as the live last row (lead/config fold parity). Optional
+    # ``×N`` / share ride so the chip is not a nameless ring
+    # (portfolio AI count≠share; lead/config + last/config parity).
     (
-        re.compile(r"^agree · last ([a-z]+) · lead [a-z]+\b"),
+        re.compile(
+            r"^agree · last ([a-z]+) · lead [a-z]+"
+            r"(?: · (×\d+))?(?: · (\d+(?:\.\d+)?%))?"
+        ),
         "last/lead",
     ),
     (
         re.compile(
-            r"^last vs lead · ([A-Za-z0-9][A-Za-z0-9.\-]{0,14})\b"
+            r"^last vs lead · ([A-Za-z0-9][A-Za-z0-9.\-]{0,14})"
+            r"(?: · (×\d+))?(?: · (\d+(?:\.\d+)?%))?"
         ),
         "last/lead",
     ),
@@ -1770,8 +1776,9 @@ def soft_allow_lean_meta(soft_lean: str, *, warn: bool = False) -> str:
     ``lead/config`` keeps the gate, ``×N`` / share, and on|off so ring
     ownership is not treated as a nameless live knob (tradermonty #576
     + portfolio AI count≠share). ``last/lead`` keeps the
-    newest gate so ``rs leads`` is not treated as the live last row
-    (FinRobot last≠tilt).     ``last/config`` keeps align|clash plus
+    newest gate plus ``×N`` / share so ``rs leads`` is not treated as
+    the live last row and the match is not a nameless ring
+    (FinRobot last≠tilt + count≠share).     ``last/config`` keeps align|clash plus
     both/crossed polarity and ``×N`` / share so side-by-side last/lead
     + lead/config alone do not hide whether the two relationships
     agree or how large that ring is. Gate ``last/lead
@@ -1891,9 +1898,11 @@ def build_soft_allow_glance(
     % ≠ the ownership spread (mid silent); count-ahead lean ≠
     ownership-Δ lean (clash when share mid; align when same lean;
     different lean silent).     When lead already spoke, newest row gate
-    speaks ``agree`` (match) or ``last vs lead · breadth`` (clash) right
+    speaks ``agree · last rs · lead rs · ×N · P%`` (match) or
+    ``last vs lead · breadth · ×N · P%`` (clash) right
     after the lead bit — FinRobot last ≠ ring tilt + portfolio AI
-    speak-both-sides (silent confirm hid match; LAYA/debate parity).
+    count≠share (silent confirm hid match; the name hid ring size;
+    LAYA/debate parity). Missing count stays the short name.
     When lead already spoke and the matching Ops soft toggle is off,
     speak ``clash · lead rs · ×N · P% · RS off`` (tradermonty #576 same-run
     provenance — ring handoff ≠ live config; escalate warn).
@@ -2357,6 +2366,14 @@ def build_soft_allow_glance(
         )
     else:
         last_vs_lead = last_vs_lead_raw
+    # Age / polarity parsers need the short name. Ring size rides on the
+    # displayed bit so last/lead is not a nameless match (lead/config +
+    # last/config count≠share). Missing count stays short.
+    last_vs_lead_named = last_vs_lead
+    if last_vs_lead and lead_count > 0:
+        last_vs_lead = f"{last_vs_lead} · ×{lead_count}"
+        if lead_share_pct is not None:
+            last_vs_lead += f" · {int(round(float(lead_share_pct)))}%"
     lead_vs_config = (
         soft_allow_lead_vs_config(
             lead_gate,
@@ -2372,7 +2389,7 @@ def build_soft_allow_glance(
         tone = "warn"
     last_lead_vs_config, last_lead_vs_config_warn = (
         soft_allow_last_lead_vs_config(
-            last_vs_lead,
+            last_vs_lead_named,
             lead_vs_config,
             lead_count=lead_count,
             lead_share_pct=lead_share_pct,
@@ -2382,7 +2399,7 @@ def build_soft_allow_glance(
     # (expired≡stale). Extremes only; aging silent.
     last_vs_lead_freshness, last_vs_lead_freshness_warn = (
         soft_allow_last_vs_lead_freshness(
-            last_vs_lead, str(last.get("freshness") or "")
+            last_vs_lead_named, str(last.get("freshness") or "")
         )
     )
     if last_vs_lead_freshness_warn and tone != "warn":
