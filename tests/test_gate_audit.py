@@ -292,7 +292,7 @@ def test_soft_allow_anchor_gap_last_freshness() -> None:
     assert format_soft_allow_anchor_gap_bit(
         agree_expired, now=now
     ) == (
-        "2 gap · last AAPL · expired · lead AAPL · 100% · agree · "
+        "2 gap · last AAPL · expired · lead AAPL · 2 · 100% · agree · "
         "last/lead clash · expired · agree · hot · 100% · "
         "last/share clash · expired · hot · "
         "lead/share align · both clash · "
@@ -489,7 +489,7 @@ def test_soft_allow_anchor_gap_share() -> None:
         {"gate": "rs", "reason": "AAPL RS unknown — anchor gap — allow"},
     ]
     assert soft_allow_anchor_gap_symbol_lead(lead_rows) == (
-        "lead AAPL · 67%",
+        "lead AAPL · 2 · 67%",
         "AAPL",
         67,
     )
@@ -510,7 +510,7 @@ def test_soft_allow_anchor_gap_share() -> None:
         "last vs lead · MSFT"
     )
     assert format_soft_allow_anchor_gap_bit(lead_rows) == (
-        "3 gap · last MSFT · lead AAPL · 67% · last vs lead · MSFT · "
+        "3 gap · last MSFT · lead AAPL · 2 · 67% · last vs lead · MSFT · "
         "ahead thin · +1 · vs MSFT · 1 · 33% · hot · 75% · "
         "vs 1 other · thin · 25% · gap vs other align · hot|thin"
     )
@@ -520,7 +520,7 @@ def test_soft_allow_anchor_gap_share() -> None:
         {"gate": "rs", "reason": "AAPL RS unknown — anchor gap — allow"},
     ]
     assert soft_allow_anchor_gap_symbol_lead(wide_rows) == (
-        "lead AAPL · 75%",
+        "lead AAPL · 3 · 75%",
         "AAPL",
         75,
     )
@@ -536,7 +536,7 @@ def test_soft_allow_anchor_gap_share() -> None:
         25,
     )
     assert format_soft_allow_anchor_gap_bit(wide_rows) == (
-        "4 gap · last MSFT · lead AAPL · 75% · last vs lead · MSFT · "
+        "4 gap · last MSFT · lead AAPL · 3 · 75% · last vs lead · MSFT · "
         "ahead wide · +2 · vs MSFT · 1 · 25% · hot · 80% · "
         "vs 1 other · thin · 20% · gap vs other align · hot|thin"
     )
@@ -576,7 +576,7 @@ def test_soft_allow_anchor_gap_share() -> None:
         {"gate": "rs", "reason": "AAPL RS unknown — anchor gap — allow"},
     ]
     assert soft_allow_anchor_gap_symbol_lead(same_sym) == (
-        "lead AAPL · 100%",
+        "lead AAPL · 2 · 100%",
         "AAPL",
         100,
     )
@@ -585,7 +585,7 @@ def test_soft_allow_anchor_gap_share() -> None:
     assert soft_allow_anchor_gap_symbol_sample_gap(same_sym) == ""
     assert soft_allow_anchor_gap_symbol_last_vs_lead(same_sym) == "agree"
     assert format_soft_allow_anchor_gap_bit(same_sym) == (
-        "2 gap · last AAPL · lead AAPL · 100% · agree · hot · 100% · "
+        "2 gap · last AAPL · lead AAPL · 2 · 100% · agree · hot · 100% · "
         "vs 0 other · thin · 0% · gap vs other align · hot|thin"
     )
 

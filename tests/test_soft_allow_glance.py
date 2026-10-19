@@ -98,13 +98,13 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
     )
     assert (
         soft_allow_lean_meta(
-            "2 gap · last MSFT · expired · lead MSFT · 60% · agree · "
+            "2 gap · last MSFT · expired · lead MSFT · 2 · 60% · agree · "
             "last/lead clash · expired · agree · "
             "last/share clash · expired · hot · "
             "lead/share clash · lead clash · share align"
         )
         == (
-            "quiet · 5 folds · gap MSFT expired · lead MSFT 60% agree · "
+            "quiet · 5 folds · gap MSFT expired · lead MSFT 2 60% agree · "
             "last/lead clash expired agree · last/share clash expired hot · +1"
         )
     )
@@ -119,38 +119,38 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
     )
     assert (
         soft_allow_lean_meta(
-            "3 gap · last MSFT · fresh · lead AAPL · 67% · "
+            "3 gap · last MSFT · fresh · lead AAPL · 2 · 67% · "
             "last vs lead · MSFT"
         )
-        == "quiet · 2 folds · gap MSFT fresh · lead AAPL 67% vs lead · MSFT"
+        == "quiet · 2 folds · gap MSFT fresh · lead AAPL 2 67% vs lead · MSFT"
     )
     # Owner % alone hid margin and the #2 name. Sole 100% stays silent.
     assert (
         soft_allow_lean_meta(
-            "3 gap · last MSFT · fresh · lead AAPL · 67% · "
+            "3 gap · last MSFT · fresh · lead AAPL · 2 · 67% · "
             "last vs lead · MSFT · ahead thin · +1 · vs MSFT · 1 · 33%"
         )
         == (
             "quiet · 3 folds · gap MSFT fresh · "
-            "lead AAPL 67% vs lead · MSFT · ahead thin +1 vs MSFT 1 33%"
+            "lead AAPL 2 67% vs lead · MSFT · ahead thin +1 vs MSFT 1 33%"
         )
     )
     assert (
         soft_allow_lean_meta(
-            "4 gap · last MSFT · fresh · lead AAPL · 75% · "
+            "4 gap · last MSFT · fresh · lead AAPL · 3 · 75% · "
             "last vs lead · MSFT · ahead wide · +2 · vs MSFT · 1 · 25%",
             warn=True,
         )
         == (
-            "warn · gap MSFT fresh · lead AAPL 75% vs lead · MSFT · "
+            "warn · gap MSFT fresh · lead AAPL 3 75% vs lead · MSFT · "
             "ahead wide +2 vs MSFT 1 25%"
         )
     )
     assert (
         soft_allow_lean_meta(
-            "2 gap · last AAPL · fresh · lead AAPL · 100% · agree"
+            "2 gap · last AAPL · fresh · lead AAPL · 2 · 100% · agree"
         )
-        == "quiet · 2 folds · gap AAPL fresh · lead AAPL 100% agree"
+        == "quiet · 2 folds · gap AAPL fresh · lead AAPL 2 100% agree"
     )
 
 
@@ -350,7 +350,7 @@ def test_soft_allow_glance_anchor_gap_symbol_lead() -> None:
     assert g["anchor_gap_count"] == 3
     assert g["anchor_gap_last"] == "MSFT"
     assert g["anchor_gap_last_freshness"] == "fresh"
-    assert g["anchor_gap_symbol_lead"] == "lead AAPL · 67%"
+    assert g["anchor_gap_symbol_lead"] == "lead AAPL · 2 · 67%"
     assert g["anchor_gap_symbol_lead_name"] == "AAPL"
     assert g["anchor_gap_symbol_lead_share"] == 67
     assert g["anchor_gap_symbol_lead_margin"] == 1
@@ -381,7 +381,7 @@ def test_soft_allow_glance_anchor_gap_symbol_lead() -> None:
     assert g["anchor_gap_last_share_vs_lean"] == "align · both align"
     assert g["anchor_gap_last_share_vs_lean_warn"] is False
     assert g["anchor_gap_bit"] == (
-        "3 gap · last MSFT · fresh · lead AAPL · 67% · last vs lead · MSFT · "
+        "3 gap · last MSFT · fresh · lead AAPL · 2 · 67% · last vs lead · MSFT · "
         "last/lead clash · fresh · vs MSFT · "
         "ahead thin · +1 · vs MSFT · 1 · 33% · hot · 75% · "
         "last/share align · fresh · hot · "
@@ -391,7 +391,8 @@ def test_soft_allow_glance_anchor_gap_symbol_lead() -> None:
         "lead/lean clash · lead clash · lean align · "
         "share/lean align · both align"
     )
-    assert "lead AAPL · 67%" in g["line"]
+    assert "lead AAPL · 2 · 67%" in g["line"]
+    assert "lead AAPL 2 67%" in g["soft_lean_meta"]
     assert "last vs lead · MSFT" in g["line"]
     assert "last/lead clash · fresh · vs MSFT" in g["line"]
     assert "ahead thin · +1" in g["line"]

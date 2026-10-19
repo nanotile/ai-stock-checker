@@ -323,11 +323,12 @@ def soft_allow_anchor_gap_symbol_lead(
 
     Returns ``(lead_bit, lead_name, share_pct)``. ``last SYM`` alone ≠
     which name owns the gap fail-open ring. When ≥2 parseable gap
-    symbols and one is strictly largest, speak ``lead AAPL · N%``
-    (share of parseable gap rows). Ties / sole-symbol / <2 parseable
-    stay silent on lead (use ``soft_allow_anchor_gap_symbol_sample_gap``).
-    Screener junk-list lead + xang1234 multi-meter + portfolio AI
-    count≠share after last-cursor.
+    symbols and one is strictly largest, speak ``lead AAPL · N · P%``
+    (row count then share of parseable gap rows). The runner bit already
+    names ``vs MSFT · 1 · 33%``; share alone hid the owner's count
+    (portfolio AI count≠share). Ties / sole-symbol / <2 parseable stay
+    silent on lead (use ``soft_allow_anchor_gap_symbol_sample_gap``).
+    Screener junk-list lead + xang1234 multi-meter after last-cursor.
     """
     counts = _anchor_gap_symbol_counts(events)
     total = sum(counts.values())
@@ -340,7 +341,7 @@ def soft_allow_anchor_gap_symbol_lead(
     if len(ranked) > 1 and ranked[1][1] == lead_n:
         return "", "", None
     share = int(round(100.0 * lead_n / total))
-    return f"lead {lead_name} · {share}%", lead_name, share
+    return f"lead {lead_name} · {lead_n} · {share}%", lead_name, share
 
 
 def soft_allow_anchor_gap_symbol_lead_margin(
