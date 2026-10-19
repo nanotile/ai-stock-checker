@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from openbb_backend.desk import build_soft_allow_glance, soft_allow_lean_meta
-from stock_checker.gate_audit import soft_allow_last_vs_lead
+from stock_checker.gate_audit import soft_allow_last_vs_lead, soft_allow_lead_vs_config
 
 
 def test_soft_allow_last_vs_lead_helper() -> None:
@@ -14,6 +14,22 @@ def test_soft_allow_last_vs_lead_helper() -> None:
     assert soft_allow_last_vs_lead("rs", "RS") == "agree"
     assert soft_allow_last_vs_lead("", "breadth") == ""
     assert soft_allow_last_vs_lead("rs", "") == ""
+
+
+def test_soft_allow_lead_vs_config_helper() -> None:
+    """tradermonty #576 same-run: lead ring ≠ Ops toggle off."""
+    assert soft_allow_lead_vs_config("rs", None) == ""
+    assert soft_allow_lead_vs_config("rs", {"rs_gate": True}) == ""
+    assert soft_allow_lead_vs_config("rs", {}) == ""
+    assert (
+        soft_allow_lead_vs_config("rs", {"rs_gate": False})
+        == "clash · lead rs · RS off"
+    )
+    assert (
+        soft_allow_lead_vs_config("regime", {"regime_gate": False})
+        == "clash · lead regime · regime off"
+    )
+    assert soft_allow_lead_vs_config("earnings", {"rs_gate": False}) == ""
 
 
 def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
@@ -1019,11 +1035,51 @@ def test_soft_allow_glance_lead_gate_hot() -> None:
     assert g["lead_share_delta_pp"] == 33.4
     assert g["lead_share_delta_severity"] == "wide"
     assert g["lead_share_vs_delta"] == ""
+    assert g["lead_vs_config"] == ""
     assert g["line"].startswith(
         "hot · rs leads · fresh · ×2 · 67% · ahead thin · +1 · vs breadth ×1 · 33% · "
         "share Δ wide · +33pp · "
     )
     assert "rs×2" in g["line"]
+
+
+def test_soft_allow_glance_lead_vs_config_off() -> None:
+    """tradermonty #576: lead rs with RS gate off speaks clash + warn."""
+    now = datetime(2026, 9, 23, 12, 0, tzinfo=timezone.utc)
+    fresh = (now - timedelta(hours=2)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    rows = [
+        {"at": fresh, "gate": "rs", "reason": "insufficient a"},
+        {"at": fresh, "gate": "rs", "reason": "insufficient b"},
+        {"at": fresh, "gate": "breadth", "reason": "unknown scan"},
+    ]
+    on = build_soft_allow_glance(
+        rows, now=now, runtime={"rs_gate": True, "breadth_gate": True}
+    )
+    assert on["lead_vs_config"] == ""
+    assert on["tone"] == "warn"  # hot severity already warns
+    off = build_soft_allow_glance(
+        rows, now=now, runtime={"rs_gate": False, "breadth_gate": True}
+    )
+    assert off["lead_gate"] == "rs"
+    assert off["lead_vs_config"] == "clash · lead rs · RS off"
+    assert "clash · lead rs · RS off" in off["line"]
+    assert off["line"].index("rs leads") < off["line"].index(
+        "clash · lead rs · RS off"
+    )
+    assert off["tone"] == "warn"
+    # Aging-only ring stays flat until config clash escalates.
+    aging = (now - timedelta(hours=18)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    cooling = build_soft_allow_glance(
+        [
+            {"at": aging, "gate": "rs", "reason": "insufficient a"},
+            {"at": aging, "gate": "rs", "reason": "insufficient b"},
+        ],
+        now=now,
+        runtime={"rs_gate": False},
+    )
+    assert cooling["severity"] == "aging"
+    assert cooling["lead_vs_config"] == "clash · lead rs · RS off"
+    assert cooling["tone"] == "warn"
 
 
 def test_soft_allow_glance_lead_gate_aging() -> None:

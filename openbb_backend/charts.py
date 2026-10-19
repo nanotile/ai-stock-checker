@@ -815,21 +815,45 @@ def _next_buy_glance_from_portfolio(data_dir: Path, portfolio: dict[str, Any]) -
     )
 
 
-def _entry_gates_glance_from_config(data_dir: Path) -> dict[str, Any]:
-    """Regime/RS/breadth/promote on/off from Ops file (display only)."""
-    from openbb_backend.desk import build_entry_gates_glance
+def _soft_gate_runtime_from_config(data_dir: Path) -> dict[str, Any]:
+    """Ops soft-gate toggles for soft-allow lead↔config provenance."""
     from stock_checker.trader_config import load_trader_config
 
     cfg = load_trader_config(data_dir)
-    return build_entry_gates_glance(
-        {
-            "regime_gate": bool(cfg.get("regime_gate", True)),
-            "rs_gate": bool(cfg.get("rs_gate", True)),
-            "breadth_gate": bool(cfg.get("breadth_gate", True)),
-            "promote_experiment_strategy": bool(
-                cfg.get("promote_experiment_strategy", False)
-            ),
-        }
+    return {
+        "regime_gate": bool(cfg.get("regime_gate", True)),
+        "rs_gate": bool(cfg.get("rs_gate", True)),
+        "breadth_gate": bool(cfg.get("breadth_gate", True)),
+        "promote_experiment_strategy": bool(
+            cfg.get("promote_experiment_strategy", False)
+        ),
+    }
+
+
+def _entry_gates_glance_from_config(data_dir: Path) -> dict[str, Any]:
+    """Regime/RS/breadth/promote on/off from Ops file (display only)."""
+    from openbb_backend.desk import build_entry_gates_glance
+
+    return build_entry_gates_glance(_soft_gate_runtime_from_config(data_dir))
+
+
+def _soft_allow_glance_from_data(
+    data_dir: Path,
+    *,
+    scan_time: str = "",
+    laya_freshness: str = "",
+    debate_freshness: str = "",
+) -> dict[str, Any]:
+    """Soft-allow glance with Ops toggles for lead↔config clash."""
+    from openbb_backend.desk import build_soft_allow_glance
+    from stock_checker.gate_audit import enrich_soft_allows, recent_soft_allows
+
+    return build_soft_allow_glance(
+        enrich_soft_allows(recent_soft_allows(data_dir, limit=12)),
+        scan_time=scan_time,
+        laya_freshness=laya_freshness,
+        debate_freshness=debate_freshness,
+        runtime=_soft_gate_runtime_from_config(data_dir),
     )
 
 
@@ -1243,12 +1267,10 @@ def load_chart_payload(data_dir: Path) -> dict[str, Any]:
         build_pretrade_glance,
         build_scan_freshness,
         build_session_glance,
-        build_soft_allow_glance,
         policy_honesty_fold_meta,
         memory_advisory_clock_tones,
         scan_list_rows,
     )
-    from stock_checker.gate_audit import enrich_soft_allows, recent_soft_allows
     from stock_checker.risk_halts import pretrade_status
 
     opp = _load_json(data_dir / "archive" / "opportunities_latest.json", {})
@@ -1276,8 +1298,8 @@ def load_chart_payload(data_dir: Path) -> dict[str, Any]:
         "scan_freshness": build_scan_freshness(scan_time),
         "pretrade_glance": build_pretrade_glance(pretrade_level, pretrade_notes),
         "next_buy_glance": _next_buy_glance_from_portfolio(data_dir, portfolio),
-        "soft_allow_glance": build_soft_allow_glance(
-            enrich_soft_allows(recent_soft_allows(data_dir, limit=12)),
+        "soft_allow_glance": _soft_allow_glance_from_data(
+            data_dir,
             scan_time=scan_time,
             laya_freshness=laya_tone,
             debate_freshness=debate_tone,

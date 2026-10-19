@@ -9,7 +9,7 @@ import json
 import os
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 SOFT_ALLOW_FILE = "gate_soft_allows.json"
 SOFT_ALLOW_CAP = 40
@@ -1424,6 +1424,41 @@ def soft_allow_last_vs_lead(lead_gate: str, last_gate: str) -> str:
     if lead.casefold() == last.casefold():
         return "agree"
     return f"last vs lead · {last}"
+
+
+# Soft-allow lead gate → Ops toggle key + compact label (entry-gates glance).
+_SOFT_ALLOW_LEAD_CONFIG: dict[str, tuple[str, str]] = {
+    "regime": ("regime_gate", "regime"),
+    "rs": ("rs_gate", "RS"),
+    "breadth": ("breadth_gate", "breadth"),
+    "promote": ("promote_experiment_strategy", "promote"),
+}
+
+
+def soft_allow_lead_vs_config(
+    lead_gate: str,
+    runtime: Mapping[str, Any] | None,
+) -> str:
+    """Lead ring ownership vs Ops soft-gate toggle (display only).
+
+    Compact ``rs leads · fresh · ×N`` hid whether that gate is still on.
+    When lead already spoke and the matching Ops toggle is explicitly off,
+    speak ``clash · lead rs · RS off`` (tradermonty #576 same-run provenance
+    — ring handoff ≠ live config). Gate on / missing key / unknown gate /
+    no lead stay silent. Not a gate.
+    """
+    if not isinstance(runtime, Mapping):
+        return ""
+    lead = str(lead_gate or "").strip().casefold()
+    mapped = _SOFT_ALLOW_LEAD_CONFIG.get(lead)
+    if mapped is None:
+        return ""
+    key, label = mapped
+    if key not in runtime:
+        return ""
+    if bool(runtime.get(key)):
+        return ""
+    return f"clash · lead {lead} · {label} off"
 
 
 def soft_allow_sample_gap(

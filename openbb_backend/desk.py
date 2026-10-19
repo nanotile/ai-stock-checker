@@ -1764,6 +1764,7 @@ def build_soft_allow_glance(
     scan_interval_sec: int = 900,
     laya_freshness: str = "",
     debate_freshness: str = "",
+    runtime: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Compact fail-open soft-allow memory (tradermonty; display only).
 
@@ -1809,6 +1810,9 @@ def build_soft_allow_glance(
     speaks ``agree`` (match) or ``last vs lead · breadth`` (clash) right
     after the lead bit — FinRobot last ≠ ring tilt + portfolio AI
     speak-both-sides (silent confirm hid match; LAYA/debate parity).
+    When lead already spoke and the matching Ops soft toggle is off,
+    speak ``clash · lead rs · RS off`` (tradermonty #576 same-run
+    provenance — ring handoff ≠ live config; escalate warn).
     When no lead, 1 band row speaks ``n=1``; ≥2 with no strict lead
     speaks ``tied`` (``soft_allow_sample_gap``; empty still ready=false;
     lead cases stay silent on gap; not cool-off ``aging``) — Window A
@@ -1908,6 +1912,7 @@ def build_soft_allow_glance(
         soft_allow_anchor_gap_vs_scan_clash,
         soft_allow_vs_gap_clock_clash,
         soft_allow_last_vs_lead,
+        soft_allow_lead_vs_config,
         soft_allow_lead_margin,
         soft_allow_lead_share,
         soft_allow_lead_sides_share,
@@ -1949,6 +1954,7 @@ def build_soft_allow_glance(
         "lead_band": "",
         "lead_bit": "",
         "last_vs_lead": "",
+        "lead_vs_config": "",
         "sample_gap": "",
         "anchor_gap_count": 0,
         "anchor_gap_last": "",
@@ -2239,11 +2245,20 @@ def build_soft_allow_glance(
     last_vs_lead = (
         soft_allow_last_vs_lead(lead_gate, gate) if lead_gate else ""
     )
+    lead_vs_config = (
+        soft_allow_lead_vs_config(lead_gate, runtime) if lead_gate else ""
+    )
+    if lead_vs_config and tone != "warn":
+        tone = "warn"
     sample_gap = soft_allow_sample_gap(
         rows, band=lead_band, lead_gate=lead_gate
     )
     if lead_bit:
-        mid = f"{lead_bit} · {last_vs_lead}" if last_vs_lead else lead_bit
+        mid = lead_bit
+        if last_vs_lead:
+            mid = f"{mid} · {last_vs_lead}"
+        if lead_vs_config:
+            mid = f"{mid} · {lead_vs_config}"
         line = f"{severity} · {mid} · {line}"
     elif sample_gap:
         line = f"{severity} · {sample_gap} · {line}"
@@ -2330,6 +2345,7 @@ def build_soft_allow_glance(
         "lead_band": lead_band if lead else "",
         "lead_bit": lead_bit,
         "last_vs_lead": last_vs_lead,
+        "lead_vs_config": lead_vs_config,
         "sample_gap": sample_gap,
         "anchor_gap_count": anchor_gap_n,
         "anchor_gap_last": anchor_gap_last,
@@ -28506,6 +28522,7 @@ def load_desk_snapshot(
         scan_interval_sec=scan_interval_sec,
         laya_freshness=laya_tone,
         debate_freshness=debate_tone,
+        runtime=runtime,
     )
     soft_allows = mark_soft_allow_lead_rows(
         soft_allows,
