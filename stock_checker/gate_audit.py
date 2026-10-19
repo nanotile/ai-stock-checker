@@ -1549,6 +1549,40 @@ def soft_allow_last_vs_lead_freshness(
     return f"last/lead clash · {last_fresh} · {name_tail}", True
 
 
+def soft_allow_lead_vs_config_freshness(
+    lead_vs_config: str,
+    last_freshness: str,
+) -> tuple[str, bool]:
+    """Newest soft-allow age vs lead↔Ops toggle (display only).
+
+    Returns ``(bit, warn)``. Cursor age ≠ lead ring vs live knob.
+    Extremes only: ``fresh``↔``agree`` (on) and ``expired``↔``clash``
+    (off) speak ``lead/config align · …``; crossed pairs speak
+    ``lead/config clash · …`` (warn). ``aging`` / silent lead/config
+    stay silent — last/lead freshness parity + tradermonty #576
+    provenance + RyanJHamby triad + FinRobot last-row age after bare
+    ``agree · lead rs · RS on`` hid whether the knob match is still
+    live (stale agree ≠ calm confirm). Not a gate.
+    """
+    last_fresh = str(last_freshness or "").strip().casefold()
+    config_bit = str(lead_vs_config or "").strip()
+    if last_fresh not in {"fresh", "expired"} or not config_bit:
+        return "", False
+    tail = config_bit.rsplit(" ", 1)[-1].casefold()
+    if tail not in {"on", "off"}:
+        return "", False
+    if config_bit.startswith("agree"):
+        name_agree = True
+    elif config_bit.startswith("clash"):
+        name_agree = False
+    else:
+        return "", False
+    live_age = last_fresh == "fresh"
+    if live_age == name_agree:
+        return f"lead/config align · {last_fresh} · {tail}", False
+    return f"lead/config clash · {last_fresh} · {tail}", True
+
+
 def soft_allow_sample_gap(
     events: list[dict[str, Any]] | None,
     *,
