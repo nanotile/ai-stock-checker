@@ -263,12 +263,13 @@ def soft_allow_vs_gap_clock_clash(
 
     Returns ``(bit, warn)``. When newest soft-allow clock ≠ newest gap
     cursor clock (``expired``≡``stale``), speak
-    ``clash · soft fresh|aging|stale · gap expired|aging|fresh``.
-    Same band / missing either silent. Soft last matching the scan can
-    still hide a staler gap cursor — naming soft≠gap closes the
-    generation triangle with soft-vs-scan and gap-vs-scan (xang1234
-    #549 / e3c84e1 + FinRobot last-row + portfolio AI speak-both-sides).
-    Not a gate.
+    ``clash · soft fresh|aging|stale · gap expired|aging|fresh · ×N · P%``.
+    Same band / missing either silent. Gap count and share ride the bit
+    so a generation verb is not a nameless sleeve (gap vs scan/cash
+    parity). Soft last matching the scan can still hide a staler gap
+    cursor — naming soft≠gap closes the generation triangle with
+    soft-vs-scan and gap-vs-scan (xang1234 #549 / e3c84e1 + FinRobot
+    last-row + portfolio AI speak-both-sides). Not a gate.
     """
     soft = str(soft_last_freshness or "").strip().casefold()
     if soft == "expired":
@@ -303,7 +304,8 @@ def soft_allow_vs_gap_clock_clash(
     gap_speak = (
         gap_band if gap_band in {"fresh", "aging", "expired"} else gap_clock
     )
-    return f"clash · soft {soft} · gap {gap_speak}", True
+    size = _anchor_gap_ring_size(events)
+    return f"clash · soft {soft} · gap {gap_speak}{size}", True
 
 
 def _anchor_gap_symbol_counts(

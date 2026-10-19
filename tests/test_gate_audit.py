@@ -349,7 +349,7 @@ def test_soft_allow_anchor_gap_last_freshness() -> None:
     # Soft last ≠ gap cursor closes the generation triangle.
     assert soft_allow_vs_gap_clock_clash(
         [other, expired_row], soft_last_freshness="fresh", now=now
-    ) == ("clash · soft fresh · gap expired", True)
+    ) == ("clash · soft fresh · gap expired · ×1 · 50%", True)
     assert soft_allow_vs_gap_clock_clash(
         [expired_row, other], soft_last_freshness="stale", now=now
     ) == ("", False)

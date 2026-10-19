@@ -360,6 +360,12 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
         == "quiet · 3 folds · soft/gap · gap AAPL fresh · gap/scan"
     )
     assert (
+        soft_allow_lean_meta(
+            "clash · soft fresh · gap expired · ×1 · 50%"
+        )
+        == "quiet · 1 fold · soft/gap ×1 50%"
+    )
+    assert (
         soft_allow_lean_meta("clash · scan stale", warn=True)
         == "clash · scan"
     )
@@ -2034,10 +2040,10 @@ def test_soft_allow_glance_gap_vs_scan_when_last_matches_scan() -> None:
     assert g["scan_vs_soft_allow_clash"] == ""
     # Soft last ≠ gap cursor — close the generation triangle.
     assert g["soft_vs_gap_clock_clash"] == (
-        "clash · soft fresh · gap expired"
+        "clash · soft fresh · gap expired · ×1 · 50%"
     )
     assert g["soft_vs_gap_clock_clash_warn"] is True
-    assert "clash · soft fresh · gap expired" in g["line"]
+    assert "clash · soft fresh · gap expired · ×1 · 50%" in g["line"]
     # Gap cursor is a different generation — speak both sides.
     assert g["anchor_gap_vs_scan_clash"] == (
         "clash · gap expired · scan fresh · ×1 · 50%"

@@ -1674,7 +1674,15 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
         "",
     ),
     (re.compile(r"^clash · scan\b"), "scan"),
-    (re.compile(r"^clash · soft \S+ · gap\b"), "soft/gap"),
+    # ``×N`` / share ride so soft≠gap is not a nameless gap sleeve
+    # (gap/scan ring-size parity; portfolio AI count≠share).
+    (
+        re.compile(
+            r"^clash · soft \S+ · gap \S+"
+            r"(?: · (×\d+))?(?: · (\d+(?:\.\d+)?%))?"
+        ),
+        "soft/gap",
+    ),
     (re.compile(r"^clash · soft \S+ · cash\b"), "soft/cash"),
     (re.compile(r"^clash · (?:laya|debate)\b"), "memory"),
     # ``×N`` / share ride so a generation verb is not a nameless gap sleeve
