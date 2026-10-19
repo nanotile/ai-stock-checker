@@ -329,17 +329,17 @@ def test_soft_allow_anchor_gap_last_freshness() -> None:
     # Gap vs scan: expired cursor ≠ fresh scan; same band silent.
     assert soft_allow_anchor_gap_vs_scan_clash(
         [expired_row, other], scan_freshness="fresh", now=now
-    ) == ("clash · gap expired · scan fresh", True)
+    ) == ("clash · gap expired · scan fresh · ×1 · 50%", True)
     assert soft_allow_anchor_gap_vs_scan_clash(
         [fresh_row, other], scan_freshness="fresh", now=now
     ) == ("", False)
     assert soft_allow_anchor_gap_vs_scan_clash(
         [aging_row, other], scan_freshness="fresh", now=now
-    ) == ("clash · gap aging · scan fresh", True)
+    ) == ("clash · gap aging · scan fresh · ×1 · 50%", True)
     assert format_soft_allow_anchor_gap_bit(
         [expired_row, other], now=now, scan_freshness="fresh"
     ) == (
-        "1 gap · last AAPL · expired · clash · gap expired · scan fresh · "
+        "1 gap · last AAPL · expired · clash · gap expired · scan fresh · ×1 · 50% · "
         "n=1 · hot · 50% · "
         "last/share clash · expired · hot · ×1 · 50% · vs 1 other · 50% · "
         "gap vs other clash · gap hot · other ok · "
@@ -359,7 +359,7 @@ def test_soft_allow_anchor_gap_last_freshness() -> None:
     # Gap ≠ cash: expired≡stale vs aging speaks; same band silent.
     assert soft_allow_anchor_gap_vs_cash_clock_clash(
         [expired_row, other], cash_band="aging", now=now
-    ) == ("clash · gap expired · cash aging", True)
+    ) == ("clash · gap expired · cash aging · ×1 · 50%", True)
     assert soft_allow_anchor_gap_vs_cash_clock_clash(
         [expired_row, other], cash_band="stale", now=now
     ) == ("", False)
@@ -375,7 +375,7 @@ def test_soft_allow_anchor_gap_last_freshness() -> None:
         laya_freshness="fresh",
         debate_freshness="aging",
         now=now,
-    ) == ("clash · gap expired · laya fresh · debate aging", True)
+    ) == ("clash · gap expired · laya fresh · debate aging · ×1 · 50%", True)
     assert soft_allow_anchor_gap_vs_memory_clock_clash(
         [fresh_row, other],
         laya_freshness="fresh",
@@ -387,7 +387,7 @@ def test_soft_allow_anchor_gap_last_freshness() -> None:
         laya_freshness="fresh",
         debate_freshness="stale",
         now=now,
-    ) == ("clash · gap fresh · debate stale", True)
+    ) == ("clash · gap fresh · debate stale · ×1 · 50%", True)
     assert soft_allow_anchor_gap_vs_memory_clock_clash(
         [expired_row, other],
         laya_freshness="stale",
@@ -402,9 +402,9 @@ def test_soft_allow_anchor_gap_last_freshness() -> None:
         laya_freshness="fresh",
         debate_freshness="aging",
     ) == (
-        "1 gap · last AAPL · expired · clash · gap expired · scan fresh · "
-        "clash · gap expired · cash aging · "
-        "clash · gap expired · laya fresh · debate aging · "
+        "1 gap · last AAPL · expired · clash · gap expired · scan fresh · ×1 · 50% · "
+        "clash · gap expired · cash aging · ×1 · 50% · "
+        "clash · gap expired · laya fresh · debate aging · ×1 · 50% · "
         "n=1 · hot · 50% · "
         "last/share clash · expired · hot · ×1 · 50% · vs 1 other · 50% · "
         "gap vs other clash · gap hot · other ok · "

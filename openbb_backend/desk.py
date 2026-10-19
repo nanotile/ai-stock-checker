@@ -1677,9 +1677,30 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"^clash · soft \S+ · gap\b"), "soft/gap"),
     (re.compile(r"^clash · soft \S+ · cash\b"), "soft/cash"),
     (re.compile(r"^clash · (?:laya|debate)\b"), "memory"),
-    (re.compile(r"^clash · gap \S+ · scan\b"), "gap/scan"),
-    (re.compile(r"^clash · gap \S+ · cash\b"), "gap/cash"),
-    (re.compile(r"^clash · gap \S+ · (?:laya|debate)\b"), "gap/memory"),
+    # ``×N`` / share ride so a generation verb is not a nameless gap sleeve
+    # (portfolio AI count≠share; relationship ring-size parity).
+    (
+        re.compile(
+            r"^clash · gap \S+ · scan(?: \S+)?"
+            r"(?: · (×\d+))?(?: · (\d+(?:\.\d+)?%))?"
+        ),
+        "gap/scan",
+    ),
+    (
+        re.compile(
+            r"^clash · gap \S+ · cash(?: \S+)?"
+            r"(?: · (×\d+))?(?: · (\d+(?:\.\d+)?%))?"
+        ),
+        "gap/cash",
+    ),
+    (
+        re.compile(
+            r"^clash · gap \S+ · (?:laya|debate)(?: \S+)?"
+            r"(?: · (?:laya|debate)(?: \S+)?)*"
+            r"(?: · (×\d+))?(?: · (\d+(?:\.\d+)?%))?"
+        ),
+        "gap/memory",
+    ),
     # Cursor ticker + age ride with the count so ``N gap`` does not hide
     # who last failed open or whether that print is still live (#546).
     (

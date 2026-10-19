@@ -159,8 +159,9 @@ def soft_allow_anchor_gap_vs_scan_clash(
 
     Returns ``(bit, warn)``. When newest gap-row clock ≠ scan band
     (``expired``≡``stale``), speak
-    ``clash · gap expired|aging|fresh · scan fresh|aging|stale``.
-    Same band / missing either silent. Soft-allow *last* matching the
+    ``clash · gap expired|aging|fresh · scan fresh|aging|stale · ×N · P%``.
+    Same band / missing either silent. Gap count and share ride the bit
+    so a generation verb is not a nameless sleeve. Soft-allow *last* matching the
     scan can still hide a staler gap cursor — speak both sides
     (xang1234 #549 / e3c84e1 generation coherence + portfolio AI
     speak-both-sides + soft-allow vs scan parity). A fresh scan does
@@ -175,7 +176,8 @@ def soft_allow_anchor_gap_vs_scan_clash(
         return "", False
     # Speak soft-allow vocabulary on the gap side (expired not stale).
     gap_speak = gap_band if gap_band in {"fresh", "aging", "expired"} else gap_clock
-    return f"clash · gap {gap_speak} · scan {scan}", True
+    size = _anchor_gap_ring_size(events)
+    return f"clash · gap {gap_speak} · scan {scan}{size}", True
 
 
 def soft_allow_anchor_gap_vs_cash_clock_clash(
@@ -188,7 +190,7 @@ def soft_allow_anchor_gap_vs_cash_clock_clash(
 
     Returns ``(bit, warn)``. When newest gap-row clock ≠ worst
     last-published cash sleeve (``expired``≡``stale``), speak
-    ``clash · gap expired|aging|fresh · cash …``. Same band / missing
+    ``clash · gap expired|aging|fresh · cash … · ×N · P%``. Same band / missing
     either / live cash (no pin) silent. Soft matching the scan archive
     (and soft≠cash) can still hide a gap cursor that matches soft but
     not the cash print — closes gap↔cash beside soft↔cash + soft↔gap +
@@ -205,7 +207,8 @@ def soft_allow_anchor_gap_vs_cash_clock_clash(
     gap_speak = (
         gap_band if gap_band in {"fresh", "aging", "expired"} else gap_clock
     )
-    return f"clash · gap {gap_speak} · cash {cash}", True
+    size = _anchor_gap_ring_size(events)
+    return f"clash · gap {gap_speak} · cash {cash}{size}", True
 
 
 def soft_allow_anchor_gap_vs_memory_clock_clash(
@@ -219,8 +222,9 @@ def soft_allow_anchor_gap_vs_memory_clock_clash(
 
     Returns ``(bit, warn)``. When newest gap-row clock ≠ LAYA and/or
     AI-debate clocks (``expired``≡``stale``), speak
-    ``clash · gap expired|aging|fresh · laya … · debate …``.
-    Same band / missing either side silent. Soft matching memory (and
+    ``clash · gap expired|aging|fresh · laya … · debate … · ×N · P%``.
+    Same band / missing either side silent. Gap count and share ride
+    the bit. Soft matching memory (and
     soft≠gap) can still hide a gap cursor that matches soft but not the
     advisory print — closes gap↔memory beside soft↔memory + soft↔gap +
     gap↔scan/cash (xang1234 #549 / e3c84e1 + FinRobot last-row +
@@ -245,7 +249,8 @@ def soft_allow_anchor_gap_vs_memory_clock_clash(
         bits.append(f"{name} {t}")
     if not bits:
         return "", False
-    return f"clash · gap {gap_speak} · {' · '.join(bits)}", True
+    size = _anchor_gap_ring_size(events)
+    return f"clash · gap {gap_speak} · {' · '.join(bits)}{size}", True
 
 
 def soft_allow_vs_gap_clock_clash(

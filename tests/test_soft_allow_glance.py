@@ -331,8 +331,8 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
     )
     # gap↔scan / cash / memory were silent on the chip (N gap alone ≠ generation).
     assert (
-        soft_allow_lean_meta("clash · gap expired · scan fresh")
-        == "quiet · 1 fold · gap/scan"
+        soft_allow_lean_meta("clash · gap expired · scan fresh · ×1 · 50%")
+        == "quiet · 1 fold · gap/scan ×1 50%"
     )
     assert (
         soft_allow_lean_meta("clash · gap aging · cash stale")
@@ -340,9 +340,9 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
     )
     assert (
         soft_allow_lean_meta(
-            "clash · gap expired · laya fresh · debate fresh"
+            "clash · gap expired · laya fresh · debate fresh · ×1 · 50%"
         )
-        == "quiet · 1 fold · gap/memory"
+        == "quiet · 1 fold · gap/memory ×1 50%"
     )
     assert (
         soft_allow_lean_meta(
@@ -2040,7 +2040,7 @@ def test_soft_allow_glance_gap_vs_scan_when_last_matches_scan() -> None:
     assert "clash · soft fresh · gap expired" in g["line"]
     # Gap cursor is a different generation — speak both sides.
     assert g["anchor_gap_vs_scan_clash"] == (
-        "clash · gap expired · scan fresh"
+        "clash · gap expired · scan fresh · ×1 · 50%"
     )
     assert g["anchor_gap_vs_scan_clash_warn"] is True
     assert g["tone"] == "warn"
@@ -2307,7 +2307,9 @@ def test_soft_allow_glance_gap_vs_memory_when_soft_matches_memory() -> None:
     assert g["soft_vs_memory_clock_clash"] == ""
     assert g["anchor_gap_last_freshness"] == "expired"
     gap_mem = g["anchor_gap_vs_memory_clock_clash"]
-    assert gap_mem == "clash · gap expired · laya fresh · debate fresh"
+    assert gap_mem == (
+        "clash · gap expired · laya fresh · debate fresh · ×1 · 50%"
+    )
     assert g["anchor_gap_vs_memory_clock_clash_warn"] is True
     assert gap_mem in g["anchor_gap_bit"]
     assert g["tone"] == "warn"
