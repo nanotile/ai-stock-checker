@@ -24922,6 +24922,18 @@ def build_postmortem_glance(
     }
 
 
+def _regime_analogue_label(snap: dict[str, Any], sleeve: str) -> str:
+    """SMA regime as a heuristic label. Not a calibrated top probability."""
+    from stock_checker.market_regime import regime_analogue_label
+
+    prefix = "crypto" if sleeve == "crypto" else "stock"
+    return regime_analogue_label(
+        str(snap.get(f"{prefix}_regime") or ""),
+        snap.get(f"{prefix}_close"),
+        snap.get(f"{prefix}_sma"),
+    )
+
+
 def _trader_runtime_view() -> dict[str, Any]:
     """Read-only + editable trader/desk knobs for Ops — never include API keys."""
     from stock_checker import __version__
@@ -25027,6 +25039,8 @@ def _trader_runtime_view() -> dict[str, Any]:
         "fee_allowance_month": current_month,
         "stock_regime": str(regime_snap.get("stock_regime") or "—"),
         "crypto_regime": str(regime_snap.get("crypto_regime") or "—"),
+        "stock_regime_label": _regime_analogue_label(regime_snap, "stock"),
+        "crypto_regime_label": _regime_analogue_label(regime_snap, "crypto"),
         "regime_updated": str(regime_snap.get("updated_at") or ""),
         "calm_streak_days": int(calm_snap.get("streak_days") or 0),
         "calm_required_days": int(calm_snap.get("required_days") or 30),

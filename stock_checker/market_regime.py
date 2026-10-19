@@ -23,6 +23,9 @@ CRYPTO_SMA_PERIOD = 50
 REGIME_ON = "risk_on"
 REGIME_OFF = "risk_off"
 REGIME_UNKNOWN = "unknown"
+# Close within this fraction of its SMA is not a comparable regime episode.
+# Display only — the entry gate still uses the binary close-vs-SMA label.
+REGIME_WEAK_ANALOGUE_FRAC = 0.005
 
 
 def regime_gate_enabled() -> bool:
@@ -60,6 +63,34 @@ def classify_close_vs_sma(closes: Sequence[float], period: int) -> str:
     if last >= sma:
         return REGIME_ON
     return REGIME_OFF
+
+
+def regime_analogue_label(
+    regime: str,
+    close: Optional[float] = None,
+    sma: Optional[float] = None,
+    *,
+    weak_frac: float = REGIME_WEAK_ANALOGUE_FRAC,
+) -> str:
+    """Desk label for one SMA sleeve. Display only.
+
+    ``risk_on`` / ``risk_off`` is a heuristic (last close vs SMA), not a
+    calibrated market-top probability. Missing prices, or a close within
+    ``weak_frac`` of the SMA, refuse that name — a weak separation is not
+    a comparable episode. The entry gate is unchanged.
+    """
+    name = str(regime or "").strip()
+    if name in {"", "—"}:
+        return "—"
+    if name == REGIME_UNKNOWN:
+        return REGIME_UNKNOWN
+    last = _json_float(close)
+    average = _json_float(sma)
+    if last is None or average is None or average == 0:
+        return "no analogue"
+    if abs(last - average) / abs(average) < weak_frac:
+        return "near SMA"
+    return f"{name} · heuristic"
 
 
 def new_entry_allowed(
@@ -109,6 +140,8 @@ def snapshot_dict(
     return {
         "updated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "enabled": enabled,
+        "score_kind": "heuristic_sma",
+        "calibrated_probability": False,
         "stock_benchmark": STOCK_BENCHMARK,
         "stock_sma_period": STOCK_SMA_PERIOD,
         "stock_regime": stock_regime,

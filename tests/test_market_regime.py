@@ -8,7 +8,9 @@ from stock_checker.market_regime import (
     closes_from_binance_klines,
     closes_from_yfinance_hist,
     new_entry_allowed,
+    regime_analogue_label,
     simple_sma,
+    snapshot_dict,
 )
 
 
@@ -83,6 +85,32 @@ def test_close_extractors():
     assert closes_from_yfinance_hist(hist) == [9.0, 10.0]
     klines = [{"close": 1}, {"close": "2.5"}, {"close": "x"}]
     assert closes_from_binance_klines(klines) == [1.0, 2.5]
+
+
+def test_regime_analogue_rejects_weak_or_incomplete():
+    # Far enough from the average to name the heuristic sleeve.
+    assert regime_analogue_label(REGIME_ON, 110.0, 100.0) == "risk_on · heuristic"
+    assert regime_analogue_label(REGIME_OFF, 90.0, 100.0) == "risk_off · heuristic"
+    # Hugging the SMA is not a comparable episode.
+    assert regime_analogue_label(REGIME_ON, 100.2, 100.0) == "near SMA"
+    assert regime_analogue_label(REGIME_OFF, 99.6, 100.0) == "near SMA"
+    # Named regime without prices cannot be checked — refuse the claim.
+    assert regime_analogue_label(REGIME_ON, None, 100.0) == "no analogue"
+    assert regime_analogue_label(REGIME_OFF, 100.0, None) == "no analogue"
+    assert regime_analogue_label(REGIME_UNKNOWN, 110.0, 100.0) == REGIME_UNKNOWN
+    assert regime_analogue_label("", None, None) == "—"
+    # Gate reason strings stay the binary close-vs-SMA rule.
+    blocked, why = new_entry_allowed(
+        is_crypto=False,
+        stock_regime=REGIME_OFF,
+        crypto_regime=REGIME_ON,
+        enabled=True,
+    )
+    assert not blocked
+    assert why == "SPY risk-off (below SMA)"
+    snap = snapshot_dict(stock_regime=REGIME_ON, crypto_regime=REGIME_OFF)
+    assert snap["score_kind"] == "heuristic_sma"
+    assert snap["calibrated_probability"] is False
 
 
 def test_nan_closes_fail_open_as_unknown():

@@ -250,6 +250,8 @@ def test_desk_snapshot_rich(tmp_path: Path):
     assert "calm_streak_days" in snap["runtime"]
     assert "calm_hint" in snap["runtime"]
     assert "stock_regime" in snap["runtime"]
+    assert "stock_regime_label" in snap["runtime"]
+    assert "crypto_regime_label" in snap["runtime"]
     assert "config_source" in snap["runtime"]
     # Never leak secrets into the desk snapshot
     assert "OPENAI_API_KEY" not in str(snap["runtime"])
@@ -560,6 +562,7 @@ def test_desk_ops_has_config_form(tmp_path: Path, monkeypatch):
     assert "book-risk-glance" in resp.text
     assert "ops-book-risk-h" in resp.text
     assert "book limits" in resp.text
+    assert "not a calibrated market-top probability" in resp.text
 
 
 def test_desk_ops_soft_allow_lead_row_tag(tmp_path: Path, monkeypatch):
