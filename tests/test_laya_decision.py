@@ -1505,11 +1505,11 @@ def test_laya_glance_sample_lead(monkeypatch, tmp_path: Path) -> None:
     assert "n=1" in thin["line"]
     assert "lead " not in thin["line"]
 
-    # Strict reject lead · 67% + ahead thin · +1 · vs pass · 1 · 33%.
+    # Strict reject lead · 2 · 67% + ahead thin · +1 · vs pass · 1 · 33%.
     # Newest reject matches tilt — speak agree (silent confirm hid match).
     _write([_row("pass", "AAPL"), _row("reject", "MSFT"), _row("reject", "NVDA")])
     lead = build_laya_glance(tmp_path, now=datetime.now(timezone.utc), scan_interval_sec=900)
-    assert lead["sample_lead"] == "lead reject · 67%"
+    assert lead["sample_lead"] == "lead reject · 2 · 67%"
     assert lead["sample_lead_name"] == "reject"
     assert lead["sample_lead_share"] == 67
     assert lead["sample_lead_margin"] == "ahead thin · +1"
@@ -1521,7 +1521,7 @@ def test_laya_glance_sample_lead(monkeypatch, tmp_path: Path) -> None:
     assert lead["last_vs_sample_lead"] == "agree"
     assert lead["sample_gap"] == ""
     assert "1p/0h/2r" in lead["line"]
-    assert "lead reject · 67%" in lead["line"]
+    assert "lead reject · 2 · 67%" in lead["line"]
     assert "agree" in lead["line"]
     # Meter before lead so the 96-char clip keeps ownership after counts.
     assert lead["line"].index("1p/0h/2r") < lead["line"].index("lead reject")
@@ -1534,15 +1534,16 @@ def test_laya_glance_sample_lead(monkeypatch, tmp_path: Path) -> None:
     # Newest pass ≠ reject tilt — speak last vs lead (no tone escalate).
     _write([_row("reject", "AAPL"), _row("reject", "MSFT"), _row("pass", "NVDA")])
     clash = build_laya_glance(tmp_path, now=datetime.now(timezone.utc), scan_interval_sec=900)
-    assert clash["sample_lead"] == "lead reject · 67%"
+    assert clash["sample_lead"] == "lead reject · 2 · 67%"
     assert clash["last_vs_sample_lead"] == "last vs lead · pass"
-    assert "last vs lead · pass" in clash["line"]
+    # Count on lead may clip the runner verb on the 96-char line.
+    assert "last vs lead · pa" in clash["line"]
     assert clash["line"].index("lead reject") < clash["line"].index(
-        "last vs lead · pass"
+        "last vs lead · pa"
     )
     # Margin/sides may truncate after last-vs (age + meter fill the 96).
     if "ahead thin" in clash["line"]:
-        assert clash["line"].index("last vs lead · pass") < clash["line"].index(
+        assert clash["line"].index("last vs lead · pa") < clash["line"].index(
             "ahead thin"
         )
     assert clash["tone"] == "advisory"  # last vs lead does not escalate tone
@@ -1550,7 +1551,7 @@ def test_laya_glance_sample_lead(monkeypatch, tmp_path: Path) -> None:
     # Sole-bucket lead omits ahead + vs (ownership % ≠ margin ≠ who is #2).
     _write([_row("reject", "AAPL"), _row("reject", "MSFT")])
     sole = build_laya_glance(tmp_path, now=datetime.now(timezone.utc), scan_interval_sec=900)
-    assert sole["sample_lead"] == "lead reject · 100%"
+    assert sole["sample_lead"] == "lead reject · 2 · 100%"
     assert sole["sample_lead_margin"] == ""
     assert sole["sample_lead_sides"] == ""
     assert sole["sample_lead_sides_share"] is None
@@ -1598,7 +1599,7 @@ def test_laya_glance_sample_lead(monkeypatch, tmp_path: Path) -> None:
     tied_runners = build_laya_glance(
         tmp_path, now=datetime.now(timezone.utc), scan_interval_sec=900
     )
-    assert tied_runners["sample_lead"] == "lead reject · 60%"
+    assert tied_runners["sample_lead"] == "lead reject · 3 · 60%"
     assert tied_runners["sample_lead_margin"] == "ahead wide · +2"
     assert tied_runners["sample_lead_sides"] == ""
     assert tied_runners["sample_lead_sides_share"] is None

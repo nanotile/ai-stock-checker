@@ -1367,7 +1367,7 @@ def test_build_ai_debate_glance_sample_lead(tmp_path: Path) -> None:
     lead = build_ai_debate_glance(
         tmp_path, now=datetime.now(timezone.utc), scan_interval_sec=900
     )
-    assert lead["sample_lead"] == "lead BUY · 67%"
+    assert lead["sample_lead"] == "lead BUY · 2 · 67%"
     assert lead["sample_lead_name"] == "BUY"
     assert lead["sample_lead_share"] == 67
     assert lead["sample_lead_margin"] == "ahead thin · +1"
@@ -1380,13 +1380,14 @@ def test_build_ai_debate_glance_sample_lead(tmp_path: Path) -> None:
     assert lead["last_vs_sample_lead"] == "last vs lead · HOLD"
     assert lead["sample_gap"] == ""
     assert "2 BUY" in lead["line"]
-    assert "lead BUY · 67%" in lead["line"]
-    assert "last vs lead · HOLD" in lead["line"]
+    assert "lead BUY · 2 · 67%" in lead["line"]
+    # Count on lead may clip the runner verb on the 96-char line.
+    assert "last vs lead · HO" in lead["line"]
     assert lead["line"].index("2 BUY") < lead["line"].index("lead BUY")
-    assert lead["line"].index("lead BUY") < lead["line"].index("last vs lead · HOLD")
+    assert lead["line"].index("lead BUY") < lead["line"].index("last vs lead · HO")
     # Margin/sides may truncate after last-vs (counts + lead fill the 96).
     if "ahead thin" in lead["line"]:
-        assert lead["line"].index("last vs lead · HOLD") < lead["line"].index(
+        assert lead["line"].index("last vs lead · HO") < lead["line"].index(
             "ahead thin"
         )
     # Structured fields still hold runner honesty when the line clips.
@@ -1396,7 +1397,7 @@ def test_build_ai_debate_glance_sample_lead(tmp_path: Path) -> None:
     sole = build_ai_debate_glance(
         tmp_path, now=datetime.now(timezone.utc), scan_interval_sec=900
     )
-    assert sole["sample_lead"] == "lead BUY · 100%"
+    assert sole["sample_lead"] == "lead BUY · 2 · 100%"
     assert sole["sample_lead_margin"] == ""
     assert sole["sample_lead_sides"] == ""
     assert sole["sample_lead_sides_share"] is None
@@ -1434,7 +1435,7 @@ def test_build_ai_debate_glance_sample_lead(tmp_path: Path) -> None:
     tied_runners = build_ai_debate_glance(
         tmp_path, now=datetime.now(timezone.utc), scan_interval_sec=900
     )
-    assert tied_runners["sample_lead"] == "lead BUY · 60%"
+    assert tied_runners["sample_lead"] == "lead BUY · 3 · 60%"
     assert tied_runners["sample_lead_margin"] == "ahead wide · +2"
     assert tied_runners["sample_lead_sides"] == ""
     assert tied_runners["sample_lead_sides_share"] is None

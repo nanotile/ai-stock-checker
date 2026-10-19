@@ -875,14 +875,16 @@ def build_screener_opportunity_counts(
     scan lists hold junk (``in rec · crypto · brk``) — total N junk ≠
     which sleeve is damaged (xang1234 #531 market-pointer + #540
     damaged-artifact visibility).     When ≥2 lists hold junk and one is
-    strictly largest, also speak ``lead rec · N%`` (junk÷total junk;
-    sole-list silent) — list pointer ≠ which sleeve owns the
-    damage (xang1234 multi-meter lead + portfolio AI count≠share after
-    junk list pointer).     When lead already spoke and a runner-up list
-    exists, also speak ``ahead wide|thin · +K`` then ``vs crypto · N ·
-    P%`` (wide ≥2 · thin =1; sole 100% omits; tied runners silent on
-    vs) — soft-allow RS gap symbol lead margin/sides + portfolio AI after
-    lead % alone hid how far ahead / who is #2.     When damaged lists have
+    strictly largest, also speak ``lead rec · N · P%`` (row count then
+    junk÷total junk; sole-list silent) — list pointer ≠ which sleeve
+    owns the damage, and runner ``vs crypto · 1 · 33%`` ≠ owner's count
+    (xang1234 multi-meter lead + soft-allow gap-symbol lead + portfolio
+    AI count≠share after junk list pointer).     When lead already spoke
+    and a runner-up list exists, also speak ``ahead wide|thin · +K`` then
+    ``vs crypto · N · P%`` (wide ≥2 · thin =1; sole 100% omits; tied
+    runners silent on vs) — soft-allow RS gap symbol lead margin/sides +
+    portfolio AI after lead % alone hid how far ahead / who is #2.
+    When damaged lists have
     no strict lead, also speak ``n=1`` (sole sleeve) or ``tied`` (≥2;
     ``junk_list_sample_gap``; lead cases stay silent) — soft-allow RS gap
     symbol / LAYA ``_decision_sample_gap`` parity after silent sole hid
@@ -22645,15 +22647,18 @@ def _decision_sample_lead(
 
     Compact ``Np/Nh/Nr`` / ``N BUY · N HOLD · N SELL`` hid which verb owns
     the ring. When one bucket is strictly largest and the decided sample
-    has ≥2 rows, speak ``lead pass · N%`` / ``lead BUY · N%`` (ties and
-    thin samples use ``_decision_sample_gap`` instead of a fake lead). When a runner-up bucket exists, also speak
-    ``ahead wide|thin · +K`` (wide ≥2 · thin =1; sole-bucket omits).
-    When ahead already spoke and a clear #2 exists, also speak
-    ``vs hold · N · P%`` / ``vs HOLD · N · P%`` (tied runners silent;
-    runner÷decided total — absolute count ≠ ownership). Ownership % ≠
-    how far ahead ≠ who is #2. Last-row verb ≠ sample tilt. xang1234
-    multi-meter lead sides share + portfolio AI after sample lead sides.
-    Not a gate.
+    has ≥2 rows, speak ``lead pass · N · P%`` / ``lead BUY · N · P%``
+    (row count then share; ties and thin samples use
+    ``_decision_sample_gap`` instead of a fake lead). The runner bit
+    already names ``vs HOLD · 1 · 33%``; share alone hid the owner's
+    count (soft-allow gap-symbol lead + portfolio AI count≠share). When a
+    runner-up bucket exists, also speak ``ahead wide|thin · +K`` (wide ≥2
+    · thin =1; sole-bucket omits). When ahead already spoke and a clear
+    #2 exists, also speak ``vs hold · N · P%`` / ``vs HOLD · N · P%``
+    (tied runners silent; runner÷decided total — absolute count ≠
+    ownership). Ownership % ≠ how far ahead ≠ who is #2. Last-row verb ≠
+    sample tilt. xang1234 multi-meter lead sides share + portfolio AI
+    after sample lead sides. Not a gate.
     """
     empty = ("", "", None, "", None, "", "", None, None)
     total = sum(max(0, int(n or 0)) for _, n in buckets)
@@ -22692,7 +22697,7 @@ def _decision_sample_lead(
                     sides_share = int(round(100.0 * sides_n / total))
                     sides = f"vs {sides_name} · {sides_n} · {sides_share}%"
     return (
-        f"lead {lead_name} · {share}%",
+        f"lead {lead_name} · {lead_n} · {share}%",
         lead_name,
         share,
         margin,
@@ -22707,14 +22712,14 @@ def _decision_sample_lead(
 def _last_vs_sample_lead(lead_name: str, last_verb: str) -> str:
     """Newest decision vs sample lead (display only).
 
-    Compact ``lead pass · N%`` / ``lead BUY · N%`` hid whether the newest
-    print matches the ring tilt. When sample lead already spoke: same
-    verb speaks ``agree`` (silent confirm hid match); different speaks
-    ``last vs lead · reject`` / ``last vs lead · HOLD`` (fail-open is a
-    distinct verb). Ownership % ≠ newest print. xang1234 multi-meter +
-    FinRobot last-debate + portfolio AI speak-both-sides after sample
-    lead sides share (soft-allow ``agree`` / ``last vs lead`` parity).
-    No tone escalate. Not a gate.
+    Compact ``lead pass · N · P%`` / ``lead BUY · N · P%`` hid whether
+    the newest print matches the ring tilt. When sample lead already
+    spoke: same verb speaks ``agree`` (silent confirm hid match);
+    different speaks ``last vs lead · reject`` / ``last vs lead · HOLD``
+    (fail-open is a distinct verb). Ownership % ≠ newest print.
+    xang1234 multi-meter + FinRobot last-debate + portfolio AI
+    speak-both-sides after sample lead sides share (soft-allow ``agree``
+    / ``last vs lead`` parity). No tone escalate. Not a gate.
     """
     lead = str(lead_name or "").strip()
     last = str(last_verb or "").strip()
@@ -22789,14 +22794,14 @@ def build_laya_glance(
     ``aging``). Same ticker + debate conf: ``pass/conf clash · lo`` /
     ``reject/conf align · hi`` (conviction model; mid med silent;
     clash paints ``aging``).     Decided sample (≥2) with a strict lead
-    speaks ``lead pass · N%`` after ``Np/Nh/Nr`` (ties / thin silent);
-    runner present also speaks ``ahead wide|thin · +K`` then
-    ``vs hold · N · P%`` when #2 is clear (ownership % ≠ margin ≠ who
-    is #2; absolute count ≠ runner share). When sample lead already
-    spoke, newest verb speaks ``agree`` (match) or ``last vs lead ·
-    pass`` (clash) — silent confirm hid match. Thin (1 decided) speaks
-    ``n=1`` after counts; ≥2 with no lead speaks ``tied`` (silent gap
-    hid that last-row is not a tilt).
+    speaks ``lead pass · N · P%`` after ``Np/Nh/Nr`` (ties / thin silent;
+    runner ``vs hold · N · P%`` ≠ owner's count); runner present also
+    speaks ``ahead wide|thin · +K`` then ``vs hold · N · P%`` when #2 is
+    clear (ownership % ≠ margin ≠ who is #2; absolute count ≠ runner
+    share). When sample lead already spoke, newest verb speaks
+    ``agree`` (match) or ``last vs lead · pass`` (clash) — silent confirm
+    hid match. Thin (1 decided) speaks ``n=1`` after counts; ≥2 with no
+    lead speaks ``tied`` (silent gap hid that last-row is not a tilt).
     See docs/LAYA.md.
     """
     from stock_checker.laya_decision import laya_status
@@ -23236,13 +23241,14 @@ def build_ai_debate_glance(
     it).     Same-row action vs typed conf: ``BUY/conf clash · lo`` /
     ``SELL/conf align · hi`` (conviction model; mid med silent; clash
     paints ``aging``). Decided sample (≥2, gated out) with a strict lead
-    speaks ``lead BUY · N%`` after the BUY/HOLD/SELL counts (ties / thin
-    silent); runner present also speaks ``ahead wide|thin · +K`` then
-    ``vs HOLD · N · P%`` when #2 is clear (ownership % ≠ margin ≠ who is
-    #2; absolute count ≠ runner share). When sample lead already spoke,
-    newest action speaks ``agree`` (match) or ``last vs lead · HOLD``
-    (clash) — silent confirm hid match. Thin (1 decided) speaks
-    ``n=1`` after counts; ≥2 with no lead speaks ``tied``.
+    speaks ``lead BUY · N · P%`` after the BUY/HOLD/SELL counts (ties /
+    thin silent; runner ``vs HOLD · N · P%`` ≠ owner's count); runner
+    present also speaks ``ahead wide|thin · +K`` then ``vs HOLD · N ·
+    P%`` when #2 is clear (ownership % ≠ margin ≠ who is #2; absolute
+    count ≠ runner share). When sample lead already spoke, newest action
+    speaks ``agree`` (match) or ``last vs lead · HOLD`` (clash) — silent
+    confirm hid match. Thin (1 decided) speaks ``n=1`` after counts; ≥2
+    with no lead speaks ``tied``.
     Not a research score and not a new gate.
     """
     from stock_checker.ai_validate_memory import summarize_ai_debates
@@ -28183,7 +28189,7 @@ def load_desk_snapshot(
         {
             "title": "Screener junk list lead",
             "from": "xang1234/stock-screener multi-meter lead + portfolio AI (count ≠ ownership)",
-            "note": "When ≥2 lists hold junk and one is strictly largest, weight speaks lead rec · N% (junk÷total junk); ties / sole-list silent — list pointer ≠ which sleeve owns the damage.",
+            "note": "When ≥2 lists hold junk and one is strictly largest, weight speaks lead rec · N · P% (row count then junk÷total junk); ties / sole-list silent — list pointer ≠ which sleeve owns the damage, and runner vs crypto · N · P% ≠ owner's count.",
         },
         {
             "title": "Screener junk list lead vs share",
