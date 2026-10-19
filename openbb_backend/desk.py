@@ -1639,6 +1639,17 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
         ),
         "last/lead",
     ),
+    # last≠lead vs lead↔Ops (share/lean meta parity). Empty label so
+    # ``last/config`` + verb + both/crossed payload ride as one chip.
+    (
+        re.compile(
+            r"^(last/config) (align|clash)"
+            r"(?: · (both (?:agree|clash))"
+            r"| · (last (?:agree|clash))"
+            r" · (config (?:agree|clash)))?"
+        ),
+        "",
+    ),
     (re.compile(r"^clash · scan\b"), "scan"),
     (re.compile(r"^clash · soft \S+ · gap\b"), "soft/gap"),
     (re.compile(r"^clash · soft \S+ · cash\b"), "soft/cash"),
@@ -1734,12 +1745,16 @@ def soft_allow_lean_meta(soft_lean: str, *, warn: bool = False) -> str:
     """Summary chip for soft-allow lean fold — which cascades spoke / why open.
 
     Quiet names sleeves that spoke (``quiet · N folds · lead/config rs on ·
-    last/lead rs · scan · gap AAPL fresh``), so the primary line does not
-    claim gen-clash, lead↔Ops, last≠lead, or RS-gap when those bits are
-    absent. ``lead/config`` keeps the gate and on|off so ring ownership
-    is not treated as live knob (tradermonty #576). ``last/lead`` keeps
-    the newest gate so ``rs leads`` is not treated as the live last row
-    (FinRobot last≠tilt). The gap stage keeps ``last SYM`` and
+    last/lead rs · last/config align both agree · scan · gap AAPL
+    fresh``), so the primary line does not claim gen-clash, lead↔Ops,
+    last≠lead, last/config meta, or RS-gap when those bits are absent.
+    ``lead/config`` keeps the gate and on|off so ring ownership is not
+    treated as live knob (tradermonty #576). ``last/lead`` keeps the
+    newest gate so ``rs leads`` is not treated as the live last row
+    (FinRobot last≠tilt). ``last/config`` keeps align|clash plus
+    both/crossed polarity so side-by-side last/lead + lead/config alone
+    do not hide whether the two relationships agree. The gap stage keeps
+    ``last SYM`` and
     ``fresh|aging|expired`` so a bare count does not hide the cursor
     (xang1234 #546 + RyanJHamby age) or age↔share / gap-vs-other lean
     (Screener weight + FinRobot last-row). ``n=1`` / ``tied`` /
@@ -1952,6 +1967,7 @@ def build_soft_allow_glance(
         soft_allow_anchor_gap_vs_scan_clash,
         soft_allow_vs_gap_clock_clash,
         soft_allow_last_vs_lead,
+        soft_allow_last_lead_vs_config,
         soft_allow_lead_vs_config,
         soft_allow_lead_margin,
         soft_allow_lead_share,
@@ -1995,6 +2011,8 @@ def build_soft_allow_glance(
         "lead_bit": "",
         "last_vs_lead": "",
         "lead_vs_config": "",
+        "last_lead_vs_config": "",
+        "last_lead_vs_config_warn": False,
         "sample_gap": "",
         "anchor_gap_count": 0,
         "anchor_gap_last": "",
@@ -2300,6 +2318,9 @@ def build_soft_allow_glance(
     # Clash escalates warn; agree is speak-both-sides only.
     if lead_vs_config.startswith("clash") and tone != "warn":
         tone = "warn"
+    last_lead_vs_config, last_lead_vs_config_warn = (
+        soft_allow_last_lead_vs_config(last_vs_lead, lead_vs_config)
+    )
     sample_gap = soft_allow_sample_gap(
         rows, band=lead_band, lead_gate=lead_gate
     )
@@ -2336,15 +2357,17 @@ def build_soft_allow_glance(
         )
         if b
     ]
-    # lead↔Ops + last≠lead sit in the lean fold so a config clash or a
-    # newest-print clash can open the chip when gen-clash / RS-gap are
-    # quiet, and so the inventory names lead/config + last/lead when
-    # other sleeves already opened it (FinRobot last≠tilt + #576).
+    # lead↔Ops + last≠lead + last/config meta sit in the lean fold so a
+    # config clash, newest-print clash, or dual-clash meta can open the
+    # chip when gen-clash / RS-gap are quiet, and so the inventory names
+    # lead/config + last/lead + last/config when other sleeves already
+    # opened it (FinRobot last≠tilt + #576 + share/lean meta parity).
     soft_lean_parts = [
         b
         for b in (
             lead_vs_config,
             last_vs_lead,
+            last_lead_vs_config,
             *gen_clash_bits,
             anchor_gap_bit,
         )
@@ -2354,6 +2377,7 @@ def build_soft_allow_glance(
     soft_lean_warn = bool(
         lead_vs_config.startswith("clash")
         or last_vs_lead.startswith("last vs lead")
+        or last_lead_vs_config_warn
         or scan_vs_soft_allow_clash
         or soft_vs_gap_clock_clash_warn
         or soft_vs_cash_clock_clash_warn
@@ -2411,6 +2435,8 @@ def build_soft_allow_glance(
         "lead_bit": lead_bit,
         "last_vs_lead": last_vs_lead,
         "lead_vs_config": lead_vs_config,
+        "last_lead_vs_config": last_lead_vs_config,
+        "last_lead_vs_config_warn": last_lead_vs_config_warn,
         "sample_gap": sample_gap,
         "anchor_gap_count": anchor_gap_n,
         "anchor_gap_last": anchor_gap_last,

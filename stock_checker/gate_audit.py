@@ -1465,6 +1465,57 @@ def soft_allow_lead_vs_config(
     return f"clash · lead {lead} · {label} off"
 
 
+def soft_allow_last_lead_vs_config(
+    last_vs_lead: str,
+    lead_vs_config: str,
+) -> tuple[str, bool]:
+    """Last≠lead vs lead↔Ops relationship agreement (display only).
+
+    Returns ``(bit, warn)``. Newest print vs band lead ≠ lead ring vs
+    Ops toggle. When both already spoke: same polarity speaks
+    ``last/config align · both agree|clash`` — ``both agree`` stays
+    calm; ``both clash`` warns (dual-clash agreement ≠ quiet confirm).
+    Crossed speaks ``last/config clash · last agree|clash · config
+    agree|clash`` (warn). Missing either stays silent — FinRobot
+    last≠tilt + tradermonty #576 provenance + portfolio AI
+    speak-both-sides + RyanJHamby dual-clash after last/lead +
+    lead/config alone hid whether the two relationships agree *and*
+    whether dual-clash agreement is adverse. Not a gate.
+    """
+    last_bit = str(last_vs_lead or "").strip()
+    config_bit = str(lead_vs_config or "").strip()
+    if not last_bit or not config_bit:
+        return "", False
+
+    def _last_verb(bit: str) -> str | None:
+        if bit.startswith("agree"):
+            return "agree"
+        if bit.startswith("last vs lead"):
+            return "clash"
+        return None
+
+    def _config_verb(bit: str) -> str | None:
+        if bit.startswith("agree"):
+            return "agree"
+        if bit.startswith("clash"):
+            return "clash"
+        return None
+
+    last_verb = _last_verb(last_bit)
+    config_verb = _config_verb(config_bit)
+    if last_verb is None or config_verb is None:
+        return "", False
+    if last_verb == config_verb:
+        return (
+            f"last/config align · both {last_verb}",
+            last_verb == "clash",
+        )
+    return (
+        f"last/config clash · last {last_verb} · config {config_verb}",
+        True,
+    )
+
+
 def soft_allow_sample_gap(
     events: list[dict[str, Any]] | None,
     *,
