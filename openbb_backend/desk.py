@@ -1659,6 +1659,7 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
             r"(?: · (both (?:align|clash))"
             r"| · (last/lead (?:align|clash))"
             r" · (lead/config (?:align|clash)))?"
+            r"(?: · (fresh|expired|mixed))?"
         ),
         "",
     ),
@@ -1772,10 +1773,11 @@ def soft_allow_lean_meta(soft_lean: str, *, warn: bool = False) -> str:
     align|clash · fresh|expired`` and ``lead/config align|clash ·
     fresh|expired · on|off`` keep age vs name / knob agreement so bare
     ``agree`` is not a silent confirm of a stale print (gap last/lead
-    freshness parity + RyanJHamby + #576). ``last/config age`` keeps
-    align|clash plus both/crossed polarity so side-by-side last/lead
-    age + lead/config age alone do not hide whether the two age
-    relationships agree (``both clash`` pins). The gap stage keeps
+    freshness parity + RyanJHamby + #576).     ``last/config age`` keeps
+    align|clash plus both/crossed polarity and the shared
+    ``fresh|expired|mixed`` clock so ``both clash`` is not a silent
+    confirm of a stale agree or a live disagree (``both clash`` pins).
+    The gap stage keeps
     ``last SYM`` and
     ``fresh|aging|expired`` so a bare count does not hide the cursor
     (xang1234 #546 + RyanJHamby age) or age↔share / gap-vs-other lean

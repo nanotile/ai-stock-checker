@@ -1591,13 +1591,17 @@ def soft_allow_last_lead_vs_config_freshness(
 
     Returns ``(bit, warn)``. Age↔newest-gate ≠ age↔live knob. When both
     already spoke: same verb speaks ``last/config age align · both
-    align|clash`` — ``both align`` stays calm; ``both clash`` warns
-    (dual-clash agreement ≠ quiet confirm). Crossed verbs speak
-    ``last/config age clash · last/lead … · lead/config …`` (warn).
+    align|clash · fresh|expired`` — ``both align`` stays calm;
+    ``both clash`` warns (dual-clash agreement ≠ quiet confirm).
+    Crossed verbs speak ``last/config age clash · last/lead … ·
+    lead/config … · fresh|expired`` (warn). The shared clock rides
+    the bit so ``both clash`` is not a silent confirm of a stale
+    agree or a live disagree. Mismatched clocks speak ``mixed``.
     Missing either stays silent — FinRobot last-row age + tradermonty
     #576 provenance + portfolio AI speak-both-sides + RyanJHamby
     dual-clash after last/lead freshness + lead/config freshness alone
-    hid whether the two age relationships agree. Not a gate.
+    hid whether the two age relationships agree *and* whether that
+    agreement is still live. Not a gate.
     """
     last_bit = str(last_vs_lead_freshness or "").strip()
     config_bit = str(lead_vs_config_freshness or "").strip()
@@ -1611,18 +1615,31 @@ def soft_allow_last_lead_vs_config_freshness(
             return "clash"
         return None
 
+    def _age(bit: str) -> str:
+        parts = [p.strip().casefold() for p in bit.split(" · ")]
+        if len(parts) >= 2 and parts[1] in {"fresh", "expired"}:
+            return parts[1]
+        return ""
+
     last_verb = _verb(last_bit, "last/lead")
     config_verb = _verb(config_bit, "lead/config")
     if last_verb is None or config_verb is None:
         return "", False
+    last_age = _age(last_bit)
+    config_age = _age(config_bit)
+    if last_age and config_age:
+        age = last_age if last_age == config_age else "mixed"
+    else:
+        age = last_age or config_age
+    age_tail = f" · {age}" if age else ""
     if last_verb == config_verb:
         return (
-            f"last/config age align · both {last_verb}",
+            f"last/config age align · both {last_verb}{age_tail}",
             last_verb == "clash",
         )
     return (
         f"last/config age clash · last/lead {last_verb} · "
-        f"lead/config {config_verb}",
+        f"lead/config {config_verb}{age_tail}",
         True,
     )
 

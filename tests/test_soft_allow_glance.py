@@ -121,25 +121,29 @@ def test_soft_allow_last_lead_vs_config_freshness_helper() -> None:
     assert soft_allow_last_lead_vs_config_freshness(
         "last/lead align · fresh · agree",
         "lead/config align · fresh · on",
-    ) == ("last/config age align · both align", False)
+    ) == ("last/config age align · both align · fresh", False)
     assert soft_allow_last_lead_vs_config_freshness(
         "last/lead clash · expired · agree",
         "lead/config clash · expired · on",
-    ) == ("last/config age align · both clash", True)
+    ) == ("last/config age align · both clash · expired", True)
     assert soft_allow_last_lead_vs_config_freshness(
         "last/lead align · fresh · agree",
         "lead/config clash · fresh · off",
     ) == (
-        "last/config age clash · last/lead align · lead/config clash",
+        "last/config age clash · last/lead align · lead/config clash · fresh",
         True,
     )
     assert soft_allow_last_lead_vs_config_freshness(
         "last/lead clash · fresh · vs breadth",
         "lead/config align · fresh · on",
     ) == (
-        "last/config age clash · last/lead clash · lead/config align",
+        "last/config age clash · last/lead clash · lead/config align · fresh",
         True,
     )
+    assert soft_allow_last_lead_vs_config_freshness(
+        "last/lead align · fresh · agree",
+        "lead/config align · expired · on",
+    ) == ("last/config age align · both align · mixed", False)
 
 
 def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
@@ -1303,7 +1307,7 @@ def test_soft_allow_glance_lead_vs_config_off() -> None:
     assert on["lead_vs_config_freshness"] == "lead/config align · fresh · on"
     assert on["lead_vs_config_freshness_warn"] is False
     assert on["last_lead_vs_config_freshness"] == (
-        "last/config age align · both align"
+        "last/config age align · both align · fresh"
     )
     assert on["last_lead_vs_config_freshness_warn"] is False
     assert on["soft_lean_warn"] is False
@@ -1335,7 +1339,7 @@ def test_soft_allow_glance_lead_vs_config_off() -> None:
     )
     assert off["lead_vs_config_freshness_warn"] is True
     assert off["last_lead_vs_config_freshness"] == (
-        "last/config age clash · last/lead align · lead/config clash"
+        "last/config age clash · last/lead align · lead/config clash · fresh"
     )
     assert off["last_lead_vs_config_freshness_warn"] is True
     assert off["soft_lean_warn"] is True
@@ -1422,12 +1426,16 @@ def test_soft_allow_glance_lead_vs_config_off() -> None:
         "last/lead clash · expired · agree"
     )
     assert stale_on["last_lead_vs_config_freshness"] == (
-        "last/config age align · both clash"
+        "last/config age align · both clash · expired"
     )
     assert stale_on["last_lead_vs_config_freshness_warn"] is True
     assert stale_on["tone"] == "warn"
     assert "lead/config clash · expired · on" in stale_on["soft_lean"]
     assert stale_on["soft_lean_warn"] is True
+    # Stale both-clash pins the clock so expired agree ≠ a live off.
+    assert stale_on["soft_lean_meta"].startswith(
+        "clash · last/config age align both clash expired"
+    )
     # Dual clash: newest ≠ lead + Ops off — both-clash pins on the chip.
     dual = build_soft_allow_glance(
         [
@@ -1451,13 +1459,13 @@ def test_soft_allow_glance_lead_vs_config_off() -> None:
     )
     assert dual["lead_vs_config_freshness_warn"] is True
     assert dual["last_lead_vs_config_freshness"] == (
-        "last/config age align · both clash"
+        "last/config age align · both clash · fresh"
     )
     assert dual["last_lead_vs_config_freshness_warn"] is True
     assert dual["soft_lean_warn"] is True
     assert dual["soft_lean_meta"] == (
         "clash · last/config align both clash · "
-        "last/config age align both clash · lead/config rs off · "
+        "last/config age align both clash fresh · lead/config rs off · "
         "last/lead breadth · +2"
     )
 
