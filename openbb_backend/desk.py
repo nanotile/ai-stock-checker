@@ -1669,6 +1669,7 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
             r"| · (last/lead (?:align|clash))"
             r" · (lead/config (?:align|clash)))?"
             r"(?: · (fresh|expired|mixed))?"
+            r"(?: · (×\d+))?(?: · (\d+(?:\.\d+)?%))?"
         ),
         "",
     ),
@@ -1740,6 +1741,7 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
             r"|quiet"
             r"))?"
             + _SOFT_LEAN_VS_OTHER
+            + r"(?: · (×\d+))?(?: · (\d+(?:\.\d+)?%))?"
         ),
         "",
     ),
@@ -1784,11 +1786,13 @@ def soft_allow_lean_meta(soft_lean: str, *, warn: bool = False) -> str:
     agree or how large that ring is. Gate ``last/lead
     align|clash · fresh|expired`` and ``lead/config align|clash ·
     fresh|expired · on|off`` keep age vs name / knob agreement so bare
-    ``agree`` is not a silent confirm of a stale print (gap last/lead
-    freshness parity + RyanJHamby + #576).     ``last/config age`` keeps
-    align|clash plus both/crossed polarity and the shared
-    ``fresh|expired|mixed`` clock so ``both clash`` is not a silent
-    confirm of a stale agree or a live disagree (``both clash`` pins).
+    ``agree`` is not a silent confirm of a stale print, and ``×N`` /
+    share ride so age is not a nameless ring (gap last/lead
+    freshness parity + RyanJHamby + #576 + portfolio AI count≠share).
+    ``last/config age`` keeps align|clash plus both/crossed polarity,
+    the shared ``fresh|expired|mixed`` clock, and ``×N`` / share so
+    ``both clash`` is not a silent confirm of a stale agree or a live
+    disagree and the clock is not a nameless ring (``both clash`` pins).
     The gap stage keeps
     ``last SYM`` and
     ``fresh|aging|expired`` so a bare count does not hide the cursor
@@ -2399,7 +2403,10 @@ def build_soft_allow_glance(
     # (expired≡stale). Extremes only; aging silent.
     last_vs_lead_freshness, last_vs_lead_freshness_warn = (
         soft_allow_last_vs_lead_freshness(
-            last_vs_lead_named, str(last.get("freshness") or "")
+            last_vs_lead_named,
+            str(last.get("freshness") or ""),
+            lead_count=lead_count,
+            lead_share_pct=lead_share_pct,
         )
     )
     if last_vs_lead_freshness_warn and tone != "warn":
@@ -2407,7 +2414,10 @@ def build_soft_allow_glance(
     # Newest row stamp vs lead↔Ops — stale agree ≠ calm confirm (#576).
     lead_vs_config_freshness, lead_vs_config_freshness_warn = (
         soft_allow_lead_vs_config_freshness(
-            lead_vs_config, str(last.get("freshness") or "")
+            lead_vs_config,
+            str(last.get("freshness") or ""),
+            lead_count=lead_count,
+            lead_share_pct=lead_share_pct,
         )
     )
     if lead_vs_config_freshness_warn and tone != "warn":
@@ -2415,7 +2425,10 @@ def build_soft_allow_glance(
     # Side-by-side ages ≠ agreement (stale dual-clash ≠ calm confirm).
     last_lead_vs_config_freshness, last_lead_vs_config_freshness_warn = (
         soft_allow_last_lead_vs_config_freshness(
-            last_vs_lead_freshness, lead_vs_config_freshness
+            last_vs_lead_freshness,
+            lead_vs_config_freshness,
+            lead_count=lead_count,
+            lead_share_pct=lead_share_pct,
         )
     )
     if last_lead_vs_config_freshness_warn and tone != "warn":

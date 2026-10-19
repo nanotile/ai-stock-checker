@@ -1536,20 +1536,38 @@ def soft_allow_last_lead_vs_config(
     )
 
 
+def _soft_allow_ring_size(
+    lead_count: int = 0, lead_share_pct: float | None = None
+) -> str:
+    """`` · ×N · P%`` when the lead ring has a size (display only)."""
+    if lead_count <= 0:
+        return ""
+    size = f" · ×{int(lead_count)}"
+    if lead_share_pct is not None:
+        size += f" · {int(round(float(lead_share_pct)))}%"
+    return size
+
+
 def soft_allow_last_vs_lead_freshness(
     last_vs_lead: str,
     last_freshness: str,
+    *,
+    lead_count: int = 0,
+    lead_share_pct: float | None = None,
 ) -> tuple[str, bool]:
     """Newest soft-allow age vs gate last-vs-lead (display only).
 
     Returns ``(bit, warn)``. Cursor age ≠ name-vs-lead agreement.
     Extremes only: ``fresh``↔``agree`` and ``expired``↔ name clash speak
-    ``last/lead align · …``; crossed pairs speak ``last/lead clash · …``
-    (warn). ``aging`` / silent last-vs-lead stay silent — gap
-    ``soft_allow_anchor_gap_last_vs_lead_freshness`` parity + RyanJHamby
-    triad + FinRobot last-row age + portfolio AI speak-both-sides after
-    bare ``agree`` / ``last vs lead`` hid whether the gate match is
-    still live (stale agree ≠ calm confirm). Not a gate.
+    ``last/lead align · … · ×N · P%``; crossed pairs speak
+    ``last/lead clash · …`` (warn). Count and share ride on the bit so
+    age is not a nameless ring (portfolio AI count≠share). Missing
+    count omits the size. ``aging`` / silent last-vs-lead stay silent —
+    gap ``soft_allow_anchor_gap_last_vs_lead_freshness`` parity +
+    RyanJHamby triad + FinRobot last-row age + portfolio AI
+    speak-both-sides after bare ``agree`` / ``last vs lead`` hid
+    whether the gate match is still live *and* how large that ring is
+    (stale agree ≠ calm confirm). Not a gate.
     """
     last_fresh = str(last_freshness or "").strip().casefold()
     last_vs = str(last_vs_lead or "").strip()
@@ -1563,26 +1581,33 @@ def soft_allow_last_vs_lead_freshness(
         name_tail = f"vs {last_vs[len('last vs lead · ') :]}"
     else:
         return "", False
+    size = _soft_allow_ring_size(lead_count, lead_share_pct)
     live_age = last_fresh == "fresh"
     if live_age == name_agree:
-        return f"last/lead align · {last_fresh} · {name_tail}", False
-    return f"last/lead clash · {last_fresh} · {name_tail}", True
+        return f"last/lead align · {last_fresh} · {name_tail}{size}", False
+    return f"last/lead clash · {last_fresh} · {name_tail}{size}", True
 
 
 def soft_allow_lead_vs_config_freshness(
     lead_vs_config: str,
     last_freshness: str,
+    *,
+    lead_count: int = 0,
+    lead_share_pct: float | None = None,
 ) -> tuple[str, bool]:
     """Newest soft-allow age vs lead↔Ops toggle (display only).
 
     Returns ``(bit, warn)``. Cursor age ≠ lead ring vs live knob.
     Extremes only: ``fresh``↔``agree`` (on) and ``expired``↔``clash``
-    (off) speak ``lead/config align · …``; crossed pairs speak
-    ``lead/config clash · …`` (warn). ``aging`` / silent lead/config
-    stay silent — last/lead freshness parity + tradermonty #576
-    provenance + RyanJHamby triad + FinRobot last-row age after bare
+    (off) speak ``lead/config align · … · ×N · P%``; crossed pairs
+    speak ``lead/config clash · …`` (warn). Count and share ride on
+    the bit so age is not a nameless knob (portfolio AI count≠share).
+    Missing count omits the size. ``aging`` / silent lead/config stay
+    silent — last/lead freshness parity + tradermonty #576 provenance
+    + RyanJHamby triad + FinRobot last-row age after bare
     ``agree · lead rs · RS on`` hid whether the knob match is still
-    live (stale agree ≠ calm confirm). Not a gate.
+    live *and* how large that ring is (stale agree ≠ calm confirm).
+    Not a gate.
     """
     last_fresh = str(last_freshness or "").strip().casefold()
     config_bit = str(lead_vs_config or "").strip()
@@ -1597,31 +1622,36 @@ def soft_allow_lead_vs_config_freshness(
         name_agree = False
     else:
         return "", False
+    size = _soft_allow_ring_size(lead_count, lead_share_pct)
     live_age = last_fresh == "fresh"
     if live_age == name_agree:
-        return f"lead/config align · {last_fresh} · {tail}", False
-    return f"lead/config clash · {last_fresh} · {tail}", True
+        return f"lead/config align · {last_fresh} · {tail}{size}", False
+    return f"lead/config clash · {last_fresh} · {tail}{size}", True
 
 
 def soft_allow_last_lead_vs_config_freshness(
     last_vs_lead_freshness: str,
     lead_vs_config_freshness: str,
+    *,
+    lead_count: int = 0,
+    lead_share_pct: float | None = None,
 ) -> tuple[str, bool]:
     """Last/lead age vs lead↔Ops age agreement (display only).
 
     Returns ``(bit, warn)``. Age↔newest-gate ≠ age↔live knob. When both
     already spoke: same verb speaks ``last/config age align · both
-    align|clash · fresh|expired`` — ``both align`` stays calm;
-    ``both clash`` warns (dual-clash agreement ≠ quiet confirm).
+    align|clash · fresh|expired · ×N · P%`` — ``both align`` stays
+    calm; ``both clash`` warns (dual-clash agreement ≠ quiet confirm).
     Crossed verbs speak ``last/config age clash · last/lead … ·
-    lead/config … · fresh|expired`` (warn). The shared clock rides
-    the bit so ``both clash`` is not a silent confirm of a stale
-    agree or a live disagree. Mismatched clocks speak ``mixed``.
-    Missing either stays silent — FinRobot last-row age + tradermonty
-    #576 provenance + portfolio AI speak-both-sides + RyanJHamby
-    dual-clash after last/lead freshness + lead/config freshness alone
-    hid whether the two age relationships agree *and* whether that
-    agreement is still live. Not a gate.
+    lead/config … · fresh|expired · ×N · P%`` (warn). The shared clock
+    and ring size ride the bit so ``both clash`` is not a silent
+    confirm of a stale agree or a live disagree, and the clock is not
+    a nameless ring. Mismatched clocks speak ``mixed``. Missing either
+    stays silent — FinRobot last-row age + tradermonty #576 provenance
+    + portfolio AI speak-both-sides + RyanJHamby dual-clash after
+    last/lead freshness + lead/config freshness alone hid whether the
+    two age relationships agree, whether that agreement is still live,
+    *and* how large that ring is. Not a gate.
     """
     last_bit = str(last_vs_lead_freshness or "").strip()
     config_bit = str(lead_vs_config_freshness or "").strip()
@@ -1652,14 +1682,15 @@ def soft_allow_last_lead_vs_config_freshness(
     else:
         age = last_age or config_age
     age_tail = f" · {age}" if age else ""
+    size = _soft_allow_ring_size(lead_count, lead_share_pct)
     if last_verb == config_verb:
         return (
-            f"last/config age align · both {last_verb}{age_tail}",
+            f"last/config age align · both {last_verb}{age_tail}{size}",
             last_verb == "clash",
         )
     return (
         f"last/config age clash · last/lead {last_verb} · "
-        f"lead/config {config_verb}{age_tail}",
+        f"lead/config {config_verb}{age_tail}{size}",
         True,
     )
 
