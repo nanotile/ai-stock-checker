@@ -317,10 +317,12 @@ def _precedence_sample_gap(override_n: int, confirm_n: int, env_n: int) -> str:
 
 
 def _precedence_lead_share(override_n: int, confirm_n: int, env_n: int) -> str:
-    """Ownership % of the lead bucket (lead÷total); silent when lead is silent.
+    """Lead row count + ownership % (lead÷total); silent when lead is silent.
 
-    Absolute lead name ≠ how much of the meter it owns (soft-allow lead share +
-    xang1234 / portfolio AI after precedence lead).
+    Absolute lead name ≠ how many keys it owns ≠ ownership % (soft-allow /
+    sample-lead count≠share + xang1234 / portfolio AI after precedence lead).
+    Runner ``vs ok · N`` already names rows; share alone hid the owner's
+    count. Speaks ``N · P%`` (sole-bucket still ``N · 100%``).
     """
     lead = _precedence_lead(override_n, confirm_n, env_n)
     if not lead:
@@ -331,7 +333,7 @@ def _precedence_lead_share(override_n: int, confirm_n: int, env_n: int) -> str:
     buckets = (("win", override_n), ("ok", confirm_n), ("env", env_n))
     top = max(n for _, n in buckets)
     pct = int(round(100.0 * top / total))
-    return f"{pct}%"
+    return f"{int(top)} · {pct}%"
 
 
 # Soft-allow lead margin bands adapted for win/ok/env counts (display only).
@@ -413,9 +415,12 @@ def _precedence_lead_sides_share(override_n: int, confirm_n: int, env_n: int) ->
 
 
 def _parse_precedence_pct(bit: str) -> int | None:
+    """Parse trailing ``N%`` from ``60%`` or ``6 · 60%`` (count≠share)."""
     raw = str(bit or "").strip().rstrip("%")
     if not raw:
         return None
+    if " · " in raw:
+        raw = raw.rsplit(" · ", 1)[-1]
     try:
         return int(raw)
     except ValueError:
@@ -591,11 +596,12 @@ def _with_saved_age(line: str, age_bit: str) -> str:
 
 
 def _precedence_core(override_n: int, confirm_n: int, env_n: int) -> tuple[str, str]:
-    """Meter + optional lead (+ share + ahead + vs + runner % or Δ[+align]).
+    """Meter + optional lead (+ N · P% + ahead + vs + runner % or Δ[+align]).
 
     When no lead, thin/tied samples speak ``n=1`` / ``tied`` after the meter
     (soft-allow / LAYA sample_gap parity — silent gap hid that counts are
-    not a tilt).
+    not a tilt). Lead share speaks ``N · P%`` so runner ``vs ok · N`` ≠
+    owner's count alone.
     """
     meter = _precedence_meter(override_n, confirm_n, env_n)
     lead = _precedence_lead(override_n, confirm_n, env_n)
@@ -655,18 +661,20 @@ def config_precedence_status(
     A multi-meter (N win · N ok · N env) speaks early so counts survive the
     96-char truncate when key names are long (xang1234 + portfolio AI meter).
     When one meter bucket is strictly largest, speak ``lead win|ok|env``
-    right after the meter, then ownership ``N%`` (lead÷total; sole-bucket
-    still speaks 100%), then ``ahead wide|thin · +K`` when a runner-up
-    bucket exists (share ≠ margin; sole-bucket omits ahead), then
-    ``vs ok|env|win · N`` naming the clear runner (ahead ≠ who is #2;
-    tied runners silent), then runner ownership ``N%`` (absolute count ≠
-    share of the meter), then ``share Δ wide|thin · ±Npp`` (lead% − runner%;
-    wide ≥20pp · thin <10pp; mid silent — two % ≠ the spread), then
-    ``share vs Δ clash · ×sev · %mid`` when Δ is mid (count-ahead spoke,
-    ownership spread did not) or ``share vs Δ align · sev`` when both
-    leanish match (mismatch stays silent). The Ops line speaks compact
-    ``Δ±N=W``/``=T`` (align, same width as ``Δ±Npp``) or ``×T/%m``/``×W/%m``
-    (clash in place of runner %) so the 96-char clip keeps the vs-Δ bit.
+    right after the meter, then ownership ``N · P%`` (row count then
+    lead÷total; sole-bucket still speaks 100%; runner ``vs ok · N`` ≠
+    owner's count — sample-lead / soft-allow gap-symbol parity), then
+    ``ahead wide|thin · +K`` when a runner-up bucket exists (share ≠
+    margin; sole-bucket omits ahead), then ``vs ok|env|win · N`` naming
+    the clear runner (ahead ≠ who is #2; tied runners silent), then
+    runner ownership ``N%`` (absolute count ≠ share of the meter), then
+    ``share Δ wide|thin · ±Npp`` (lead% − runner%; wide ≥20pp · thin
+    <10pp; mid silent — two % ≠ the spread), then ``share vs Δ clash ·
+    ×sev · %mid`` when Δ is mid (count-ahead spoke, ownership spread did
+    not) or ``share vs Δ align · sev`` when both leanish match (mismatch
+    stays silent). The Ops line speaks compact ``Δ±N=W``/``=T`` (align,
+    same width as ``Δ±Npp``) or ``×T/%m``/``×W/%m`` (clash in place of
+    runner %) so the 96-char clip keeps the vs-Δ bit.
     When no lead: 1 key speaks compact ``n=1``; ≥2 with no strict lead
     speaks ``tied`` after the meter (``sample_gap``; lead cases stay silent
     on gap) — soft-allow / LAYA sample honesty parity; silent gap hid that
