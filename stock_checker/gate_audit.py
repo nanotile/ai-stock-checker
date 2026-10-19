@@ -1583,6 +1583,50 @@ def soft_allow_lead_vs_config_freshness(
     return f"lead/config clash · {last_fresh} · {tail}", True
 
 
+def soft_allow_last_lead_vs_config_freshness(
+    last_vs_lead_freshness: str,
+    lead_vs_config_freshness: str,
+) -> tuple[str, bool]:
+    """Last/lead age vs lead↔Ops age agreement (display only).
+
+    Returns ``(bit, warn)``. Age↔newest-gate ≠ age↔live knob. When both
+    already spoke: same verb speaks ``last/config age align · both
+    align|clash`` — ``both align`` stays calm; ``both clash`` warns
+    (dual-clash agreement ≠ quiet confirm). Crossed verbs speak
+    ``last/config age clash · last/lead … · lead/config …`` (warn).
+    Missing either stays silent — FinRobot last-row age + tradermonty
+    #576 provenance + portfolio AI speak-both-sides + RyanJHamby
+    dual-clash after last/lead freshness + lead/config freshness alone
+    hid whether the two age relationships agree. Not a gate.
+    """
+    last_bit = str(last_vs_lead_freshness or "").strip()
+    config_bit = str(lead_vs_config_freshness or "").strip()
+    if not last_bit or not config_bit:
+        return "", False
+
+    def _verb(bit: str, prefix: str) -> str | None:
+        if bit.startswith(f"{prefix} align"):
+            return "align"
+        if bit.startswith(f"{prefix} clash"):
+            return "clash"
+        return None
+
+    last_verb = _verb(last_bit, "last/lead")
+    config_verb = _verb(config_bit, "lead/config")
+    if last_verb is None or config_verb is None:
+        return "", False
+    if last_verb == config_verb:
+        return (
+            f"last/config age align · both {last_verb}",
+            last_verb == "clash",
+        )
+    return (
+        f"last/config age clash · last/lead {last_verb} · "
+        f"lead/config {config_verb}",
+        True,
+    )
+
+
 def soft_allow_sample_gap(
     events: list[dict[str, Any]] | None,
     *,

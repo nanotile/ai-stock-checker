@@ -1650,6 +1650,18 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
         ),
         "",
     ),
+    # last/lead age vs lead↔Ops age (share/lean meta parity). ``age``
+    # keeps this off the polarity ``last/config align`` chip so a stale
+    # dual-clash is not clipped as a calm knob match (#576).
+    (
+        re.compile(
+            r"^(last/config age) (align|clash)"
+            r"(?: · (both (?:align|clash))"
+            r"| · (last/lead (?:align|clash))"
+            r" · (lead/config (?:align|clash)))?"
+        ),
+        "",
+    ),
     (re.compile(r"^clash · scan\b"), "scan"),
     (re.compile(r"^clash · soft \S+ · gap\b"), "soft/gap"),
     (re.compile(r"^clash · soft \S+ · cash\b"), "soft/cash"),
@@ -1760,7 +1772,10 @@ def soft_allow_lean_meta(soft_lean: str, *, warn: bool = False) -> str:
     align|clash · fresh|expired`` and ``lead/config align|clash ·
     fresh|expired · on|off`` keep age vs name / knob agreement so bare
     ``agree`` is not a silent confirm of a stale print (gap last/lead
-    freshness parity + RyanJHamby + #576). The gap stage keeps
+    freshness parity + RyanJHamby + #576). ``last/config age`` keeps
+    align|clash plus both/crossed polarity so side-by-side last/lead
+    age + lead/config age alone do not hide whether the two age
+    relationships agree (``both clash`` pins). The gap stage keeps
     ``last SYM`` and
     ``fresh|aging|expired`` so a bare count does not hide the cursor
     (xang1234 #546 + RyanJHamby age) or age↔share / gap-vs-other lean
@@ -1980,6 +1995,7 @@ def build_soft_allow_glance(
         soft_allow_last_vs_lead,
         soft_allow_last_vs_lead_freshness,
         soft_allow_last_lead_vs_config,
+        soft_allow_last_lead_vs_config_freshness,
         soft_allow_lead_vs_config,
         soft_allow_lead_vs_config_freshness,
         soft_allow_lead_margin,
@@ -2028,6 +2044,8 @@ def build_soft_allow_glance(
         "lead_vs_config": "",
         "lead_vs_config_freshness": "",
         "lead_vs_config_freshness_warn": False,
+        "last_lead_vs_config_freshness": "",
+        "last_lead_vs_config_freshness_warn": False,
         "last_lead_vs_config": "",
         "last_lead_vs_config_warn": False,
         "sample_gap": "",
@@ -2355,6 +2373,14 @@ def build_soft_allow_glance(
     )
     if lead_vs_config_freshness_warn and tone != "warn":
         tone = "warn"
+    # Side-by-side ages ≠ agreement (stale dual-clash ≠ calm confirm).
+    last_lead_vs_config_freshness, last_lead_vs_config_freshness_warn = (
+        soft_allow_last_lead_vs_config_freshness(
+            last_vs_lead_freshness, lead_vs_config_freshness
+        )
+    )
+    if last_lead_vs_config_freshness_warn and tone != "warn":
+        tone = "warn"
     sample_gap = soft_allow_sample_gap(
         rows, band=lead_band, lead_gate=lead_gate
     )
@@ -2392,9 +2418,9 @@ def build_soft_allow_glance(
         if b
     ]
     # lead↔Ops + last≠lead + last/config + last/lead age + lead/config
-    # age sit in the lean fold so a config clash, newest-print clash,
-    # dual-clash meta, or stale-agree age clash can open the chip when
-    # gen-clash / RS-gap are quiet, and so the inventory names
+    # age + age meta sit in the lean fold so a config clash, newest-print
+    # clash, dual-clash meta, or stale-agree age clash can open the chip
+    # when gen-clash / RS-gap are quiet, and so the inventory names
     # lead/config + last/lead + last/config + age bits when other
     # sleeves already opened it (FinRobot last≠tilt + #576 +
     # share/lean meta + gap last/lead freshness parity).
@@ -2406,6 +2432,7 @@ def build_soft_allow_glance(
             last_lead_vs_config,
             last_vs_lead_freshness,
             lead_vs_config_freshness,
+            last_lead_vs_config_freshness,
             *gen_clash_bits,
             anchor_gap_bit,
         )
@@ -2418,6 +2445,7 @@ def build_soft_allow_glance(
         or last_lead_vs_config_warn
         or last_vs_lead_freshness_warn
         or lead_vs_config_freshness_warn
+        or last_lead_vs_config_freshness_warn
         or scan_vs_soft_allow_clash
         or soft_vs_gap_clock_clash_warn
         or soft_vs_cash_clock_clash_warn
@@ -2479,6 +2507,10 @@ def build_soft_allow_glance(
         "lead_vs_config": lead_vs_config,
         "lead_vs_config_freshness": lead_vs_config_freshness,
         "lead_vs_config_freshness_warn": lead_vs_config_freshness_warn,
+        "last_lead_vs_config_freshness": last_lead_vs_config_freshness,
+        "last_lead_vs_config_freshness_warn": (
+            last_lead_vs_config_freshness_warn
+        ),
         "last_lead_vs_config": last_lead_vs_config,
         "last_lead_vs_config_warn": last_lead_vs_config_warn,
         "sample_gap": sample_gap,
