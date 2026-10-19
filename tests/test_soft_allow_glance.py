@@ -372,6 +372,16 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
         == "quiet · 1 fold · soft/cash ×1 100%"
     )
     assert (
+        soft_allow_lean_meta("clash · scan fresh · ×1 · 50%")
+        == "quiet · 1 fold · scan ×1 50%"
+    )
+    assert (
+        soft_allow_lean_meta(
+            "clash · laya stale · debate aging · ×2 · 67%"
+        )
+        == "quiet · 1 fold · memory ×2 67%"
+    )
+    assert (
         soft_allow_lean_meta("clash · scan stale", warn=True)
         == "clash · scan"
     )
@@ -1959,7 +1969,7 @@ def test_soft_allow_glance_scan_clash_expired_vs_fresh() -> None:
     assert g["ready"] is True
     assert g["last_freshness"] == "stale"
     assert g["scan_freshness"] == "fresh"
-    assert g["scan_vs_soft_allow_clash"] == "clash · scan fresh"
+    assert g["scan_vs_soft_allow_clash"] == "clash · scan fresh · ×1 · 100%"
     assert g["tone"] == "warn"
     assert g["severity"] == "cool"
     assert g["line"].startswith("cool · clash · scan fresh · ")
@@ -2012,9 +2022,30 @@ def test_soft_allow_glance_scan_clash_fresh_vs_stale() -> None:
     )
     assert g["last_freshness"] == "fresh"
     assert g["scan_freshness"] == "stale"
-    assert g["scan_vs_soft_allow_clash"] == "clash · scan stale"
+    assert g["scan_vs_soft_allow_clash"] == "clash · scan stale · ×1 · 100%"
     assert g["tone"] == "warn"
     assert g["line"].startswith("hot · clash · scan stale · ")
+    # Last-clock band ≠ whole ring (one fresh row, one expired).
+    expired_at = (now - timedelta(hours=30)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    mixed = build_soft_allow_glance(
+        [
+            {
+                "at": fresh_at,
+                "gate": "breadth",
+                "reason": "unknown breadth — allow",
+            },
+            {
+                "at": expired_at,
+                "gate": "rs",
+                "reason": "AAPL RS unknown — allow",
+            },
+        ],
+        now=now,
+        scan_time=stale_scan,
+        scan_interval_sec=900,
+    )
+    assert mixed["scan_vs_soft_allow_clash"] == "clash · scan stale · ×1 · 50%"
+    assert "scan ×1 50%" in mixed["soft_lean_meta"]
 
 
 def test_soft_allow_glance_gap_vs_scan_when_last_matches_scan() -> None:
@@ -2245,7 +2276,7 @@ def test_soft_allow_glance_vs_memory_clock_clash() -> None:
     assert g["laya_freshness"] == "stale"
     assert g["debate_freshness"] == "aging"
     assert g["soft_vs_memory_clock_clash"] == (
-        "clash · laya stale · debate aging"
+        "clash · laya stale · debate aging · ×1 · 100%"
     )
     assert g["soft_vs_memory_clock_clash_warn"] is True
     assert g["tone"] == "warn"
@@ -2284,7 +2315,9 @@ def test_soft_allow_glance_vs_memory_clock_clash() -> None:
         laya_freshness="fresh",
         debate_freshness="stale",
     )
-    assert one["soft_vs_memory_clock_clash"] == "clash · debate stale"
+    assert one["soft_vs_memory_clock_clash"] == (
+        "clash · debate stale · ×1 · 100%"
+    )
     assert one["soft_vs_memory_clock_clash_warn"] is True
     assert "clash · debate stale" in one["line"]
     assert "laya" not in one["soft_vs_memory_clock_clash"]

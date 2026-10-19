@@ -1673,7 +1673,15 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
         ),
         "",
     ),
-    (re.compile(r"^clash · scan\b"), "scan"),
+    # ``×N`` / share ride so soft≠scan is not a nameless last-clock band
+    # (soft≠cash ring-size parity; portfolio AI count≠share).
+    (
+        re.compile(
+            r"^clash · scan(?: \S+)?"
+            r"(?: · (×\d+))?(?: · (\d+(?:\.\d+)?%))?"
+        ),
+        "scan",
+    ),
     # ``×N`` / share ride so soft≠gap is not a nameless gap sleeve
     # (gap/scan ring-size parity; portfolio AI count≠share).
     (
@@ -1692,7 +1700,16 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
         ),
         "soft/cash",
     ),
-    (re.compile(r"^clash · (?:laya|debate)\b"), "memory"),
+    # ``×N`` / share ride so soft≠memory is not a nameless last-clock band
+    # (soft≠cash ring-size parity; both advisory sides stay one stage).
+    (
+        re.compile(
+            r"^clash · (?:laya|debate)(?: \S+)?"
+            r"(?: · (?:laya|debate)(?: \S+)?)*"
+            r"(?: · (×\d+))?(?: · (\d+(?:\.\d+)?%))?"
+        ),
+        "memory",
+    ),
     # ``×N`` / share ride so a generation verb is not a nameless gap sleeve
     # (portfolio AI count≠share; relationship ring-size parity).
     (
@@ -1909,9 +1926,10 @@ def build_soft_allow_glance(
     ``fresh_hours``. Speak fresh + aging + expired counts (+ gate tallies)
     so friends see live fail-opens beside rows that cool off.
     When the scan archive band disagrees with the newest soft-allow clock
-    (``expired``≡``stale``), speak ``clash · scan fresh|aging|stale``
+    (``expired``≡``stale``), speak ``clash · scan fresh|aging|stale · ×N · P%``
     (xang1234 #549 coherent generations + LAYA/debate scan-clash parity —
-    a fresh scan does not make an expired fail-open live; mixed generation
+    a fresh scan does not make an expired fail-open live; ``×N · P%`` is
+    the last-clock band so the verb is not a nameless ring; mixed generation
     escalates tone to warn).     When a gap cursor disagrees with the scan
     even if soft-allow last matches, the gap bit speaks
     ``clash · gap expired|aging|fresh · scan …`` (e3c84e1 generation
@@ -2196,6 +2214,10 @@ def build_soft_allow_glance(
     scan_vs_soft_allow_clash = (
         _clock_clash(last_clock, scan=scan_freshness) if last_clock else ""
     )
+    if scan_vs_soft_allow_clash:
+        scan_vs_soft_allow_clash += soft_allow_clock_band_size(
+            rows, clock=last_clock
+        )
     soft_vs_gap_clock_clash, soft_vs_gap_clock_clash_warn = (
         soft_allow_vs_gap_clock_clash(
             rows, soft_last_freshness=last_clock, now=now
@@ -2215,6 +2237,10 @@ def build_soft_allow_glance(
         if last_clock
         else ""
     )
+    if soft_vs_memory_clock_clash:
+        soft_vs_memory_clock_clash += soft_allow_clock_band_size(
+            rows, clock=last_clock
+        )
     soft_vs_memory_clock_clash_warn = bool(soft_vs_memory_clock_clash)
     anchor_gap_last = soft_allow_anchor_gap_last_symbol(rows)
     anchor_gap_last_freshness = soft_allow_anchor_gap_last_freshness(
