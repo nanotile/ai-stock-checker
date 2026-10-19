@@ -1442,10 +1442,11 @@ def soft_allow_lead_vs_config(
     """Lead ring ownership vs Ops soft-gate toggle (display only).
 
     Compact ``rs leads · fresh · ×N`` hid whether that gate is still on.
-    When lead already spoke and the matching Ops toggle is explicitly off,
-    speak ``clash · lead rs · RS off`` (tradermonty #576 same-run provenance
-    — ring handoff ≠ live config). Gate on / missing key / unknown gate /
-    no lead stay silent. Not a gate.
+    When lead already spoke and the matching Ops toggle is present:
+    - explicitly off → ``clash · lead rs · RS off`` (warn)
+    - explicitly on → ``agree · lead rs · RS on`` (speak-both-sides; no warn)
+    Missing key / unknown gate / no lead stay silent (tradermonty #576
+    same-run provenance — ring handoff vs live config). Not a gate.
     """
     if not isinstance(runtime, Mapping):
         return ""
@@ -1457,7 +1458,7 @@ def soft_allow_lead_vs_config(
     if key not in runtime:
         return ""
     if bool(runtime.get(key)):
-        return ""
+        return f"agree · lead {lead} · {label} on"
     return f"clash · lead {lead} · {label} off"
 
 

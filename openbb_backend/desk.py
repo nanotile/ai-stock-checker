@@ -2248,7 +2248,8 @@ def build_soft_allow_glance(
     lead_vs_config = (
         soft_allow_lead_vs_config(lead_gate, runtime) if lead_gate else ""
     )
-    if lead_vs_config and tone != "warn":
+    # Clash escalates warn; agree is speak-both-sides only.
+    if lead_vs_config.startswith("clash") and tone != "warn":
         tone = "warn"
     sample_gap = soft_allow_sample_gap(
         rows, band=lead_band, lead_gate=lead_gate

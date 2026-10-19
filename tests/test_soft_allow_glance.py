@@ -17,10 +17,13 @@ def test_soft_allow_last_vs_lead_helper() -> None:
 
 
 def test_soft_allow_lead_vs_config_helper() -> None:
-    """tradermonty #576 same-run: lead ring ≠ Ops toggle off."""
+    """tradermonty #576 same-run: lead ring vs Ops toggle clash|agree."""
     assert soft_allow_lead_vs_config("rs", None) == ""
-    assert soft_allow_lead_vs_config("rs", {"rs_gate": True}) == ""
     assert soft_allow_lead_vs_config("rs", {}) == ""
+    assert (
+        soft_allow_lead_vs_config("rs", {"rs_gate": True})
+        == "agree · lead rs · RS on"
+    )
     assert (
         soft_allow_lead_vs_config("rs", {"rs_gate": False})
         == "clash · lead rs · RS off"
@@ -28,6 +31,10 @@ def test_soft_allow_lead_vs_config_helper() -> None:
     assert (
         soft_allow_lead_vs_config("regime", {"regime_gate": False})
         == "clash · lead regime · regime off"
+    )
+    assert (
+        soft_allow_lead_vs_config("regime", {"regime_gate": True})
+        == "agree · lead regime · regime on"
     )
     assert soft_allow_lead_vs_config("earnings", {"rs_gate": False}) == ""
 
@@ -1044,7 +1051,7 @@ def test_soft_allow_glance_lead_gate_hot() -> None:
 
 
 def test_soft_allow_glance_lead_vs_config_off() -> None:
-    """tradermonty #576: lead rs with RS gate off speaks clash + warn."""
+    """tradermonty #576: lead rs vs RS toggle speaks clash|agree."""
     now = datetime(2026, 9, 23, 12, 0, tzinfo=timezone.utc)
     fresh = (now - timedelta(hours=2)).strftime("%Y-%m-%dT%H:%M:%SZ")
     rows = [
@@ -1055,8 +1062,12 @@ def test_soft_allow_glance_lead_vs_config_off() -> None:
     on = build_soft_allow_glance(
         rows, now=now, runtime={"rs_gate": True, "breadth_gate": True}
     )
-    assert on["lead_vs_config"] == ""
-    assert on["tone"] == "warn"  # hot severity already warns
+    assert on["lead_vs_config"] == "agree · lead rs · RS on"
+    assert "agree · lead rs · RS on" in on["line"]
+    assert on["line"].index("rs leads") < on["line"].index(
+        "agree · lead rs · RS on"
+    )
+    assert on["tone"] == "warn"  # hot severity already warns; agree does not escalate
     off = build_soft_allow_glance(
         rows, now=now, runtime={"rs_gate": False, "breadth_gate": True}
     )
@@ -1080,6 +1091,18 @@ def test_soft_allow_glance_lead_vs_config_off() -> None:
     assert cooling["severity"] == "aging"
     assert cooling["lead_vs_config"] == "clash · lead rs · RS off"
     assert cooling["tone"] == "warn"
+    # Agree on aging does not escalate flat → warn.
+    cooling_on = build_soft_allow_glance(
+        [
+            {"at": aging, "gate": "rs", "reason": "insufficient a"},
+            {"at": aging, "gate": "rs", "reason": "insufficient b"},
+        ],
+        now=now,
+        runtime={"rs_gate": True},
+    )
+    assert cooling_on["severity"] == "aging"
+    assert cooling_on["lead_vs_config"] == "agree · lead rs · RS on"
+    assert cooling_on["tone"] == "flat"
 
 
 def test_soft_allow_glance_lead_gate_aging() -> None:
