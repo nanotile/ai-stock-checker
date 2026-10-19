@@ -42,6 +42,22 @@ def test_soft_allow_lead_vs_config_helper() -> None:
 def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
     """Quiet chip names gen/gap sleeves; hot appends stages after clash|hot."""
     assert soft_allow_lean_meta("") == "quiet"
+    # lead↔Ops toggle (tradermonty #576) — gate + on|off ride with the stage.
+    assert (
+        soft_allow_lean_meta("agree · lead rs · RS on")
+        == "quiet · 1 fold · lead/config rs on"
+    )
+    assert (
+        soft_allow_lean_meta("clash · lead rs · RS off", warn=True)
+        == "clash · lead/config rs off"
+    )
+    assert (
+        soft_allow_lean_meta(
+            "clash · lead rs · RS off · clash · scan stale",
+            warn=True,
+        )
+        == "clash · lead/config rs off · scan"
+    )
     assert soft_allow_lean_meta("clash · scan fresh") == "quiet · 1 fold · scan"
     assert (
         soft_allow_lean_meta(
@@ -1064,6 +1080,9 @@ def test_soft_allow_glance_lead_vs_config_off() -> None:
     )
     assert on["lead_vs_config"] == "agree · lead rs · RS on"
     assert "agree · lead rs · RS on" in on["line"]
+    assert "agree · lead rs · RS on" in on["soft_lean"]
+    assert on["soft_lean_meta"] == "quiet · 1 fold · lead/config rs on"
+    assert on["soft_lean_warn"] is False
     assert on["line"].index("rs leads") < on["line"].index(
         "agree · lead rs · RS on"
     )
@@ -1074,6 +1093,9 @@ def test_soft_allow_glance_lead_vs_config_off() -> None:
     assert off["lead_gate"] == "rs"
     assert off["lead_vs_config"] == "clash · lead rs · RS off"
     assert "clash · lead rs · RS off" in off["line"]
+    assert "clash · lead rs · RS off" in off["soft_lean"]
+    assert off["soft_lean_warn"] is True
+    assert off["soft_lean_meta"] == "clash · lead/config rs off"
     assert off["line"].index("rs leads") < off["line"].index(
         "clash · lead rs · RS off"
     )
@@ -1091,6 +1113,10 @@ def test_soft_allow_glance_lead_vs_config_off() -> None:
     assert cooling["severity"] == "aging"
     assert cooling["lead_vs_config"] == "clash · lead rs · RS off"
     assert cooling["tone"] == "warn"
+    # Config clash alone opens the lean fold (no gen-clash / RS-gap).
+    assert cooling["soft_lean"] == "clash · lead rs · RS off"
+    assert cooling["soft_lean_warn"] is True
+    assert cooling["soft_lean_meta"] == "clash · lead/config rs off"
     # Agree on aging does not escalate flat → warn.
     cooling_on = build_soft_allow_glance(
         [
@@ -1103,6 +1129,9 @@ def test_soft_allow_glance_lead_vs_config_off() -> None:
     assert cooling_on["severity"] == "aging"
     assert cooling_on["lead_vs_config"] == "agree · lead rs · RS on"
     assert cooling_on["tone"] == "flat"
+    assert cooling_on["soft_lean"] == "agree · lead rs · RS on"
+    assert cooling_on["soft_lean_warn"] is False
+    assert cooling_on["soft_lean_meta"] == "quiet · 1 fold · lead/config rs on"
 
 
 def test_soft_allow_glance_lead_gate_aging() -> None:

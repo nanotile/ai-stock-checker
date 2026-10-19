@@ -1612,6 +1612,15 @@ _SOFT_LEAN_VS_OTHER = (
     r"(?: · (vs \d+ other)(?: · (strong|thin))? · (\d+(?:\.\d+)?%))?"
 )
 _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
+    # Lead ring vs Ops soft toggle (tradermonty #576 provenance). Gate +
+    # on|off ride so ``agree`` / ``clash`` alone do not hide which sleeve
+    # and whether the live knob matches the fail-open owner.
+    (
+        re.compile(
+            r"^(?:agree|clash) · lead ([a-z]+) · \S+ (on|off)\b"
+        ),
+        "lead/config",
+    ),
     (re.compile(r"^clash · scan\b"), "scan"),
     (re.compile(r"^clash · soft \S+ · gap\b"), "soft/gap"),
     (re.compile(r"^clash · soft \S+ · cash\b"), "soft/cash"),
@@ -1706,16 +1715,19 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
 def soft_allow_lean_meta(soft_lean: str, *, warn: bool = False) -> str:
     """Summary chip for soft-allow lean fold — which cascades spoke / why open.
 
-    Quiet names sleeves that spoke (``quiet · N folds · scan · gap AAPL fresh``),
-    so the primary line does not claim gen-clash or RS-gap when those bits are
-    absent. The gap stage keeps ``last SYM`` and ``fresh|aging|expired`` so a
-    bare count does not hide the cursor (xang1234 #546 + RyanJHamby age) or
-    age↔share / gap-vs-other lean (Screener weight + FinRobot last-row).
-    ``n=1`` / ``tied`` / ``lead SYM N P%`` (plus ``agree`` or ``vs lead``)
-    follow so the cursor name is not treated as ring ownership and the
-    owner's count is not dropped while the runner keeps ``N P%``. When a runner
-    exists, one stage names ``ahead wide|thin +K vs SYM N P%`` so ownership
-    % is not how far ahead and not who is #2 (sole 100% stays silent).
+    Quiet names sleeves that spoke (``quiet · N folds · lead/config rs on ·
+    scan · gap AAPL fresh``), so the primary line does not claim gen-clash,
+    lead↔Ops, or RS-gap when those bits are absent. ``lead/config`` keeps
+    the gate and on|off so ring ownership is not treated as live knob
+    (tradermonty #576). The gap stage keeps ``last SYM`` and
+    ``fresh|aging|expired`` so a bare count does not hide the cursor
+    (xang1234 #546 + RyanJHamby age) or age↔share / gap-vs-other lean
+    (Screener weight + FinRobot last-row). ``n=1`` / ``tied`` /
+    ``lead SYM N P%`` (plus ``agree`` or ``vs lead``) follow so the cursor
+    name is not treated as ring ownership and the owner's count is not
+    dropped while the runner keeps ``N P%``. When a runner exists, one
+    stage names ``ahead wide|thin +K vs SYM N P%`` so ownership % is not
+    how far ahead and not who is #2 (sole 100% stays silent).
     Relationship stages keep ``align`` / ``clash`` plus the age and heat
     that follow (``last/share align fresh hot``, ``gap/other align
     hot|thin``, ``share/lean clash share clash lean align``) so a verb
@@ -2287,10 +2299,18 @@ def build_soft_allow_glance(
         )
         if b
     ]
-    soft_lean_parts = [b for b in (*gen_clash_bits, anchor_gap_bit) if b]
+    # lead↔Ops sits in the lean fold so a config clash can open the chip
+    # when gen-clash / RS-gap are quiet (aging ring + RS off), and so the
+    # inventory names lead/config when other sleeves already opened it.
+    soft_lean_parts = [
+        b
+        for b in (lead_vs_config, *gen_clash_bits, anchor_gap_bit)
+        if b
+    ]
     soft_lean = " · ".join(soft_lean_parts)
     soft_lean_warn = bool(
-        scan_vs_soft_allow_clash
+        lead_vs_config.startswith("clash")
+        or scan_vs_soft_allow_clash
         or soft_vs_gap_clock_clash_warn
         or soft_vs_cash_clock_clash_warn
         or soft_vs_memory_clock_clash_warn
