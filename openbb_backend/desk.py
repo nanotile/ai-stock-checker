@@ -1622,7 +1622,9 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
     # and whether the live knob matches the fail-open owner.
     (
         re.compile(
-            r"^(?:agree|clash) · lead ([a-z]+) · \S+ (on|off)\b"
+            r"^(?:agree|clash) · lead ([a-z]+)"
+            r"(?: · (×\d+))?(?: · (\d+(?:\.\d+)?%))?"
+            r" · \S+ (on|off)\b"
         ),
         "lead/config",
     ),
@@ -1764,8 +1766,9 @@ def soft_allow_lean_meta(soft_lean: str, *, warn: bool = False) -> str:
     last/lead rs · last/config align both agree · scan · gap AAPL
     fresh``), so the primary line does not claim gen-clash, lead↔Ops,
     last≠lead, last/config meta, or RS-gap when those bits are absent.
-    ``lead/config`` keeps the gate and on|off so ring ownership is not
-    treated as live knob (tradermonty #576). ``last/lead`` keeps the
+    ``lead/config`` keeps the gate, ``×N`` / share, and on|off so ring
+    ownership is not treated as a nameless live knob (tradermonty #576
+    + portfolio AI count≠share). ``last/lead`` keeps the
     newest gate so ``rs leads`` is not treated as the live last row
     (FinRobot last≠tilt). ``last/config`` keeps align|clash plus
     both/crossed polarity so side-by-side last/lead + lead/config alone
@@ -1890,7 +1893,7 @@ def build_soft_allow_glance(
     after the lead bit — FinRobot last ≠ ring tilt + portfolio AI
     speak-both-sides (silent confirm hid match; LAYA/debate parity).
     When lead already spoke and the matching Ops soft toggle is off,
-    speak ``clash · lead rs · RS off`` (tradermonty #576 same-run
+    speak ``clash · lead rs · ×N · P% · RS off`` (tradermonty #576 same-run
     provenance — ring handoff ≠ live config; escalate warn).
     When no lead, 1 band row speaks ``n=1``; ≥2 with no strict lead
     speaks ``tied`` (``soft_allow_sample_gap``; empty still ready=false;
@@ -2350,7 +2353,14 @@ def build_soft_allow_glance(
     else:
         last_vs_lead = last_vs_lead_raw
     lead_vs_config = (
-        soft_allow_lead_vs_config(lead_gate, runtime) if lead_gate else ""
+        soft_allow_lead_vs_config(
+            lead_gate,
+            runtime,
+            lead_count=lead_count,
+            lead_share_pct=lead_share_pct,
+        )
+        if lead_gate
+        else ""
     )
     # Clash escalates warn; agree is speak-both-sides only.
     if lead_vs_config.startswith("clash") and tone != "warn":

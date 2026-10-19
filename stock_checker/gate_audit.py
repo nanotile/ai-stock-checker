@@ -1441,13 +1441,18 @@ _SOFT_ALLOW_LEAD_CONFIG: dict[str, tuple[str, str]] = {
 def soft_allow_lead_vs_config(
     lead_gate: str,
     runtime: Mapping[str, Any] | None,
+    *,
+    lead_count: int = 0,
+    lead_share_pct: float | None = None,
 ) -> str:
     """Lead ring ownership vs Ops soft-gate toggle (display only).
 
     Compact ``rs leads · fresh · ×N`` hid whether that gate is still on.
     When lead already spoke and the matching Ops toggle is present:
-    - explicitly off → ``clash · lead rs · RS off`` (warn)
-    - explicitly on → ``agree · lead rs · RS on`` (speak-both-sides; no warn)
+    - explicitly off → ``clash · lead rs · ×N · P% · RS off`` (warn)
+    - explicitly on → ``agree · lead rs · ×N · P% · RS on`` (no warn)
+    Count and share ride on the bit so the lean chip is not a nameless
+    knob (portfolio AI count≠share). Missing count omits the size.
     Missing key / unknown gate / no lead stay silent (tradermonty #576
     same-run provenance — ring handoff vs live config). Not a gate.
     """
@@ -1460,9 +1465,14 @@ def soft_allow_lead_vs_config(
     key, label = mapped
     if key not in runtime:
         return ""
+    size = ""
+    if lead_count > 0:
+        size = f" · ×{lead_count}"
+        if lead_share_pct is not None:
+            size += f" · {int(round(float(lead_share_pct)))}%"
     if bool(runtime.get(key)):
-        return f"agree · lead {lead} · {label} on"
-    return f"clash · lead {lead} · {label} off"
+        return f"agree · lead {lead}{size} · {label} on"
+    return f"clash · lead {lead}{size} · {label} off"
 
 
 def soft_allow_last_lead_vs_config(
