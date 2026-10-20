@@ -704,7 +704,9 @@ def build_scan_freshness(
     adjacent). When only one market owns the worst print, name that sleeve
     (xang1234 #531 market-pointer) and the calmer runner sleeve when both
     are pinned (portfolio AI speak-both-sides), plus ``sleeve Δ wide|thin``
-    for the worst↔runner gap (share-Δ after naming). Not an entry gate.
+    for the worst↔runner gap (share-Δ after naming) and ``runner · ×N · P%``
+    on the calmer sleeve ring when it already spoke (worst size alone hid
+    runner ownership). Not an entry gate.
     """
     empty = {
         "ready": False,
@@ -760,13 +762,19 @@ def build_scan_freshness(
         else ""
     )
     # Soft/LAYA/debate ≠ cash already name the cash sleeve ring; scan≠cash
-    # stayed a nameless generation verb beside Δ alone.
+    # stayed a nameless generation verb beside Δ alone. Worst ring size is
+    # not the runner: when a calmer sleeve already spoke, name its ring too
+    # (portfolio AI speak-both-sides after sleeve Δ).
     if clash and cash_worst:
         clash += cash_print_band_size(print_meta, clock=cash_worst)
     if clash and clash_delta:
         clash = f"{clash} · Δ {clash_delta}"
     if clash and sleeve_delta:
         clash = f"{clash} · sleeve Δ {sleeve_delta}"
+    if clash and runner_band:
+        runner_ring = cash_print_band_size(print_meta, clock=runner_band)
+        if runner_ring:
+            clash = f"{clash} · runner{runner_ring}"
     line = f"Scan {age_label} · {tone}"
     if provenance_bit:
         line = f"{line} · {provenance_bit}"

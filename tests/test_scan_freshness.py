@@ -555,7 +555,8 @@ def test_scan_freshness_weekend_morning_sleeve_delta() -> None:
     assert g["scan_vs_cash_clash_sleeve_delta"] == "thin"
     assert g["scan_vs_cash_clash"] == (
         "scan vs cash clash · scan fresh · Xetra cash aging · US fresh"
-        " · ×1 · 50% · Δ thin · sleeve Δ thin"
+        " · ×1 · 50% · Δ thin · sleeve Δ thin · runner · ×1 · 50%"
     )
     assert "×1 · 50%" in g["line"]
     assert "sleeve Δ thin" in g["line"]
+    assert "runner · ×1 · 50%" in g["line"]
