@@ -558,53 +558,6 @@ def memory_advisory_pin_size(
     return f" · ×{len(clashed)} · {share}%"
 
 
-def memory_advisory_band_size(
-    events: list[Mapping[str, Any]] | None,
-    *,
-    clock: str,
-    now: Optional[datetime] = None,
-    scan_interval_sec: int = 900,
-) -> str:
-    """`` · ×N · P%`` for advisory rows on one scan clock (display only).
-
-    LAYA/debate ≠ scan (and peer debate/laya inside the same clash) name a
-    generation verb. Soft≠scan already carries the soft last-clock band;
-    this is the advisory memory ring (rows whose ``at`` maps to the spoken
-    own band) so those clashes are not a nameless sleeve. Missing stamp /
-    band stays silent. Not a gate.
-    """
-    want = str(clock or "").strip().casefold()
-    if want == "expired":
-        want = "stale"
-    elif want == "unknown":
-        want = "fresh"
-    if want not in {"fresh", "aging", "stale"}:
-        return ""
-    rows = [r for r in (events or []) if isinstance(r, Mapping)]
-    if not rows:
-        return ""
-    bands: list[str] = []
-    for row in rows:
-        at = str(row.get("at") or "").strip()
-        if not at:
-            continue
-        pack = build_scan_freshness(
-            at, now=now, scan_interval_sec=scan_interval_sec
-        )
-        tone = str(pack.get("tone") or "").strip().casefold()
-        if tone == "expired":
-            tone = "stale"
-        if tone in {"fresh", "aging", "stale"}:
-            bands.append(tone)
-    if not bands:
-        return ""
-    n = sum(1 for band in bands if band == want)
-    if n <= 0:
-        return ""
-    share = int(round(100.0 * n / len(bands)))
-    return f" · ×{n} · {share}%"
-
-
 def memory_vs_cash_clock_clash(
     own_freshness: str, cash_band: str, *, side: str = "soft"
 ) -> tuple[str, bool]:
@@ -23588,11 +23541,12 @@ def build_laya_glance(
         # Soft≠scan names scan-only; own≠scan must name the same archive
         # pin — advisory ring ×N lied advisory coverage was the scan
         # print (#647 / #531). Peer-only (own matches scan, debate
-        # disagrees) names the debate ring so ``debate {tone}`` is not a
-        # nameless sleeve — but only when peer soft/gap/cash are silent
-        # (those bits already carry size and need the 96-char clip).
-        # When scan is already on the clash, scan-only rides and peer
-        # stays short.
+        # disagrees) names scan-only then debate-only — peer ring ×N
+        # lied peer membership was the relationship, and silent scan
+        # hid that own matches the archive pin (soft≠scan / own≠scan
+        # scan-only parity). Omitted when peer soft/gap/cash already
+        # speak size so the 96-char clip keeps those bits. When scan is
+        # already on the clash, own+scan pins ride and peer stays short.
         peer_ring = ""
         if clash and "scan " in clash:
             # Soft≠scan speaks soft-only then scan-only; LAYA≠scan must
@@ -23600,13 +23554,9 @@ def build_laya_glance(
             clash += memory_own_pin_size(side="laya", freshness=freshness)
             clash += scan_archive_pin_size(scan_freshness=scan_freshness)
         elif clash and "debate " in clash and debate_freshness:
-            from stock_checker.ai_validate_memory import load_ai_validate_memory
-
-            peer_ring = memory_advisory_band_size(
-                load_ai_validate_memory(root),
-                clock=debate_freshness,
-                now=now,
-                scan_interval_sec=scan_interval_sec,
+            peer_ring = scan_archive_pin_size(scan_freshness=scan_freshness)
+            peer_ring += memory_own_pin_size(
+                side="debate", freshness=debate_freshness
             )
         laya_vs_cash_clock_clash, laya_vs_cash_clock_clash_warn = (
             memory_vs_cash_clock_clash(freshness, cash_band, side="laya")
@@ -24131,7 +24081,7 @@ def build_ai_debate_glance(
         scan_freshness = str(scan_pack.get("tone") or "")
         cash_band = str(scan_pack.get("scan_vs_cash_print") or "")
     laya_freshness = ""
-    from stock_checker.laya_decision import load_laya_decisions, laya_status
+    from stock_checker.laya_decision import laya_status
 
     laya_st = laya_status(root)
     newest_laya = (
@@ -24188,11 +24138,12 @@ def build_ai_debate_glance(
         # Soft≠scan names scan-only; own≠scan must name the same archive
         # pin — advisory ring ×N lied advisory coverage was the scan
         # print (#647 / #531). Peer-only (own matches scan, LAYA
-        # disagrees) names the LAYA ring so ``laya {tone}`` is not a
-        # nameless sleeve — but only when peer soft/gap/cash are silent
-        # (those bits already carry size and need the 96-char clip).
-        # When scan is already on the clash, scan-only rides and peer
-        # stays short.
+        # disagrees) names scan-only then laya-only — peer ring ×N
+        # lied peer membership was the relationship, and silent scan
+        # hid that own matches the archive pin (soft≠scan / own≠scan
+        # scan-only parity). Omitted when peer soft/gap/cash already
+        # speak size so the 96-char clip keeps those bits. When scan is
+        # already on the clash, own+scan pins ride and peer stays short.
         peer_ring = ""
         if clash and "scan " in clash:
             # Soft≠scan speaks soft-only then scan-only; debate≠scan must
@@ -24200,11 +24151,9 @@ def build_ai_debate_glance(
             clash += memory_own_pin_size(side="debate", freshness=freshness)
             clash += scan_archive_pin_size(scan_freshness=scan_freshness)
         elif clash and "laya " in clash and laya_freshness:
-            peer_ring = memory_advisory_band_size(
-                load_laya_decisions(root),
-                clock=laya_freshness,
-                now=now,
-                scan_interval_sec=scan_interval_sec,
+            peer_ring = scan_archive_pin_size(scan_freshness=scan_freshness)
+            peer_ring += memory_own_pin_size(
+                side="laya", freshness=laya_freshness
             )
         # Debate matching scan ≠ live cash (xang1234 #549; LAYA soft≠cash parity).
         debate_vs_cash_clock_clash, debate_vs_cash_clock_clash_warn = (

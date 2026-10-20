@@ -13,7 +13,6 @@ from openbb_backend.desk import (
     scan_archive_pin_size,
     soft_allow_pin_size,
     cash_print_freshness,
-    memory_advisory_band_size,
     memory_own_pin_size,
     memory_peer_cash_clock_clash,
     memory_peer_gap_clock_clash,
@@ -107,35 +106,6 @@ def test_cash_print_band_size() -> None:
     assert cash_print_band_size(us_only, clock="stale") == ""
     assert cash_print_band_size({}, clock="aging") == ""
     assert cash_print_band_size(None, clock="aging") == ""
-
-
-def test_memory_advisory_band_size() -> None:
-    """Advisory rows on one scan clock → ×N · P% (display only)."""
-    from datetime import timedelta
-
-    now = datetime(2026, 10, 6, 15, 0, tzinfo=timezone.utc)
-    fresh_at = (now - timedelta(minutes=5)).strftime("%Y-%m-%dT%H:%M:%SZ")
-    stale_at = (now - timedelta(hours=10)).strftime("%Y-%m-%dT%H:%M:%SZ")
-    sole = [{"at": stale_at, "symbol": "MSFT"}]
-    assert memory_advisory_band_size(
-        sole, clock="stale", now=now, scan_interval_sec=900
-    ) == " · ×1 · 100%"
-    mixed = [
-        {"at": stale_at, "symbol": "MSFT"},
-        {"at": fresh_at, "symbol": "NVDA"},
-    ]
-    assert memory_advisory_band_size(
-        mixed, clock="stale", now=now, scan_interval_sec=900
-    ) == " · ×1 · 50%"
-    assert memory_advisory_band_size(
-        mixed, clock="fresh", now=now, scan_interval_sec=900
-    ) == " · ×1 · 50%"
-    assert memory_advisory_band_size(
-        mixed, clock="aging", now=now, scan_interval_sec=900
-    ) == ""
-    assert memory_advisory_band_size([], clock="stale", now=now) == ""
-    assert memory_advisory_band_size(None, clock="stale", now=now) == ""
-    assert memory_advisory_band_size(sole, clock="", now=now) == ""
 
 
 def test_soft_allow_vs_cash_clock_clash_helper() -> None:
