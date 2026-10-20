@@ -340,6 +340,24 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
     )
     assert (
         soft_allow_lean_meta(
+            "clash · gap expired · cash aging · ×1 · 50% · US · 50%"
+        )
+        == "quiet · 1 fold · gap/cash ×1 50% US 50%"
+    )
+    assert (
+        soft_allow_lean_meta(
+            "clash · gap expired · cash aging · ×1 · 50% · US-only"
+        )
+        == "quiet · 1 fold · gap/cash ×1 50% US-only"
+    )
+    assert (
+        soft_allow_lean_meta(
+            "clash · gap expired · cash aging · ×1 · 50% · ×2 · 100%"
+        )
+        == "quiet · 1 fold · gap/cash ×1 50% ×2 100%"
+    )
+    assert (
+        soft_allow_lean_meta(
             "clash · gap expired · laya fresh · debate fresh · ×1 · 50%"
         )
         == "quiet · 1 fold · gap/memory ×1 50%"
@@ -2247,6 +2265,15 @@ def test_soft_allow_glance_gap_vs_cash_when_soft_matches_cash() -> None:
     assert g["soft_vs_cash_clock_clash"] == ""
     gap_cash = g["anchor_gap_vs_cash_clock_clash"]
     assert gap_cash.startswith("clash · gap expired · cash ")
+    # Gap sleeve ×N stays ownership; cash pin names coverage (#647 / #531).
+    assert " · ×" in gap_cash
+    assert (
+        gap_cash.endswith(" · US-only")
+        or gap_cash.endswith(" · Xetra-only")
+        or gap_cash.endswith(" · US · 50%")
+        or gap_cash.endswith(" · Xetra · 50%")
+        or gap_cash.endswith(" · ×2 · 100%")
+    )
     assert g["anchor_gap_vs_cash_clock_clash_warn"] is True
     assert gap_cash in g["anchor_gap_bit"]
     assert g["tone"] == "warn"

@@ -185,17 +185,22 @@ def soft_allow_anchor_gap_vs_cash_clock_clash(
     *,
     cash_band: str = "",
     now: datetime | None = None,
+    cash_pin_size: str = "",
 ) -> tuple[str, bool]:
     """Gap cursor vs pinned cash-print generation (display only).
 
     Returns ``(bit, warn)``. When newest gap-row clock ≠ worst
     last-published cash sleeve (``expired``≡``stale``), speak
-    ``clash · gap expired|aging|fresh · cash … · ×N · P%``. Same band / missing
-    either / live cash (no pin) silent. Soft matching the scan archive
-    (and soft≠cash) can still hide a gap cursor that matches soft but
-    not the cash print — closes gap↔cash beside soft↔cash + soft↔gap +
-    gap↔scan (xang1234 #549 / e3c84e1 coherent generations + portfolio
-    AI speak-both-sides). Not a gate.
+    ``clash · gap expired|aging|fresh · cash … · ×N · P%`` then optional
+    cash pin size (``US-only`` / ``US · 50%`` / ``×2 · 100%`` via
+    ``cash_pin_size``). Gap ``×N`` stays gap-sleeve ownership; pin size
+    names cash coverage so friends do not confuse the two (soft≠cash
+    wire + #647 / #531). Same band / missing either / live cash (no pin)
+    silent. Soft matching the scan archive (and soft≠cash) can still hide
+    a gap cursor that matches soft but not the cash print — closes
+    gap↔cash beside soft↔cash + soft↔gap + gap↔scan (xang1234 #549 /
+    e3c84e1 coherent generations + portfolio AI speak-both-sides). Not a
+    gate.
     """
     cash = str(cash_band or "").strip().casefold()
     if cash not in {"fresh", "aging", "stale"}:
@@ -208,7 +213,9 @@ def soft_allow_anchor_gap_vs_cash_clock_clash(
         gap_band if gap_band in {"fresh", "aging", "expired"} else gap_clock
     )
     size = _anchor_gap_ring_size(events)
-    return f"clash · gap {gap_speak} · cash {cash}{size}", True
+    raw_pin = str(cash_pin_size or "").strip().lstrip("·").strip()
+    pin = f" · {raw_pin}" if raw_pin else ""
+    return f"clash · gap {gap_speak} · cash {cash}{size}{pin}", True
 
 
 def soft_allow_anchor_gap_vs_memory_clock_clash(
@@ -812,6 +819,7 @@ def format_soft_allow_anchor_gap_bit(
     now: datetime | None = None,
     scan_freshness: str = "",
     cash_band: str = "",
+    cash_pin_size: str = "",
     laya_freshness: str = "",
     debate_freshness: str = "",
 ) -> str:
@@ -870,7 +878,10 @@ def format_soft_allow_anchor_gap_bit(
         if gap_vs_scan:
             head = f"{head} · {gap_vs_scan}"
         gap_vs_cash, _ = soft_allow_anchor_gap_vs_cash_clock_clash(
-            events, cash_band=cash_band, now=now
+            events,
+            cash_band=cash_band,
+            now=now,
+            cash_pin_size=cash_pin_size,
         )
         if gap_vs_cash:
             head = f"{head} · {gap_vs_cash}"

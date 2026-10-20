@@ -367,6 +367,15 @@ def test_soft_allow_anchor_gap_last_freshness() -> None:
         [expired_row, other], cash_band="aging", now=now
     ) == ("clash · gap expired · cash aging · ×1 · 50%", True)
     assert soft_allow_anchor_gap_vs_cash_clock_clash(
+        [expired_row, other],
+        cash_band="aging",
+        now=now,
+        cash_pin_size=" · US · 50%",
+    ) == (
+        "clash · gap expired · cash aging · ×1 · 50% · US · 50%",
+        True,
+    )
+    assert soft_allow_anchor_gap_vs_cash_clock_clash(
         [expired_row, other], cash_band="stale", now=now
     ) == ("", False)
     assert soft_allow_anchor_gap_vs_cash_clock_clash(

@@ -1861,9 +1861,12 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
         ),
         "gap/scan",
     ),
+    # Gap sleeve ``×N · P%`` then cash pin (US-only / venue · 50% /
+    # ×2 · 100%) so gap ownership ≠ cash coverage (#647 / #531).
     (
         re.compile(
             r"^clash · gap \S+ · cash(?: \S+)?"
+            r"(?: · (×\d+) · (\d+(?:\.\d+)?%))?"
             r"(?: · ((?:US|Xetra)-only)"
             r"| · (US|Xetra) · (\d+(?:\.\d+)?%)"
             r"| · (×\d+) · (\d+(?:\.\d+)?%))?"
@@ -2371,13 +2374,16 @@ def build_soft_allow_glance(
     soft_vs_cash_clock_clash, soft_vs_cash_clock_clash_warn = (
         soft_allow_vs_cash_clock_clash(last_clock, cash_band)
     )
-    if soft_vs_cash_clock_clash and cash_band:
+    cash_pin = (
+        cash_print_band_size(scan_pack, clock=cash_band)
+        if cash_band and scan_pack
+        else ""
+    )
+    if soft_vs_cash_clock_clash and cash_pin:
         # Soft≠scan already names the soft last-clock; soft≠cash must name
         # the cash pin sleeve (US-only / venue · 50% / ×2) — soft ring size
         # lied that advisory coverage was the cash print (#647 / #531).
-        soft_vs_cash_clock_clash += cash_print_band_size(
-            scan_pack, clock=cash_band
-        )
+        soft_vs_cash_clock_clash += cash_pin
     laya_tone = str(laya_freshness or "").strip()
     debate_tone = str(debate_freshness or "").strip()
     soft_vs_memory_clock_clash = (
@@ -2459,7 +2465,10 @@ def build_soft_allow_glance(
     )
     anchor_gap_vs_cash_clock_clash, anchor_gap_vs_cash_clock_clash_warn = (
         soft_allow_anchor_gap_vs_cash_clock_clash(
-            rows, cash_band=cash_band, now=now
+            rows,
+            cash_band=cash_band,
+            now=now,
+            cash_pin_size=cash_pin,
         )
     )
     (
@@ -2476,6 +2485,7 @@ def build_soft_allow_glance(
         now=now,
         scan_freshness=scan_freshness,
         cash_band=cash_band,
+        cash_pin_size=cash_pin,
         laya_freshness=laya_tone,
         debate_freshness=debate_tone,
     )
