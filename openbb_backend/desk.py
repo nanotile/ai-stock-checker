@@ -417,13 +417,12 @@ def soft_allow_pin_size(*, soft_freshness: str = "") -> str:
 def gap_cursor_pin_size(*, gap_freshness: str = "") -> str:
     """Gap cursor pin (display only).
 
-    LAYA/debate ≠ gap (and peer gap) name a generation verb. Gap sleeve
-    ``×N · P%`` lied fail-open gap-row ownership was the gap cursor print;
-    the newest gap stamp is a sole published pin like soft last / scan
-    archive → `` · gap-only`` (``soft-only`` / ``scan-only`` / ``US-only``
-    parity; xang1234 #647 venue-scope + #531). Soft≠gap on the soft-allow
-    glance still keeps sleeve ``×N · P%`` (ownership lives there).
-    Missing / unknown band silent. Not a gate.
+    Soft≠gap, LAYA/debate ≠ gap (and peer gap) name a generation verb.
+    Gap sleeve ``×N · P%`` lied fail-open gap-row ownership was the gap
+    cursor print; the newest gap stamp is a sole published pin like soft
+    last / scan archive → `` · gap-only`` (``soft-only`` / ``scan-only`` /
+    ``US-only`` parity; xang1234 #647 venue-scope + #531). Missing /
+    unknown band silent. Not a gate.
     """
     t = str(gap_freshness or "").strip().casefold()
     if t == "expired":
@@ -1937,12 +1936,13 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
         ),
         "scan",
     ),
-    # ``×N`` / share ride so soft≠gap is not a nameless gap sleeve
-    # (gap/scan ring-size parity; portfolio AI count≠share).
+    # Gap cursor pin (``gap-only``) so soft≠gap does not use gap sleeve
+    # size as if it were the cursor print (soft≠scan ``scan-only`` /
+    # LAYA≠gap ``gap-only`` / #647 / #531 parity).
     (
         re.compile(
             r"^clash · soft \S+ · gap \S+"
-            r"(?: · (×\d+))?(?: · (\d+(?:\.\d+)?%))?"
+            r"(?: · (gap-only))?"
         ),
         "soft/gap",
     ),
@@ -2501,11 +2501,6 @@ def build_soft_allow_glance(
         # name the scan archive (scan-only) — soft ring size lied that soft
         # coverage was the archive print (#647 / #531).
         scan_vs_soft_allow_clash += scan_pin
-    soft_vs_gap_clock_clash, soft_vs_gap_clock_clash_warn = (
-        soft_allow_vs_gap_clock_clash(
-            rows, soft_last_freshness=last_clock, now=now
-        )
-    )
     soft_vs_cash_clock_clash, soft_vs_cash_clock_clash_warn = (
         soft_allow_vs_cash_clock_clash(last_clock, cash_band)
     )
@@ -2544,6 +2539,19 @@ def build_soft_allow_glance(
     anchor_gap_last = soft_allow_anchor_gap_last_symbol(rows)
     anchor_gap_last_freshness = soft_allow_anchor_gap_last_freshness(
         rows, now=now
+    )
+    # Soft≠scan names scan-only; soft≠gap must name gap-only — gap sleeve
+    # ×N lied fail-open gap-row ownership was the gap cursor print
+    # (#647 / #531).
+    soft_vs_gap_clock_clash, soft_vs_gap_clock_clash_warn = (
+        soft_allow_vs_gap_clock_clash(
+            rows,
+            soft_last_freshness=last_clock,
+            now=now,
+            gap_pin_size=gap_cursor_pin_size(
+                gap_freshness=anchor_gap_last_freshness
+            ),
+        )
     )
     (
         anchor_gap_symbol_lead,
@@ -23611,9 +23619,9 @@ def build_laya_glance(
             _clock_clash(freshness, gap=gap_freshness) if gap_freshness else ""
         )
         if laya_vs_gap_clock_clash and gap_pin:
-            # Soft≠scan names scan-only; LAYA≠gap must name gap-only —
-            # gap sleeve ×N lied fail-open gap-row ownership was the gap
-            # cursor print (#647 / #531). Soft≠gap keeps sleeve ×N.
+            # Soft≠scan / soft≠gap name sole pins; LAYA≠gap must name
+            # gap-only — gap sleeve ×N lied fail-open gap-row ownership
+            # was the gap cursor print (#647 / #531).
             laya_vs_gap_clock_clash += gap_pin
         laya_vs_gap_clock_clash_warn = bool(laya_vs_gap_clock_clash)
         # LAYA matching gap can still hide debate ≠ gap (peer speak).
@@ -24162,7 +24170,7 @@ def build_ai_debate_glance(
         if debate_vs_gap_clock_clash and gap_pin:
             # Soft≠scan names scan-only; debate≠gap must name gap-only —
             # gap sleeve ×N lied fail-open gap-row ownership was the gap
-            # cursor print (#647 / #531). Soft≠gap keeps sleeve ×N.
+            # cursor print (#647 / #531).
             debate_vs_gap_clock_clash += gap_pin
         debate_vs_gap_clock_clash_warn = bool(debate_vs_gap_clock_clash)
         # Debate matching cash can still hide LAYA ≠ cash (peer speak).
