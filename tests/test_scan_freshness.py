@@ -25,7 +25,7 @@ from openbb_backend.desk import (
 
 
 def test_cash_print_band_size() -> None:
-    """Pinned US/Xetra sleeves → ×N · P%; sole pin → venue-only (#647)."""
+    """Sole pin → venue-only; dual half → named venue · 50% (#647/#531)."""
     both = {
         "cash_print_us_last_published": True,
         "cash_print_us_freshness": "aging",
@@ -39,7 +39,8 @@ def test_cash_print_band_size() -> None:
         "cash_print_xetra_last_published": True,
         "cash_print_xetra_freshness": "aging",
     }
-    assert cash_print_band_size(split, clock="stale") == " · ×1 · 50%"
+    assert cash_print_band_size(split, clock="stale") == " · US · 50%"
+    assert cash_print_band_size(split, clock="aging") == " · Xetra · 50%"
     assert cash_print_band_size(split, clock="fresh") == ""
     us_only = {
         "cash_print_us_last_published": True,
@@ -601,13 +602,13 @@ def test_scan_freshness_weekend_morning_sleeve_delta() -> None:
     assert g["scan_vs_cash_clash_delta_vs_sleeve_warn"] is False
     assert g["scan_vs_cash_clash"] == (
         "scan vs cash clash · scan fresh · Xetra cash aging · US fresh"
-        " · ×1 · 50% · Δ thin · sleeve Δ thin"
-        " · Δ vs sleeve Δ align · both thin · runner · ×1 · 50%"
+        " · Xetra · 50% · Δ thin · sleeve Δ thin"
+        " · Δ vs sleeve Δ align · both thin · runner · US · 50%"
     )
-    assert "×1 · 50%" in g["line"]
+    assert "Xetra · 50%" in g["line"]
     assert "sleeve Δ thin" in g["line"]
     assert "Δ vs sleeve Δ align · both thin" in g["line"]
-    assert "runner · ×1 · 50%" in g["line"]
+    assert "runner · US · 50%" in g["line"]
 
 
 def test_scan_freshness_delta_vs_sleeve_clash() -> None:

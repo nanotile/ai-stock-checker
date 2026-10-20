@@ -452,10 +452,11 @@ def soft_allow_clock_band_size(
 ) -> str:
     """`` · ×N · P%`` for rows on one scan clock (display only).
 
-    Soft≠cash, soft≠scan, and soft≠memory name a generation verb. Gap
-    bits already carry the gap sleeve; this is the last-clock band
-    (``expired``≡``stale``, ``unknown``≡``fresh``) so those clashes are
-    not a nameless ring. Missing band stays silent. Not a gate.
+    Soft≠scan and soft≠memory name a generation verb; this is the soft
+    last-clock band (``expired``≡``stale``, ``unknown``≡``fresh``) so
+    those clashes are not a nameless ring. Soft≠cash uses the cash pin
+    sleeve size instead (``cash_print_band_size``). Gap bits already
+    carry the gap sleeve. Missing band stays silent. Not a gate.
     """
     want = str(clock or "").strip().casefold()
     if want == "expired":

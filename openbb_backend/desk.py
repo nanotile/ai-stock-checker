@@ -375,15 +375,18 @@ def _scan_vs_cash_delta_vs_sleeve(
 
 
 def cash_print_band_size(meta: Mapping[str, Any] | None, *, clock: str) -> str:
-    """`` · ×N · P%`` or sole-pin `` · US-only|Xetra-only`` (display only).
+    """Cash pin ring size with venue pointer (display only).
 
-    Scan≠cash, LAYA/debate ≠ cash (and peer cash) name a generation verb.
-    Soft≠cash already carries the soft last-clock band; this is the cash
-    sleeve ring (US/Xetra last-published on the spoken worst band) so those
-    clashes are not a nameless sleeve. A sole pin speaking ``×1 · 100%``
-    lied that the spoken band covered all cash markets — xang1234 #647
-    gates US-only COT to the US market; here a one-venue pin speaks
-    ``US-only`` / ``Xetra-only`` instead. Dual-pin rings keep count≠share.
+    Scan≠cash, soft≠cash, LAYA/debate ≠ cash (and peer cash) name a
+    generation verb. This is the cash sleeve ring (US/Xetra last-published
+    on the spoken band) so those clashes are not a nameless sleeve.
+
+    - Sole pin → `` · US-only|Xetra-only`` (xang1234 #647 venue-scope;
+      sole ``×1 · 100%`` lied full-cash coverage).
+    - Dual pin, one band → `` · US|Xetra · 50%`` (#531 market-pointer;
+      nameless ``×1 · 50%`` hid which sleeve owns the half).
+    - Dual pin, both on band → `` · ×2 · 100%`` (count≠share).
+
     Missing pin / band stays silent. Not a gate.
     """
     want = str(clock or "").strip().casefold()
@@ -411,6 +414,8 @@ def cash_print_band_size(meta: Mapping[str, Any] | None, *, clock: str) -> str:
     if len(sleeves) == 1:
         return f" · {matched[0]}-only"
     share = int(round(100.0 * n / len(sleeves)))
+    if n == 1:
+        return f" · {matched[0]} · {share}%"
     return f" · ×{n} · {share}%"
 
 
@@ -725,18 +730,17 @@ def build_scan_freshness(
     (RyanJHamby triad; hours ≠ weekend vs same-evening). When the scan-archive
     tone disagrees with the worst pinned cash print, speak
     ``scan vs cash clash`` (compile clock ≠ snapshot age) plus
-    ``×N · P%`` on a dual-pin cash sleeve ring or ``US-only`` /
-    ``Xetra-only`` when only one venue is pinned (xang1234 #647
-    venue-scope; sole ``×1 · 100%`` lied full-cash coverage; portfolio AI
-    count≠share; soft/LAYA/debate ≠ cash parity) plus ``Δ wide|thin``
-    (fresh↔stale vs adjacent). When only one market owns the worst print,
-    name that sleeve (xang1234 #531 market-pointer) and the calmer runner
-    sleeve when both are pinned (portfolio AI speak-both-sides), plus
-    ``sleeve Δ wide|thin`` for the worst↔runner gap (share-Δ after naming),
-    ``Δ vs sleeve Δ align|clash`` when both gaps already spoke (portfolio AI
-    speak-both-sides after side-by-side Δ labels), and ``runner · ×N · P%``
-    on the calmer sleeve ring when it already spoke (worst size alone hid
-    runner ownership). Not an entry gate.
+    cash pin ring size (``US-only`` / ``Xetra · 50%`` / ``×2 · 100%`` —
+    xang1234 #647 venue-scope + #531 market-pointer; soft/LAYA/debate ≠
+    cash parity) plus ``Δ wide|thin`` (fresh↔stale vs adjacent). When only
+    one market owns the worst print, name that sleeve (xang1234 #531
+    market-pointer) and the calmer runner sleeve when both are pinned
+    (portfolio AI speak-both-sides), plus ``sleeve Δ wide|thin`` for the
+    worst↔runner gap (share-Δ after naming), ``Δ vs sleeve Δ align|clash``
+    when both gaps already spoke (portfolio AI speak-both-sides after
+    side-by-side Δ labels), and ``runner · US|Xetra · 50%`` on the calmer
+    sleeve when it already spoke (worst size alone hid runner ownership).
+    Not an entry gate.
     """
     empty = {
         "ready": False,
@@ -1827,14 +1831,14 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
         ),
         "soft/gap",
     ),
-    # ``×N`` / share or sole-pin ``US-only|Xetra-only`` so soft≠cash is
-    # not a nameless ring (soft≠gap ring-size parity; last-clock band,
-    # not the gap sleeve; xang1234 #647 venue-scope).
+    # Cash pin size: sole ``US-only`` · dual half ``US · 50%`` · both
+    # ``×2 · 100%`` (xang1234 #647 venue-scope + #531 market-pointer).
     (
         re.compile(
             r"^clash · soft \S+ · cash \S+"
-            r"(?: · ((?:US|Xetra)-only))?"
-            r"(?: · (×\d+))?(?: · (\d+(?:\.\d+)?%))?"
+            r"(?: · ((?:US|Xetra)-only)"
+            r"| · (US|Xetra) · (\d+(?:\.\d+)?%)"
+            r"| · (×\d+) · (\d+(?:\.\d+)?%))?"
         ),
         "soft/cash",
     ),
@@ -1860,8 +1864,9 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
     (
         re.compile(
             r"^clash · gap \S+ · cash(?: \S+)?"
-            r"(?: · ((?:US|Xetra)-only))?"
-            r"(?: · (×\d+))?(?: · (\d+(?:\.\d+)?%))?"
+            r"(?: · ((?:US|Xetra)-only)"
+            r"| · (US|Xetra) · (\d+(?:\.\d+)?%)"
+            r"| · (×\d+) · (\d+(?:\.\d+)?%))?"
         ),
         "gap/cash",
     ),
@@ -2344,6 +2349,7 @@ def build_soft_allow_glance(
     last_clock = _soft_allow_clock_tone(str(last.get("freshness") or ""))
     scan_freshness = ""
     cash_band = ""
+    scan_pack: dict[str, Any] | None = None
     if scan_time:
         scan_pack = build_scan_freshness(
             scan_time, now=now, scan_interval_sec=scan_interval_sec
@@ -2365,9 +2371,12 @@ def build_soft_allow_glance(
     soft_vs_cash_clock_clash, soft_vs_cash_clock_clash_warn = (
         soft_allow_vs_cash_clock_clash(last_clock, cash_band)
     )
-    if soft_vs_cash_clock_clash:
-        soft_vs_cash_clock_clash += soft_allow_clock_band_size(
-            rows, clock=last_clock
+    if soft_vs_cash_clock_clash and cash_band:
+        # Soft≠scan already names the soft last-clock; soft≠cash must name
+        # the cash pin sleeve (US-only / venue · 50% / ×2) — soft ring size
+        # lied that advisory coverage was the cash print (#647 / #531).
+        soft_vs_cash_clock_clash += cash_print_band_size(
+            scan_pack, clock=cash_band
         )
     laya_tone = str(laya_freshness or "").strip()
     debate_tone = str(debate_freshness or "").strip()
