@@ -332,13 +332,15 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
     # gap↔scan / cash / memory were silent on the chip (N gap alone ≠ generation).
     assert (
         soft_allow_lean_meta(
-            "clash · gap expired · scan fresh · ×1 · 50% · scan-only"
+            "clash · gap expired · scan fresh · gap-only · scan-only"
         )
-        == "quiet · 1 fold · gap/scan ×1 50% scan-only"
+        == "quiet · 1 fold · gap/scan gap-only scan-only"
     )
     assert (
-        soft_allow_lean_meta("clash · gap expired · scan fresh · ×1 · 50%")
-        == "quiet · 1 fold · gap/scan ×1 50%"
+        soft_allow_lean_meta(
+            "clash · gap expired · scan fresh · gap-only"
+        )
+        == "quiet · 1 fold · gap/scan gap-only"
     )
     assert (
         soft_allow_lean_meta("clash · gap aging · cash stale")
@@ -346,39 +348,40 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
     )
     assert (
         soft_allow_lean_meta(
-            "clash · gap expired · cash aging · ×1 · 50% · US · 50%"
+            "clash · gap expired · cash aging · gap-only · US · 50%"
         )
-        == "quiet · 1 fold · gap/cash ×1 50% US 50%"
+        == "quiet · 1 fold · gap/cash gap-only US 50%"
     )
     assert (
         soft_allow_lean_meta(
-            "clash · gap expired · cash aging · ×1 · 50% · US-only"
+            "clash · gap expired · cash aging · gap-only · US-only"
         )
-        == "quiet · 1 fold · gap/cash ×1 50% US-only"
+        == "quiet · 1 fold · gap/cash gap-only US-only"
     )
     assert (
         soft_allow_lean_meta(
-            "clash · gap expired · cash aging · ×1 · 50% · ×2 · 100%"
+            "clash · gap expired · cash aging · gap-only · ×2 · 100%"
         )
-        == "quiet · 1 fold · gap/cash ×1 50% ×2 100%"
+        == "quiet · 1 fold · gap/cash gap-only ×2 100%"
     )
     assert (
         soft_allow_lean_meta(
-            "clash · gap expired · laya fresh · debate fresh · ×1 · 50% · ×2 · 100%"
+            "clash · gap expired · laya fresh · debate fresh · "
+            "gap-only · ×2 · 100%"
         )
-        == "quiet · 1 fold · gap/memory ×1 50% ×2 100%"
+        == "quiet · 1 fold · gap/memory gap-only ×2 100%"
     )
     assert (
         soft_allow_lean_meta(
-            "clash · gap expired · debate stale · ×1 · 50% · debate-only"
+            "clash · gap expired · debate stale · gap-only · debate-only"
         )
-        == "quiet · 1 fold · gap/memory ×1 50% debate-only"
+        == "quiet · 1 fold · gap/memory gap-only debate-only"
     )
     assert (
         soft_allow_lean_meta(
-            "clash · gap expired · laya fresh · ×1 · 50% · laya · 50%"
+            "clash · gap expired · laya fresh · gap-only · laya · 50%"
         )
-        == "quiet · 1 fold · gap/memory ×1 50% laya 50%"
+        == "quiet · 1 fold · gap/memory gap-only laya 50%"
     )
     assert (
         soft_allow_lean_meta(
@@ -2140,14 +2143,13 @@ def test_soft_allow_glance_gap_vs_scan_when_last_matches_scan() -> None:
     assert g["soft_vs_gap_clock_clash_warn"] is True
     assert "clash · soft fresh · gap expired · gap-only" in g["line"]
     # Gap cursor is a different generation — speak both sides; soft≠gap
-    # names gap-only (sole cursor pin); gap≠scan keeps sleeve ×N · P%
-    # then scan-only.
+    # and gap≠scan both name gap-only (sole cursor pin) then scan-only.
     assert g["anchor_gap_vs_scan_clash"] == (
-        "clash · gap expired · scan fresh · ×1 · 50% · scan-only"
+        "clash · gap expired · scan fresh · gap-only · scan-only"
     )
     assert g["anchor_gap_vs_scan_clash_warn"] is True
     assert g["tone"] == "warn"
-    assert "clash · gap expired · scan fresh · ×1 · 50% · scan-only" in (
+    assert "clash · gap expired · scan fresh · gap-only · scan-only" in (
         g["anchor_gap_bit"]
     )
     assert "last AAPL · expired · clash · gap expired · scan fresh" in (
@@ -2297,8 +2299,8 @@ def test_soft_allow_glance_gap_vs_cash_when_soft_matches_cash() -> None:
     assert g["soft_vs_cash_clock_clash"] == ""
     gap_cash = g["anchor_gap_vs_cash_clock_clash"]
     assert gap_cash.startswith("clash · gap expired · cash ")
-    # Gap sleeve ×N stays ownership; cash pin names coverage (#647 / #531).
-    assert " · ×" in gap_cash
+    # Gap-only sole cursor pin; cash pin names coverage (#647 / #531).
+    assert " · gap-only · " in gap_cash
     assert (
         gap_cash.endswith(" · US-only")
         or gap_cash.endswith(" · Xetra-only")
@@ -2451,7 +2453,8 @@ def test_soft_allow_glance_gap_vs_memory_when_soft_matches_memory() -> None:
     assert g["anchor_gap_last_freshness"] == "expired"
     gap_mem = g["anchor_gap_vs_memory_clock_clash"]
     assert gap_mem == (
-        "clash · gap expired · laya fresh · debate fresh · ×1 · 50% · ×2 · 100%"
+        "clash · gap expired · laya fresh · debate fresh · "
+        "gap-only · ×2 · 100%"
     )
     assert g["anchor_gap_vs_memory_clock_clash_warn"] is True
     assert gap_mem in g["anchor_gap_bit"]

@@ -417,12 +417,12 @@ def soft_allow_pin_size(*, soft_freshness: str = "") -> str:
 def gap_cursor_pin_size(*, gap_freshness: str = "") -> str:
     """Gap cursor pin (display only).
 
-    Soft≠gap, LAYA/debate ≠ gap (and peer gap) name a generation verb.
-    Gap sleeve ``×N · P%`` lied fail-open gap-row ownership was the gap
-    cursor print; the newest gap stamp is a sole published pin like soft
-    last / scan archive → `` · gap-only`` (``soft-only`` / ``scan-only`` /
-    ``US-only`` parity; xang1234 #647 venue-scope + #531). Missing /
-    unknown band silent. Not a gate.
+    Soft≠gap, gap≠scan/cash/memory, LAYA/debate ≠ gap (and peer gap) name
+    a generation verb. Gap sleeve ``×N · P%`` lied fail-open gap-row
+    ownership was the gap cursor print; the newest gap stamp is a sole
+    published pin like soft last / scan archive → `` · gap-only``
+    (``soft-only`` / ``scan-only`` / ``US-only`` parity; xang1234 #647
+    venue-scope + #531). Missing / unknown band silent. Not a gate.
     """
     t = str(gap_freshness or "").strip().casefold()
     if t == "expired":
@@ -1972,36 +1972,38 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
         ),
         "memory",
     ),
-    # Gap sleeve ``×N · P%`` then scan pin (``scan-only``) so gap ownership
-    # ≠ archive coverage (gap≠cash / gap≠memory / #647 / #531).
+    # Gap cursor pin (``gap-only``) then scan pin (``scan-only``) so
+    # sleeve membership ≠ cursor print ≠ archive coverage (#647 / #531).
     (
         re.compile(
             r"^clash · gap \S+ · scan(?: \S+)?"
-            r"(?: · (×\d+) · (\d+(?:\.\d+)?%))?"
+            r"(?: · (gap-only))?"
             r"(?: · (scan-only))?"
         ),
         "gap/scan",
     ),
-    # Gap sleeve ``×N · P%`` then cash pin (US-only / venue · 50% /
-    # ×2 · 100%) so gap ownership ≠ cash coverage (#647 / #531).
+    # Gap cursor pin (``gap-only``) then cash pin (US-only / venue · 50% /
+    # ×2 · 100%) so sleeve membership ≠ cursor print ≠ cash coverage
+    # (#647 / #531).
     (
         re.compile(
             r"^clash · gap \S+ · cash(?: \S+)?"
-            r"(?: · (×\d+) · (\d+(?:\.\d+)?%))?"
+            r"(?: · (gap-only))?"
             r"(?: · ((?:US|Xetra)-only)"
             r"| · (US|Xetra) · (\d+(?:\.\d+)?%)"
             r"| · (×\d+) · (\d+(?:\.\d+)?%))?"
         ),
         "gap/cash",
     ),
-    # Gap sleeve ``×N · P%`` then advisory pin (laya-only / venue · 50% /
-    # ×2 · 100%) so gap ownership ≠ LAYA/debate coverage (#647 / #531).
-    # Tone words required so pin ``debate-only`` is not eaten as a side.
+    # Gap cursor pin (``gap-only``) then advisory pin (laya-only /
+    # venue · 50% / ×2 · 100%) so sleeve membership ≠ cursor print ≠
+    # LAYA/debate coverage (#647 / #531). Tone words required so pin
+    # ``debate-only`` is not eaten as a side.
     (
         re.compile(
             r"^clash · gap \S+ · (?:laya|debate) (?:fresh|aging|stale|expired)"
             r"(?: · (?:laya|debate) (?:fresh|aging|stale|expired))*"
-            r"(?: · (×\d+) · (\d+(?:\.\d+)?%))?"
+            r"(?: · (gap-only))?"
             r"(?: · ((?:laya|debate)-only)"
             r"| · (laya|debate) · (\d+(?:\.\d+)?%)"
             r"| · (×\d+) · (\d+(?:\.\d+)?%))?"
@@ -2540,17 +2542,16 @@ def build_soft_allow_glance(
     anchor_gap_last_freshness = soft_allow_anchor_gap_last_freshness(
         rows, now=now
     )
-    # Soft≠scan names scan-only; soft≠gap must name gap-only — gap sleeve
-    # ×N lied fail-open gap-row ownership was the gap cursor print
-    # (#647 / #531).
+    # Soft≠scan names scan-only; soft≠gap / gap≠scan|cash|memory must
+    # name gap-only — gap sleeve ×N lied fail-open gap-row ownership was
+    # the gap cursor print (#647 / #531).
+    gap_pin = gap_cursor_pin_size(gap_freshness=anchor_gap_last_freshness)
     soft_vs_gap_clock_clash, soft_vs_gap_clock_clash_warn = (
         soft_allow_vs_gap_clock_clash(
             rows,
             soft_last_freshness=last_clock,
             now=now,
-            gap_pin_size=gap_cursor_pin_size(
-                gap_freshness=anchor_gap_last_freshness
-            ),
+            gap_pin_size=gap_pin,
         )
     )
     (
@@ -2616,6 +2617,7 @@ def build_soft_allow_glance(
             rows,
             scan_freshness=scan_freshness,
             now=now,
+            gap_pin_size=gap_pin,
             scan_pin_size=scan_pin,
         )
     )
@@ -2624,6 +2626,7 @@ def build_soft_allow_glance(
             rows,
             cash_band=cash_band,
             now=now,
+            gap_pin_size=gap_pin,
             cash_pin_size=cash_pin,
         )
     )
@@ -2644,12 +2647,14 @@ def build_soft_allow_glance(
         laya_freshness=laya_tone,
         debate_freshness=debate_tone,
         now=now,
+        gap_pin_size=gap_pin,
         memory_pin_size=gap_memory_pin,
     )
     anchor_gap_bit = format_soft_allow_anchor_gap_bit(
         rows,
         now=now,
         scan_freshness=scan_freshness,
+        gap_pin_size=gap_pin,
         scan_pin_size=scan_pin,
         cash_band=cash_band,
         cash_pin_size=cash_pin,
