@@ -414,6 +414,27 @@ def soft_allow_pin_size(*, soft_freshness: str = "") -> str:
     return " · soft-only"
 
 
+def gap_cursor_pin_size(*, gap_freshness: str = "") -> str:
+    """Gap cursor pin (display only).
+
+    LAYA/debate ≠ gap (and peer gap) name a generation verb. Gap sleeve
+    ``×N · P%`` lied fail-open gap-row ownership was the gap cursor print;
+    the newest gap stamp is a sole published pin like soft last / scan
+    archive → `` · gap-only`` (``soft-only`` / ``scan-only`` / ``US-only``
+    parity; xang1234 #647 venue-scope + #531). Soft≠gap on the soft-allow
+    glance still keeps sleeve ``×N · P%`` (ownership lives there).
+    Missing / unknown band silent. Not a gate.
+    """
+    t = str(gap_freshness or "").strip().casefold()
+    if t == "expired":
+        t = "stale"
+    elif t == "unknown":
+        t = "fresh"
+    if t not in _CASH_PRINT_RANK:
+        return ""
+    return " · gap-only"
+
+
 def cash_print_band_size(meta: Mapping[str, Any] | None, *, clock: str) -> str:
     """Cash pin ring size with venue pointer (display only).
 
@@ -23480,13 +23501,6 @@ def build_laya_glance(
     laya_peer_gap_clock_clash_warn = False
     soft_freshness = soft_allow_last_clock_tone(root, now=now)
     gap_freshness = soft_allow_gap_last_clock_tone(root, now=now)
-    from stock_checker.gate_audit import (
-        _anchor_gap_ring_size,
-        enrich_soft_allows,
-        load_soft_allows,
-    )
-
-    soft_rows = enrich_soft_allows(load_soft_allows(root), now=now)
     name_clash = ""
     verb_oppose = False
     edge_fee_bits = ""
@@ -23588,14 +23602,19 @@ def build_laya_glance(
             # Own≠soft already names soft-only; peer soft stayed nameless.
             laya_peer_soft_clock_clash += soft_pin
         # Soft matching memory can still hide a staler gap cursor.
+        gap_pin = (
+            gap_cursor_pin_size(gap_freshness=gap_freshness)
+            if gap_freshness
+            else ""
+        )
         laya_vs_gap_clock_clash = (
             _clock_clash(freshness, gap=gap_freshness) if gap_freshness else ""
         )
-        if laya_vs_gap_clock_clash:
-            # Newest-first matches gap helpers; count/share ignore order.
-            laya_vs_gap_clock_clash += _anchor_gap_ring_size(
-                list(reversed(soft_rows))
-            )
+        if laya_vs_gap_clock_clash and gap_pin:
+            # Soft≠scan names scan-only; LAYA≠gap must name gap-only —
+            # gap sleeve ×N lied fail-open gap-row ownership was the gap
+            # cursor print (#647 / #531). Soft≠gap keeps sleeve ×N.
+            laya_vs_gap_clock_clash += gap_pin
         laya_vs_gap_clock_clash_warn = bool(laya_vs_gap_clock_clash)
         # LAYA matching gap can still hide debate ≠ gap (peer speak).
         laya_peer_gap_clock_clash, laya_peer_gap_clock_clash_warn = (
@@ -23606,11 +23625,9 @@ def build_laya_glance(
                 peer_side="debate",
             )
         )
-        if laya_peer_gap_clock_clash:
-            # Own≠gap already names the sleeve; peer gap stayed nameless.
-            laya_peer_gap_clock_clash += _anchor_gap_ring_size(
-                list(reversed(soft_rows))
-            )
+        if laya_peer_gap_clock_clash and gap_pin:
+            # Own≠gap already names gap-only; peer gap stayed nameless.
+            laya_peer_gap_clock_clash += gap_pin
         if peer_ring and not (
             laya_peer_cash_clock_clash
             or laya_peer_soft_clock_clash
@@ -24069,13 +24086,6 @@ def build_ai_debate_glance(
     debate_peer_gap_clock_clash_warn = False
     soft_freshness = soft_allow_last_clock_tone(root, now=now)
     gap_freshness = soft_allow_gap_last_clock_tone(root, now=now)
-    from stock_checker.gate_audit import (
-        _anchor_gap_ring_size,
-        enrich_soft_allows,
-        load_soft_allows,
-    )
-
-    soft_rows = enrich_soft_allows(load_soft_allows(root), now=now)
     name_clash = ""
     verb_oppose = False
     edge_vs_conf = ""
@@ -24141,13 +24151,19 @@ def build_ai_debate_glance(
             debate_vs_soft_clock_clash += soft_pin
         debate_vs_soft_clock_clash_warn = bool(debate_vs_soft_clock_clash)
         # Soft matching memory can still hide a staler gap cursor.
+        gap_pin = (
+            gap_cursor_pin_size(gap_freshness=gap_freshness)
+            if gap_freshness
+            else ""
+        )
         debate_vs_gap_clock_clash = (
             _clock_clash(freshness, gap=gap_freshness) if gap_freshness else ""
         )
-        if debate_vs_gap_clock_clash:
-            debate_vs_gap_clock_clash += _anchor_gap_ring_size(
-                list(reversed(soft_rows))
-            )
+        if debate_vs_gap_clock_clash and gap_pin:
+            # Soft≠scan names scan-only; debate≠gap must name gap-only —
+            # gap sleeve ×N lied fail-open gap-row ownership was the gap
+            # cursor print (#647 / #531). Soft≠gap keeps sleeve ×N.
+            debate_vs_gap_clock_clash += gap_pin
         debate_vs_gap_clock_clash_warn = bool(debate_vs_gap_clock_clash)
         # Debate matching cash can still hide LAYA ≠ cash (peer speak).
         if laya_st.get("advisory"):
@@ -24188,11 +24204,9 @@ def build_ai_debate_glance(
                 gap_freshness,
                 peer_side="laya",
             )
-            if debate_peer_gap_clock_clash:
-                # Own≠gap already names the sleeve; peer gap stayed nameless.
-                debate_peer_gap_clock_clash += _anchor_gap_ring_size(
-                    list(reversed(soft_rows))
-                )
+            if debate_peer_gap_clock_clash and gap_pin:
+                # Own≠gap already names gap-only; peer gap stayed nameless.
+                debate_peer_gap_clock_clash += gap_pin
             if peer_ring and not (
                 debate_peer_cash_clock_clash
                 or debate_peer_soft_clock_clash

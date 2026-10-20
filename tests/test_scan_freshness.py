@@ -9,6 +9,7 @@ import pytz
 from openbb_backend.desk import (
     build_scan_freshness,
     cash_print_band_size,
+    gap_cursor_pin_size,
     scan_archive_pin_size,
     soft_allow_pin_size,
     cash_print_freshness,
@@ -46,6 +47,17 @@ def test_soft_allow_pin_size() -> None:
     assert soft_allow_pin_size(soft_freshness="unknown") == " · soft-only"
     assert soft_allow_pin_size(soft_freshness="") == ""
     assert soft_allow_pin_size() == ""
+
+
+def test_gap_cursor_pin_size() -> None:
+    """Sole gap cursor pin → gap-only (#647/#531 LAYA/debate≠gap wire)."""
+    assert gap_cursor_pin_size(gap_freshness="fresh") == " · gap-only"
+    assert gap_cursor_pin_size(gap_freshness="aging") == " · gap-only"
+    assert gap_cursor_pin_size(gap_freshness="stale") == " · gap-only"
+    assert gap_cursor_pin_size(gap_freshness="expired") == " · gap-only"
+    assert gap_cursor_pin_size(gap_freshness="unknown") == " · gap-only"
+    assert gap_cursor_pin_size(gap_freshness="") == ""
+    assert gap_cursor_pin_size() == ""
 
 
 def test_cash_print_band_size() -> None:

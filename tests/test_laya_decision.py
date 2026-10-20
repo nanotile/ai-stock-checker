@@ -581,9 +581,9 @@ def test_laya_glance_vs_gap_clock_clash(monkeypatch, tmp_path: Path) -> None:
     assert g["soft_freshness"] == "fresh"
     assert g["gap_freshness"] == "stale"
     assert g["laya_vs_soft_clock_clash"] == ""
-    assert g["laya_vs_gap_clock_clash"] == "clash · gap stale · ×1 · 50%"
+    assert g["laya_vs_gap_clock_clash"] == "clash · gap stale · gap-only"
     assert g["laya_vs_gap_clock_clash_warn"] is True
-    assert "clash · gap stale · ×1 · 50%" in g["line"]
+    assert "clash · gap stale · gap-only" in g["line"]
     assert g["tone"] in {"aging", "stale"}
     # Same band — silent.
     (tmp_path / "gate_soft_allows.json").write_text(
@@ -675,7 +675,7 @@ def test_laya_glance_peer_gap_clash_when_laya_matches_gap(
     peer = g["laya_peer_gap_clock_clash"]
     assert peer.startswith("peer gap · debate ")
     assert "gap fresh" in peer
-    assert peer.endswith("· ×1 · 100%")
+    assert peer.endswith("· gap-only")
     assert g["laya_peer_gap_clock_clash_warn"] is True
     assert "peer gap" in g["line"]
     assert g["tone"] in {"aging", "stale"}
