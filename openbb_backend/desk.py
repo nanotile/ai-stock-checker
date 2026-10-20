@@ -387,6 +387,53 @@ def cash_print_band_size(meta: Mapping[str, Any] | None, *, clock: str) -> str:
     return f" · ×{n} · {share}%"
 
 
+def memory_advisory_band_size(
+    events: list[Mapping[str, Any]] | None,
+    *,
+    clock: str,
+    now: Optional[datetime] = None,
+    scan_interval_sec: int = 900,
+) -> str:
+    """`` · ×N · P%`` for advisory rows on one scan clock (display only).
+
+    LAYA/debate ≠ scan (and peer debate/laya inside the same clash) name a
+    generation verb. Soft≠scan already carries the soft last-clock band;
+    this is the advisory memory ring (rows whose ``at`` maps to the spoken
+    own band) so those clashes are not a nameless sleeve. Missing stamp /
+    band stays silent. Not a gate.
+    """
+    want = str(clock or "").strip().casefold()
+    if want == "expired":
+        want = "stale"
+    elif want == "unknown":
+        want = "fresh"
+    if want not in {"fresh", "aging", "stale"}:
+        return ""
+    rows = [r for r in (events or []) if isinstance(r, Mapping)]
+    if not rows:
+        return ""
+    bands: list[str] = []
+    for row in rows:
+        at = str(row.get("at") or "").strip()
+        if not at:
+            continue
+        pack = build_scan_freshness(
+            at, now=now, scan_interval_sec=scan_interval_sec
+        )
+        tone = str(pack.get("tone") or "").strip().casefold()
+        if tone == "expired":
+            tone = "stale"
+        if tone in {"fresh", "aging", "stale"}:
+            bands.append(tone)
+    if not bands:
+        return ""
+    n = sum(1 for band in bands if band == want)
+    if n <= 0:
+        return ""
+    share = int(round(100.0 * n / len(bands)))
+    return f" · ×{n} · {share}%"
+
+
 def memory_vs_cash_clock_clash(
     own_freshness: str, cash_band: str, *, side: str = "soft"
 ) -> tuple[str, bool]:
@@ -23101,10 +23148,13 @@ def build_laya_glance(
     ``LAYA_BASE_URL``/``JEV_BASE_URL`` + ``LAYA_ADVISORY=1``. Newest row
     age uses RyanJHamby/xang1234 scan-cadence fresh/aging/stale (a last
     reject is not a live print).     When the scan archive band disagrees
-    with last-row age, speak ``clash · scan fresh|aging|stale``. When the
-    newest validate-debate band also disagrees, append ``debate {tone}``
-    (FinRobot last-debate ≠ JEV last-reject).     When last-row age ≠ worst
-    pinned cash sleeve, speak
+    with last-row age, speak
+    ``clash · scan fresh|aging|stale · ×N · P%`` (advisory memory ring so
+    the verb is not a nameless sleeve; soft≠scan parity). When the newest
+    validate-debate band also disagrees, append ``debate {tone}``
+    (FinRobot last-debate ≠ JEV last-reject; ring size rides only when
+    scan is on the clash so peer soft/gap/cash still fit the clip). When
+    last-row age ≠ worst pinned cash sleeve, speak
     ``clash · laya fresh|aging|stale · cash … · ×N · P%`` (xang1234 #549;
     soft matching scan ≠ live cash; soft-allow parity; ``×N · P%`` is the
     pinned cash sleeve ring so the verb is not a nameless sleeve). When
@@ -23150,7 +23200,7 @@ def build_laya_glance(
     lead speaks ``tied`` (silent gap hid that last-row is not a tilt).
     See docs/LAYA.md.
     """
-    from stock_checker.laya_decision import laya_status
+    from stock_checker.laya_decision import load_laya_decisions, laya_status
 
     root = data_dir if data_dir is not None else Path(os.getenv("DATA_DIR", "data"))
     st = laya_status(root)
@@ -23248,6 +23298,16 @@ def build_laya_glance(
         clash = _clock_clash(
             freshness, scan=scan_freshness, debate=debate_freshness
         )
+        # Soft≠scan names the soft last-clock; own≠scan names the advisory
+        # memory ring. Peer-only clash (debate) stays short so peer
+        # soft/gap/cash still fit the 96-char clip.
+        if clash and "scan " in clash:
+            clash += memory_advisory_band_size(
+                load_laya_decisions(root),
+                clock=freshness,
+                now=now,
+                scan_interval_sec=scan_interval_sec,
+            )
         laya_vs_cash_clock_clash, laya_vs_cash_clock_clash_warn = (
             memory_vs_cash_clock_clash(freshness, cash_band, side="laya")
         )
@@ -23596,12 +23656,16 @@ def build_ai_debate_glance(
     ``ai_validate_memory`` so Overview/Ops/Charts see research memory without
     opening Ideas. Includes RyanJHamby/xang1234 ``as of`` age on the newest
     debate (fresh/aging/stale vs scan cadence).     When the scan archive band
-    disagrees with last-debate age, speak ``clash · scan fresh|aging|stale``.
-    When last-debate clock ≠ worst pinned cash sleeve, speak
+    disagrees with last-debate age, speak
+    ``clash · scan fresh|aging|stale · ×N · P%`` (advisory memory ring so
+    the verb is not a nameless sleeve; soft≠scan parity). When last-debate
+    clock ≠ worst pinned cash sleeve, speak
     ``clash · debate fresh|aging|stale · cash … · ×N · P%`` (LAYA soft≠cash
     parity; matching scan ≠ live cash print; pinned cash sleeve ring so the
     verb is not a nameless sleeve). When LAYA last-row band also
-    disagrees, append ``laya {tone}`` (JEV last-reject ≠ last BUY). When last-debate ticker/verb also disagrees
+    disagrees, append ``laya {tone}`` (JEV last-reject ≠ last BUY; ring
+    size rides only when scan is on the clash so peer soft/gap/cash still
+    fit the clip). When last-debate ticker/verb also disagrees
     with LAYA last-row, append ``vs MSFT hold`` / ``vs hold``. Same ticker
     + same polarity (BUY↔pass / SELL↔reject) or same literal verb speaks
     ``agree``. Same ticker + hold/fail-open vs directional speaks
@@ -23789,6 +23853,18 @@ def build_ai_debate_glance(
     laya_verb = _laya_row_verb(newest_row)
     if age_label:
         clash = _clock_clash(freshness, scan=scan_freshness, laya=laya_freshness)
+        # Soft≠scan names the soft last-clock; own≠scan names the advisory
+        # memory ring. Peer-only clash (laya) stays short so peer
+        # soft/gap/cash still fit the 96-char clip.
+        if clash and "scan " in clash:
+            from stock_checker.ai_validate_memory import load_ai_validate_memory
+
+            clash += memory_advisory_band_size(
+                load_ai_validate_memory(root),
+                clock=freshness,
+                now=now,
+                scan_interval_sec=scan_interval_sec,
+            )
         # Debate matching scan ≠ live cash (xang1234 #549; LAYA soft≠cash parity).
         debate_vs_cash_clock_clash, debate_vs_cash_clock_clash_warn = (
             memory_vs_cash_clock_clash(freshness, cash_band, side="debate")

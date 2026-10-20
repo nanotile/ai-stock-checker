@@ -242,10 +242,11 @@ def test_build_ai_debate_glance_scan_clash(tmp_path: Path) -> None:
     )
     assert g["freshness"] == "stale"
     assert g["scan_freshness"] == "fresh"
-    assert g["scan_vs_debate_clash"] == "clash · scan fresh"
+    assert g["scan_vs_debate_clash"] == "clash · scan fresh · ×1 · 100%"
     assert "clash" in g["line"]
     assert g["line"].index("stale") < g["line"].index("clash")
-    assert g["line"].index("clash") < g["line"].index("MSFT")
+    # Ring size may clip last-symbol off the 96-char line; field keeps it.
+    assert g["latest_symbol"] == "MSFT"
     same = build_ai_debate_glance(
         tmp_path, now=now, scan_interval_sec=900, scan_time=stale_at
     )
@@ -275,7 +276,7 @@ def test_build_ai_debate_glance_scan_clash_escalates_tone(tmp_path: Path) -> Non
     )
     assert g["freshness"] == "fresh"
     assert g["scan_freshness"] == "stale"
-    assert g["scan_vs_debate_clash"] == "clash · scan stale"
+    assert g["scan_vs_debate_clash"] == "clash · scan stale · ×1 · 100%"
     assert g["tone"] == "stale"
     aging = build_ai_debate_glance(
         tmp_path, now=now, scan_interval_sec=900, scan_time=aging_scan
@@ -701,7 +702,9 @@ def test_build_ai_debate_glance_laya_clash(monkeypatch, tmp_path: Path) -> None:
     both = build_ai_debate_glance(
         tmp_path, now=now, scan_interval_sec=900, scan_time=fresh_at
     )
-    assert both["scan_vs_debate_clash"] == "clash · scan fresh · laya fresh"
+    assert both["scan_vs_debate_clash"] == (
+        "clash · scan fresh · laya fresh · ×1 · 100%"
+    )
 
 
 def test_build_ai_debate_glance_laya_name_clash(monkeypatch, tmp_path: Path) -> None:
