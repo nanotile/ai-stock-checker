@@ -25,7 +25,7 @@ from openbb_backend.desk import (
 
 
 def test_cash_print_band_size() -> None:
-    """Pinned US/Xetra sleeves → ×N · P% on the spoken cash band."""
+    """Pinned US/Xetra sleeves → ×N · P%; sole pin → venue-only (#647)."""
     both = {
         "cash_print_us_last_published": True,
         "cash_print_us_freshness": "aging",
@@ -41,6 +41,21 @@ def test_cash_print_band_size() -> None:
     }
     assert cash_print_band_size(split, clock="stale") == " · ×1 · 50%"
     assert cash_print_band_size(split, clock="fresh") == ""
+    us_only = {
+        "cash_print_us_last_published": True,
+        "cash_print_us_freshness": "aging",
+        "cash_print_xetra_last_published": False,
+        "cash_print_xetra_freshness": "",
+    }
+    assert cash_print_band_size(us_only, clock="aging") == " · US-only"
+    xetra_only = {
+        "cash_print_us_last_published": False,
+        "cash_print_us_freshness": "",
+        "cash_print_xetra_last_published": True,
+        "cash_print_xetra_freshness": "stale",
+    }
+    assert cash_print_band_size(xetra_only, clock="stale") == " · Xetra-only"
+    assert cash_print_band_size(us_only, clock="stale") == ""
     assert cash_print_band_size({}, clock="aging") == ""
     assert cash_print_band_size(None, clock="aging") == ""
 

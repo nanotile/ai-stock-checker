@@ -375,13 +375,16 @@ def _scan_vs_cash_delta_vs_sleeve(
 
 
 def cash_print_band_size(meta: Mapping[str, Any] | None, *, clock: str) -> str:
-    """`` · ×N · P%`` for pinned cash sleeves on one band (display only).
+    """`` · ×N · P%`` or sole-pin `` · US-only|Xetra-only`` (display only).
 
     Scan≠cash, LAYA/debate ≠ cash (and peer cash) name a generation verb.
     Soft≠cash already carries the soft last-clock band; this is the cash
     sleeve ring (US/Xetra last-published on the spoken worst band) so those
-    clashes are not a nameless sleeve. Missing pin / band stays silent. Not
-    a gate.
+    clashes are not a nameless sleeve. A sole pin speaking ``×1 · 100%``
+    lied that the spoken band covered all cash markets — xang1234 #647
+    gates US-only COT to the US market; here a one-venue pin speaks
+    ``US-only`` / ``Xetra-only`` instead. Dual-pin rings keep count≠share.
+    Missing pin / band stays silent. Not a gate.
     """
     want = str(clock or "").strip().casefold()
     if want == "expired":
@@ -390,20 +393,23 @@ def cash_print_band_size(meta: Mapping[str, Any] | None, *, clock: str) -> str:
         want = "fresh"
     if want not in _CASH_PRINT_RANK or not isinstance(meta, Mapping):
         return ""
-    sleeves: list[str] = []
+    sleeves: list[tuple[str, str]] = []
     if meta.get("cash_print_us_last_published"):
         us = str(meta.get("cash_print_us_freshness") or "").strip().casefold()
         if us in _CASH_PRINT_RANK:
-            sleeves.append(us)
+            sleeves.append(("US", us))
     if meta.get("cash_print_xetra_last_published"):
         xetra = str(meta.get("cash_print_xetra_freshness") or "").strip().casefold()
         if xetra in _CASH_PRINT_RANK:
-            sleeves.append(xetra)
+            sleeves.append(("Xetra", xetra))
     if not sleeves:
         return ""
-    n = sum(1 for band in sleeves if band == want)
+    matched = [name for name, band in sleeves if band == want]
+    n = len(matched)
     if n <= 0:
         return ""
+    if len(sleeves) == 1:
+        return f" · {matched[0]}-only"
     share = int(round(100.0 * n / len(sleeves)))
     return f" · ×{n} · {share}%"
 
@@ -719,16 +725,18 @@ def build_scan_freshness(
     (RyanJHamby triad; hours ≠ weekend vs same-evening). When the scan-archive
     tone disagrees with the worst pinned cash print, speak
     ``scan vs cash clash`` (compile clock ≠ snapshot age) plus
-    ``×N · P%`` on the worst cash sleeve ring (portfolio AI count≠share;
-    soft/LAYA/debate ≠ cash parity) plus ``Δ wide|thin`` (fresh↔stale vs
-    adjacent). When only one market owns the worst print, name that sleeve
-    (xang1234 #531 market-pointer) and the calmer runner sleeve when both
-    are pinned (portfolio AI speak-both-sides), plus ``sleeve Δ wide|thin``
-    for the worst↔runner gap (share-Δ after naming), ``Δ vs sleeve Δ
-    align|clash`` when both gaps already spoke (portfolio AI speak-both-sides
-    after side-by-side Δ labels), and ``runner · ×N · P%`` on the calmer
-    sleeve ring when it already spoke (worst size alone hid runner
-    ownership). Not an entry gate.
+    ``×N · P%`` on a dual-pin cash sleeve ring or ``US-only`` /
+    ``Xetra-only`` when only one venue is pinned (xang1234 #647
+    venue-scope; sole ``×1 · 100%`` lied full-cash coverage; portfolio AI
+    count≠share; soft/LAYA/debate ≠ cash parity) plus ``Δ wide|thin``
+    (fresh↔stale vs adjacent). When only one market owns the worst print,
+    name that sleeve (xang1234 #531 market-pointer) and the calmer runner
+    sleeve when both are pinned (portfolio AI speak-both-sides), plus
+    ``sleeve Δ wide|thin`` for the worst↔runner gap (share-Δ after naming),
+    ``Δ vs sleeve Δ align|clash`` when both gaps already spoke (portfolio AI
+    speak-both-sides after side-by-side Δ labels), and ``runner · ×N · P%``
+    on the calmer sleeve ring when it already spoke (worst size alone hid
+    runner ownership). Not an entry gate.
     """
     empty = {
         "ready": False,
@@ -1819,11 +1827,13 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
         ),
         "soft/gap",
     ),
-    # ``×N`` / share ride so soft≠cash is not a nameless ring
-    # (soft≠gap ring-size parity; last-clock band, not the gap sleeve).
+    # ``×N`` / share or sole-pin ``US-only|Xetra-only`` so soft≠cash is
+    # not a nameless ring (soft≠gap ring-size parity; last-clock band,
+    # not the gap sleeve; xang1234 #647 venue-scope).
     (
         re.compile(
             r"^clash · soft \S+ · cash \S+"
+            r"(?: · ((?:US|Xetra)-only))?"
             r"(?: · (×\d+))?(?: · (\d+(?:\.\d+)?%))?"
         ),
         "soft/cash",
@@ -1850,6 +1860,7 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
     (
         re.compile(
             r"^clash · gap \S+ · cash(?: \S+)?"
+            r"(?: · ((?:US|Xetra)-only))?"
             r"(?: · (×\d+))?(?: · (\d+(?:\.\d+)?%))?"
         ),
         "gap/cash",
