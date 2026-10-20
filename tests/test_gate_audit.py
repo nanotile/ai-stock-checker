@@ -375,6 +375,16 @@ def test_soft_allow_anchor_gap_last_freshness() -> None:
         gap_pin_size=" · gap-only",
     ) == ("clash · soft fresh · gap expired · gap-only", True)
     assert soft_allow_vs_gap_clock_clash(
+        [other, expired_row],
+        soft_last_freshness="fresh",
+        now=now,
+        soft_pin_size=" · soft-only",
+        gap_pin_size=" · gap-only",
+    ) == (
+        "clash · soft fresh · gap expired · soft-only · gap-only",
+        True,
+    )
+    assert soft_allow_vs_gap_clock_clash(
         [expired_row, other], soft_last_freshness="stale", now=now
     ) == ("", False)
     assert soft_allow_vs_gap_clock_clash(

@@ -397,11 +397,13 @@ def scan_archive_pin_size(*, scan_freshness: str = "") -> str:
 def soft_allow_pin_size(*, soft_freshness: str = "") -> str:
     """Soft-allow last pin (display only).
 
-    LAYA/debate ≠ soft (and peer soft) name a generation verb. Soft
-    ring ``×N · P%`` lied fail-open row count was the soft last print;
-    soft last is a sole published pin like the scan archive →
-    `` · soft-only`` (``scan-only`` / ``US-only`` / ``laya-only`` parity;
-    xang1234 #647 venue-scope + #531). Missing / unknown band silent.
+    Soft≠scan/gap/cash/memory and LAYA/debate ≠ soft (and peer soft)
+    name a generation verb. Soft ring ``×N · P%`` lied fail-open row
+    count was the soft last print; soft last is a sole published pin
+    like the scan archive → `` · soft-only`` (``scan-only`` /
+    ``US-only`` / ``laya-only`` / ``gap-only`` parity; xang1234 #647
+    venue-scope + #531). Soft≠* speak soft-only then the other pin
+    (gap≠* ``gap-only`` + other parity). Missing / unknown band silent.
     Not a gate.
     """
     t = str(soft_freshness or "").strip().casefold()
@@ -1926,46 +1928,49 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
         ),
         "",
     ),
-    # Scan archive pin (``scan-only``) so soft≠scan does not use soft
-    # last-clock size as if it were the archive (soft≠cash / soft≠memory
-    # / #647 / #531 parity).
+    # Soft last pin (``soft-only``) then scan archive (``scan-only``) so
+    # soft≠scan names both sole pins (gap≠scan ``gap-only · scan-only``
+    # parity; #647 / #531).
     (
         re.compile(
             r"^clash · scan(?: \S+)?"
+            r"(?: · (soft-only))?"
             r"(?: · (scan-only))?"
         ),
         "scan",
     ),
-    # Gap cursor pin (``gap-only``) so soft≠gap does not use gap sleeve
-    # size as if it were the cursor print (soft≠scan ``scan-only`` /
-    # LAYA≠gap ``gap-only`` / #647 / #531 parity).
+    # Soft last pin (``soft-only``) then gap cursor (``gap-only``) so
+    # soft≠gap does not use gap sleeve size as if it were the cursor
+    # (gap≠* own+other pin parity / #647 / #531).
     (
         re.compile(
             r"^clash · soft \S+ · gap \S+"
+            r"(?: · (soft-only))?"
             r"(?: · (gap-only))?"
         ),
         "soft/gap",
     ),
-    # Cash pin size: sole ``US-only`` · dual half ``US · 50%`` · both
-    # ``×2 · 100%`` (xang1234 #647 venue-scope + #531 market-pointer).
+    # Soft last pin then cash pin: sole ``US-only`` · dual half
+    # ``US · 50%`` · both ``×2 · 100%`` (#647 / #531).
     (
         re.compile(
             r"^clash · soft \S+ · cash \S+"
+            r"(?: · (soft-only))?"
             r"(?: · ((?:US|Xetra)-only)"
             r"| · (US|Xetra) · (\d+(?:\.\d+)?%)"
             r"| · (×\d+) · (\d+(?:\.\d+)?%))?"
         ),
         "soft/cash",
     ),
-    # Advisory pin (laya-only / venue · 50% / ×2 · 100%) so soft≠memory
-    # does not use soft last-clock size as if it were the advisory print
-    # (soft≠cash / #647 / #531 parity; both advisory sides stay one stage).
-    # Tone words are required so `` · debate-only`` is not eaten as a
-    # second advisory side (pin capture would stay empty).
+    # Soft last pin then advisory pin (laya-only / venue · 50% / ×2) so
+    # soft≠memory names both sole/half pins (#647 / #531). Tone words
+    # are required so `` · debate-only`` is not eaten as a second
+    # advisory side (pin capture would stay empty).
     (
         re.compile(
             r"^clash · (?:laya|debate) (?:fresh|aging|stale|expired)"
             r"(?: · (?:laya|debate) (?:fresh|aging|stale|expired))*"
+            r"(?: · (soft-only))?"
             r"(?: · ((?:laya|debate)-only)"
             r"| · (laya|debate) · (\d+(?:\.\d+)?%)"
             r"| · (×\d+) · (\d+(?:\.\d+)?%))?"
@@ -2493,16 +2498,20 @@ def build_soft_allow_glance(
     scan_vs_soft_allow_clash = (
         _clock_clash(last_clock, scan=scan_freshness) if last_clock else ""
     )
+    soft_pin = (
+        soft_allow_pin_size(soft_freshness=last_clock) if last_clock else ""
+    )
     scan_pin = (
         scan_archive_pin_size(scan_freshness=scan_freshness)
         if scan_freshness
         else ""
     )
-    if scan_vs_soft_allow_clash and scan_pin:
-        # Soft≠cash / soft≠memory name the other sleeve pin; soft≠scan must
-        # name the scan archive (scan-only) — soft ring size lied that soft
-        # coverage was the archive print (#647 / #531).
-        scan_vs_soft_allow_clash += scan_pin
+    if scan_vs_soft_allow_clash and (soft_pin or scan_pin):
+        # Soft≠cash / soft≠memory name soft-only then the other sleeve;
+        # soft≠scan must name soft-only then the scan archive — soft ring
+        # size lied that soft coverage was the archive print (gap≠scan
+        # gap-only · scan-only parity; #647 / #531).
+        scan_vs_soft_allow_clash += soft_pin + scan_pin
     soft_vs_cash_clock_clash, soft_vs_cash_clock_clash_warn = (
         soft_allow_vs_cash_clock_clash(last_clock, cash_band)
     )
@@ -2511,11 +2520,12 @@ def build_soft_allow_glance(
         if cash_band and scan_pack
         else ""
     )
-    if soft_vs_cash_clock_clash and cash_pin:
-        # Soft≠scan names the archive pin; soft≠cash must name the cash
-        # pin sleeve (US-only / venue · 50% / ×2) — soft ring size lied
-        # that soft coverage was the cash print (#647 / #531).
-        soft_vs_cash_clock_clash += cash_pin
+    if soft_vs_cash_clock_clash and (soft_pin or cash_pin):
+        # Soft≠scan names soft-only · scan-only; soft≠cash must name
+        # soft-only then the cash pin sleeve (US-only / venue · 50% / ×2)
+        # — soft ring size lied that soft coverage was the cash print
+        # (#647 / #531).
+        soft_vs_cash_clock_clash += soft_pin + cash_pin
     laya_tone = str(laya_freshness or "").strip()
     debate_tone = str(debate_freshness or "").strip()
     soft_vs_memory_clock_clash = (
@@ -2532,25 +2542,28 @@ def build_soft_allow_glance(
         if last_clock and soft_vs_memory_clock_clash
         else ""
     )
-    if soft_vs_memory_clock_clash and memory_pin:
-        # Soft≠scan names the archive pin; soft≠memory must name the
-        # advisory pin sleeve (laya-only / venue · 50% / ×2) — soft ring
-        # size lied that soft coverage was the memory print (#647 / #531).
-        soft_vs_memory_clock_clash += memory_pin
+    if soft_vs_memory_clock_clash and (soft_pin or memory_pin):
+        # Soft≠scan names soft-only · scan-only; soft≠memory must name
+        # soft-only then the advisory pin sleeve (laya-only / venue ·
+        # 50% / ×2) — soft ring size lied that soft coverage was the
+        # memory print (#647 / #531).
+        soft_vs_memory_clock_clash += soft_pin + memory_pin
     soft_vs_memory_clock_clash_warn = bool(soft_vs_memory_clock_clash)
     anchor_gap_last = soft_allow_anchor_gap_last_symbol(rows)
     anchor_gap_last_freshness = soft_allow_anchor_gap_last_freshness(
         rows, now=now
     )
-    # Soft≠scan names scan-only; soft≠gap / gap≠scan|cash|memory must
-    # name gap-only — gap sleeve ×N lied fail-open gap-row ownership was
-    # the gap cursor print (#647 / #531).
+    # Soft≠scan names soft-only · scan-only; soft≠gap / gap≠scan|cash|
+    # memory must name gap-only — gap sleeve ×N lied fail-open gap-row
+    # ownership was the gap cursor print (#647 / #531). Soft≠gap also
+    # speaks soft-only (gap≠* own+other pin parity).
     gap_pin = gap_cursor_pin_size(gap_freshness=anchor_gap_last_freshness)
     soft_vs_gap_clock_clash, soft_vs_gap_clock_clash_warn = (
         soft_allow_vs_gap_clock_clash(
             rows,
             soft_last_freshness=last_clock,
             now=now,
+            soft_pin_size=soft_pin,
             gap_pin_size=gap_pin,
         )
     )

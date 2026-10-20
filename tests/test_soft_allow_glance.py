@@ -400,9 +400,21 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
     )
     assert (
         soft_allow_lean_meta(
+            "clash · soft fresh · gap expired · soft-only · gap-only"
+        )
+        == "quiet · 1 fold · soft/gap soft-only gap-only"
+    )
+    assert (
+        soft_allow_lean_meta(
             "clash · soft fresh · gap expired · gap-only"
         )
         == "quiet · 1 fold · soft/gap gap-only"
+    )
+    assert (
+        soft_allow_lean_meta(
+            "clash · soft fresh · cash aging · soft-only · US-only"
+        )
+        == "quiet · 1 fold · soft/cash soft-only US-only"
     )
     assert (
         soft_allow_lean_meta(
@@ -412,9 +424,9 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
     )
     assert (
         soft_allow_lean_meta(
-            "clash · soft fresh · cash aging · Xetra · 50%"
+            "clash · soft fresh · cash aging · soft-only · Xetra · 50%"
         )
-        == "quiet · 1 fold · soft/cash Xetra 50%"
+        == "quiet · 1 fold · soft/cash soft-only Xetra 50%"
     )
     assert (
         soft_allow_lean_meta(
@@ -423,8 +435,26 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
         == "quiet · 1 fold · soft/cash ×2 100%"
     )
     assert (
+        soft_allow_lean_meta(
+            "clash · scan fresh · soft-only · scan-only"
+        )
+        == "quiet · 1 fold · scan soft-only scan-only"
+    )
+    assert (
         soft_allow_lean_meta("clash · scan fresh · scan-only")
         == "quiet · 1 fold · scan scan-only"
+    )
+    assert (
+        soft_allow_lean_meta(
+            "clash · debate stale · soft-only · debate-only"
+        )
+        == "quiet · 1 fold · memory soft-only debate-only"
+    )
+    assert (
+        soft_allow_lean_meta(
+            "clash · laya stale · debate aging · soft-only · ×2 · 100%"
+        )
+        == "quiet · 1 fold · memory soft-only ×2 100%"
     )
     assert (
         soft_allow_lean_meta(
@@ -2028,16 +2058,23 @@ def test_soft_allow_glance_scan_clash_expired_vs_fresh() -> None:
     assert g["ready"] is True
     assert g["last_freshness"] == "stale"
     assert g["scan_freshness"] == "fresh"
-    assert g["scan_vs_soft_allow_clash"] == "clash · scan fresh · scan-only"
+    assert g["scan_vs_soft_allow_clash"] == (
+        "clash · scan fresh · soft-only · scan-only"
+    )
     assert g["tone"] == "warn"
     assert g["severity"] == "cool"
-    assert g["line"].startswith("cool · clash · scan fresh · scan-only")
+    assert g["line"].startswith(
+        "cool · clash · scan fresh · soft-only · scan-only"
+    )
     assert "clash" in g["line"]
     assert g["line_core"].startswith("cool · ")
     assert "clash · scan" not in g["line_core"]
-    assert g["soft_lean"].startswith("clash · scan fresh · scan-only")
+    assert g["soft_lean"].startswith(
+        "clash · scan fresh · soft-only · scan-only"
+    )
     assert g["soft_lean_warn"] is True
     assert g["soft_lean_meta"].startswith("clash · scan")
+    assert "soft-only" in g["soft_lean_meta"]
     assert "scan-only" in g["soft_lean_meta"]
     same = build_soft_allow_glance(
         [
@@ -2081,11 +2118,15 @@ def test_soft_allow_glance_scan_clash_fresh_vs_stale() -> None:
     )
     assert g["last_freshness"] == "fresh"
     assert g["scan_freshness"] == "stale"
-    assert g["scan_vs_soft_allow_clash"] == "clash · scan stale · scan-only"
+    assert g["scan_vs_soft_allow_clash"] == (
+        "clash · scan stale · soft-only · scan-only"
+    )
     assert g["tone"] == "warn"
-    assert g["line"].startswith("hot · clash · scan stale · scan-only")
-    # Soft ring share lied soft coverage was the archive; pin stays
-    # scan-only even when the soft ring is mixed.
+    assert g["line"].startswith(
+        "hot · clash · scan stale · soft-only · scan-only"
+    )
+    # Soft ring share lied soft coverage was the archive; pins stay
+    # soft-only · scan-only even when the soft ring is mixed.
     expired_at = (now - timedelta(hours=30)).strftime("%Y-%m-%dT%H:%M:%SZ")
     mixed = build_soft_allow_glance(
         [
@@ -2104,7 +2145,10 @@ def test_soft_allow_glance_scan_clash_fresh_vs_stale() -> None:
         scan_time=stale_scan,
         scan_interval_sec=900,
     )
-    assert mixed["scan_vs_soft_allow_clash"] == "clash · scan stale · scan-only"
+    assert mixed["scan_vs_soft_allow_clash"] == (
+        "clash · scan stale · soft-only · scan-only"
+    )
+    assert "soft-only" in mixed["soft_lean_meta"]
     assert "scan-only" in mixed["soft_lean_meta"]
     assert "×1" not in mixed["scan_vs_soft_allow_clash"]
 
@@ -2138,12 +2182,14 @@ def test_soft_allow_glance_gap_vs_scan_when_last_matches_scan() -> None:
     assert g["scan_vs_soft_allow_clash"] == ""
     # Soft last ≠ gap cursor — close the generation triangle.
     assert g["soft_vs_gap_clock_clash"] == (
-        "clash · soft fresh · gap expired · gap-only"
+        "clash · soft fresh · gap expired · soft-only · gap-only"
     )
     assert g["soft_vs_gap_clock_clash_warn"] is True
-    assert "clash · soft fresh · gap expired · gap-only" in g["line"]
+    assert "clash · soft fresh · gap expired · soft-only · gap-only" in (
+        g["line"]
+    )
     # Gap cursor is a different generation — speak both sides; soft≠gap
-    # and gap≠scan both name gap-only (sole cursor pin) then scan-only.
+    # names soft-only · gap-only; gap≠scan names gap-only · scan-only.
     assert g["anchor_gap_vs_scan_clash"] == (
         "clash · gap expired · scan fresh · gap-only · scan-only"
     )
@@ -2233,8 +2279,10 @@ def test_soft_allow_glance_soft_vs_cash_when_soft_matches_scan() -> None:
     assert g["scan_vs_soft_allow_clash"] == ""
     cash = g["soft_vs_cash_clock_clash"]
     assert cash.startswith("clash · soft fresh · cash ")
-    # Cash pin sleeve size (not soft ring): sole → venue-only; dual half
-    # → named venue · 50%; both same band → ×2 · 100% (#647 / #531).
+    # Soft-only then cash pin sleeve (not soft ring): sole → venue-only;
+    # dual half → named venue · 50%; both same band → ×2 · 100%
+    # (#647 / #531; gap≠* own+other pin parity).
+    assert " · soft-only · " in cash
     assert (
         cash.endswith(" · US-only")
         or cash.endswith(" · Xetra-only")
@@ -2357,7 +2405,7 @@ def test_soft_allow_glance_vs_memory_clock_clash() -> None:
     assert g["laya_freshness"] == "stale"
     assert g["debate_freshness"] == "aging"
     assert g["soft_vs_memory_clock_clash"] == (
-        "clash · laya stale · debate aging · ×2 · 100%"
+        "clash · laya stale · debate aging · soft-only · ×2 · 100%"
     )
     assert g["soft_vs_memory_clock_clash_warn"] is True
     assert g["tone"] == "warn"
@@ -2383,8 +2431,8 @@ def test_soft_allow_glance_vs_memory_clock_clash() -> None:
     assert "clash · laya" not in same["line"]
     assert "clash · debate" not in same["line"]
 
-    # Only debate disagrees — half-owner pin (dual advisory configured;
-    # soft ring size no longer rides).
+    # Only debate disagrees — soft-only then half-owner pin (dual
+    # advisory configured; soft ring size no longer rides).
     one = build_soft_allow_glance(
         [
             {
@@ -2398,13 +2446,13 @@ def test_soft_allow_glance_vs_memory_clock_clash() -> None:
         debate_freshness="stale",
     )
     assert one["soft_vs_memory_clock_clash"] == (
-        "clash · debate stale · debate · 50%"
+        "clash · debate stale · soft-only · debate · 50%"
     )
     assert one["soft_vs_memory_clock_clash_warn"] is True
     assert "clash · debate stale" in one["line"]
     assert "laya" not in one["soft_vs_memory_clock_clash"].split(" · debate ")[0]
 
-    # Sole configured advisory that clashes → debate-only (venue-scope).
+    # Sole configured advisory that clashes → soft-only · debate-only.
     sole = build_soft_allow_glance(
         [
             {
@@ -2418,7 +2466,7 @@ def test_soft_allow_glance_vs_memory_clock_clash() -> None:
         debate_freshness="stale",
     )
     assert sole["soft_vs_memory_clock_clash"] == (
-        "clash · debate stale · debate-only"
+        "clash · debate stale · soft-only · debate-only"
     )
 
 
