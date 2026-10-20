@@ -357,10 +357,11 @@ def _scan_vs_cash_clash_delta(tone: str, cash: str) -> str:
 def cash_print_band_size(meta: Mapping[str, Any] | None, *, clock: str) -> str:
     """`` · ×N · P%`` for pinned cash sleeves on one band (display only).
 
-    LAYA/debate ≠ cash (and peer cash) name a generation verb. Soft≠cash
-    already carries the soft last-clock band; this is the cash sleeve ring
-    (US/Xetra last-published on the spoken worst band) so those clashes are
-    not a nameless sleeve. Missing pin / band stays silent. Not a gate.
+    Scan≠cash, LAYA/debate ≠ cash (and peer cash) name a generation verb.
+    Soft≠cash already carries the soft last-clock band; this is the cash
+    sleeve ring (US/Xetra last-published on the spoken worst band) so those
+    clashes are not a nameless sleeve. Missing pin / band stays silent. Not
+    a gate.
     """
     want = str(clock or "").strip().casefold()
     if want == "expired":
@@ -691,18 +692,19 @@ def build_scan_freshness(
 ) -> dict[str, Any]:
     """Scan archive age honesty (RyanJHamby cache-freshness pattern; display only).
 
-    fresh < 2× scan interval · aging < 8× · else stale.     Closed cash sessions
+    fresh < 2× scan interval · aging < 8× · else stale. Closed cash sessions
     add last-published provenance; mixed hours speak compile-path per sleeve
     plus crypto live (xang1234 market pointer). Last-published sleeves also
     name hours since that venue's cash close plus a freshness band
     (RyanJHamby triad; hours ≠ weekend vs same-evening). When the scan-archive
     tone disagrees with the worst pinned cash print, speak
-    ``scan vs cash clash`` (compile clock ≠ snapshot age) plus ``Δ wide|thin``
-    (fresh↔stale vs adjacent). When only one market owns the worst print,
-    name that sleeve (xang1234 #531 market-pointer) and the calmer runner
-    sleeve when both are pinned (portfolio AI speak-both-sides), plus
-    ``sleeve Δ wide|thin`` for the worst↔runner gap (share-Δ after naming).
-    Not an entry gate.
+    ``scan vs cash clash`` (compile clock ≠ snapshot age) plus
+    ``×N · P%`` on the worst cash sleeve ring (portfolio AI count≠share;
+    soft/LAYA/debate ≠ cash parity) plus ``Δ wide|thin`` (fresh↔stale vs
+    adjacent). When only one market owns the worst print, name that sleeve
+    (xang1234 #531 market-pointer) and the calmer runner sleeve when both
+    are pinned (portfolio AI speak-both-sides), plus ``sleeve Δ wide|thin``
+    for the worst↔runner gap (share-Δ after naming). Not an entry gate.
     """
     empty = {
         "ready": False,
@@ -757,6 +759,10 @@ def build_scan_freshness(
         if clash and runner_band
         else ""
     )
+    # Soft/LAYA/debate ≠ cash already name the cash sleeve ring; scan≠cash
+    # stayed a nameless generation verb beside Δ alone.
+    if clash and cash_worst:
+        clash += cash_print_band_size(print_meta, clock=cash_worst)
     if clash and clash_delta:
         clash = f"{clash} · Δ {clash_delta}"
     if clash and sleeve_delta:
