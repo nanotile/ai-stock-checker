@@ -419,6 +419,59 @@ def cash_print_band_size(meta: Mapping[str, Any] | None, *, clock: str) -> str:
     return f" · ×{n} · {share}%"
 
 
+def memory_advisory_pin_size(
+    *,
+    own_clock: str,
+    laya_freshness: str = "",
+    debate_freshness: str = "",
+) -> str:
+    """Advisory pin size with sleeve pointer (display only).
+
+    Soft≠memory and gap≠memory name generation verbs. Soft last-clock
+    ``×N`` lied soft coverage was the advisory print; this is the
+    LAYA/debate sleeve ring on the clash (cash pin #647 / #531 parity).
+
+    - Sole configured sleeve that clashes → `` · laya-only|debate-only``
+    - Dual configured, one clashes → `` · laya|debate · 50%``
+    - Dual configured, both clash → `` · ×2 · 100%``
+
+    Missing / same-band stays silent. Not a gate.
+    """
+    own = str(own_clock or "").strip().casefold()
+    if own == "expired":
+        own = "stale"
+    elif own == "unknown":
+        own = "fresh"
+    if own not in _CASH_PRINT_RANK:
+        return ""
+
+    def _norm(tone: str) -> str:
+        t = str(tone or "").strip().casefold()
+        if t == "expired":
+            return "stale"
+        if t == "unknown":
+            return "fresh"
+        return t if t in _CASH_PRINT_RANK else ""
+
+    sleeves: list[str] = []
+    clashed: list[str] = []
+    for name, raw in (("laya", laya_freshness), ("debate", debate_freshness)):
+        t = _norm(raw)
+        if not t:
+            continue
+        sleeves.append(name)
+        if t != own:
+            clashed.append(name)
+    if not clashed:
+        return ""
+    if len(sleeves) == 1:
+        return f" · {clashed[0]}-only"
+    share = int(round(100.0 * len(clashed) / len(sleeves)))
+    if len(clashed) == 1:
+        return f" · {clashed[0]} · {share}%"
+    return f" · ×{len(clashed)} · {share}%"
+
+
 def memory_advisory_band_size(
     events: list[Mapping[str, Any]] | None,
     *,
@@ -1842,13 +1895,18 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
         ),
         "soft/cash",
     ),
-    # ``×N`` / share ride so soft≠memory is not a nameless last-clock band
-    # (soft≠cash ring-size parity; both advisory sides stay one stage).
+    # Advisory pin (laya-only / venue · 50% / ×2 · 100%) so soft≠memory
+    # does not use soft last-clock size as if it were the advisory print
+    # (soft≠cash / #647 / #531 parity; both advisory sides stay one stage).
+    # Tone words are required so `` · debate-only`` is not eaten as a
+    # second advisory side (pin capture would stay empty).
     (
         re.compile(
-            r"^clash · (?:laya|debate)(?: \S+)?"
-            r"(?: · (?:laya|debate)(?: \S+)?)*"
-            r"(?: · (×\d+))?(?: · (\d+(?:\.\d+)?%))?"
+            r"^clash · (?:laya|debate) (?:fresh|aging|stale|expired)"
+            r"(?: · (?:laya|debate) (?:fresh|aging|stale|expired))*"
+            r"(?: · ((?:laya|debate)-only)"
+            r"| · (laya|debate) · (\d+(?:\.\d+)?%)"
+            r"| · (×\d+) · (\d+(?:\.\d+)?%))?"
         ),
         "memory",
     ),
@@ -1873,11 +1931,17 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
         ),
         "gap/cash",
     ),
+    # Gap sleeve ``×N · P%`` then advisory pin (laya-only / venue · 50% /
+    # ×2 · 100%) so gap ownership ≠ LAYA/debate coverage (#647 / #531).
+    # Tone words required so pin ``debate-only`` is not eaten as a side.
     (
         re.compile(
-            r"^clash · gap \S+ · (?:laya|debate)(?: \S+)?"
-            r"(?: · (?:laya|debate)(?: \S+)?)*"
-            r"(?: · (×\d+))?(?: · (\d+(?:\.\d+)?%))?"
+            r"^clash · gap \S+ · (?:laya|debate) (?:fresh|aging|stale|expired)"
+            r"(?: · (?:laya|debate) (?:fresh|aging|stale|expired))*"
+            r"(?: · (×\d+) · (\d+(?:\.\d+)?%))?"
+            r"(?: · ((?:laya|debate)-only)"
+            r"| · (laya|debate) · (\d+(?:\.\d+)?%)"
+            r"| · (×\d+) · (\d+(?:\.\d+)?%))?"
         ),
         "gap/memory",
     ),
@@ -2086,11 +2150,14 @@ def build_soft_allow_glance(
     matching the scan archive ≠ a live cash sleeve; last-clock band
     size so the verb is not a nameless ring). When soft-allow last disagrees
     with LAYA and/or AI-debate clocks, speak
-    ``clash · laya … · debate …`` (soft↔memory — soft matching the scan
-    archive ≠ a live advisory print; FinRobot last-row). When a gap
-    cursor disagrees with LAYA/debate even if soft last matches memory,
-    the gap bit speaks ``clash · gap … · laya … · debate …``
-    (gap↔memory — soft≠memory alone ≠ live gap cursor). Not a gate.
+    ``clash · laya … · debate … · laya-only|debate · 50%|×2 · 100%``
+    (soft↔memory — soft matching the scan archive ≠ a live advisory
+    print; advisory pin so soft last-clock size is not the memory print;
+    FinRobot last-row + #647 / #531). When a gap cursor disagrees with
+    LAYA/debate even if soft last matches memory, the gap bit speaks
+    ``clash · gap … · laya … · debate … · ×N · P%`` then the same pin
+    (gap↔memory — soft≠memory alone ≠ live gap cursor; gap ownership ≠
+    advisory coverage). Not a gate.
 
     Cool-off severity (portfolio AI quiet vs high + xang1234): ``hot`` when
     any fresh row remains (tone warn); ``aging`` when only aging cools
@@ -2391,10 +2458,20 @@ def build_soft_allow_glance(
         if last_clock
         else ""
     )
-    if soft_vs_memory_clock_clash:
-        soft_vs_memory_clock_clash += soft_allow_clock_band_size(
-            rows, clock=last_clock
+    memory_pin = (
+        memory_advisory_pin_size(
+            own_clock=last_clock,
+            laya_freshness=laya_tone,
+            debate_freshness=debate_tone,
         )
+        if last_clock and soft_vs_memory_clock_clash
+        else ""
+    )
+    if soft_vs_memory_clock_clash and memory_pin:
+        # Soft≠scan names the soft last-clock; soft≠memory must name the
+        # advisory pin sleeve (laya-only / venue · 50% / ×2) — soft ring
+        # size lied that soft coverage was the memory print (#647 / #531).
+        soft_vs_memory_clock_clash += memory_pin
     soft_vs_memory_clock_clash_warn = bool(soft_vs_memory_clock_clash)
     anchor_gap_last = soft_allow_anchor_gap_last_symbol(rows)
     anchor_gap_last_freshness = soft_allow_anchor_gap_last_freshness(
@@ -2471,6 +2548,15 @@ def build_soft_allow_glance(
             cash_pin_size=cash_pin,
         )
     )
+    gap_memory_pin = (
+        memory_advisory_pin_size(
+            own_clock=anchor_gap_last_freshness,
+            laya_freshness=laya_tone,
+            debate_freshness=debate_tone,
+        )
+        if anchor_gap_last_freshness
+        else ""
+    )
     (
         anchor_gap_vs_memory_clock_clash,
         anchor_gap_vs_memory_clock_clash_warn,
@@ -2479,6 +2565,7 @@ def build_soft_allow_glance(
         laya_freshness=laya_tone,
         debate_freshness=debate_tone,
         now=now,
+        memory_pin_size=gap_memory_pin,
     )
     anchor_gap_bit = format_soft_allow_anchor_gap_bit(
         rows,
@@ -2488,6 +2575,7 @@ def build_soft_allow_glance(
         cash_pin_size=cash_pin,
         laya_freshness=laya_tone,
         debate_freshness=debate_tone,
+        memory_pin_size=gap_memory_pin,
     )
     expired_n = sum(1 for r in rows if r.get("freshness") == "expired")
     aging_n = sum(1 for r in rows if r.get("freshness") == "aging")

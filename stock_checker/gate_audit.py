@@ -224,14 +224,18 @@ def soft_allow_anchor_gap_vs_memory_clock_clash(
     laya_freshness: str = "",
     debate_freshness: str = "",
     now: datetime | None = None,
+    memory_pin_size: str = "",
 ) -> tuple[str, bool]:
     """Gap cursor vs LAYA/debate memory generation (display only).
 
     Returns ``(bit, warn)``. When newest gap-row clock ≠ LAYA and/or
     AI-debate clocks (``expired``≡``stale``), speak
-    ``clash · gap expired|aging|fresh · laya … · debate … · ×N · P%``.
-    Same band / missing either side silent. Gap count and share ride
-    the bit. Soft matching memory (and
+    ``clash · gap expired|aging|fresh · laya … · debate … · ×N · P%``
+    then optional advisory pin size (``laya-only`` / ``laya · 50%`` /
+    ``×2 · 100%`` via ``memory_pin_size``). Gap ``×N`` stays gap-sleeve
+    ownership; pin size names LAYA/debate coverage so friends do not
+    confuse the two (soft≠memory / soft≠cash wire + #647 / #531). Same
+    band / missing either side silent. Soft matching memory (and
     soft≠gap) can still hide a gap cursor that matches soft but not the
     advisory print — closes gap↔memory beside soft↔memory + soft↔gap +
     gap↔scan/cash (xang1234 #549 / e3c84e1 + FinRobot last-row +
@@ -257,7 +261,9 @@ def soft_allow_anchor_gap_vs_memory_clock_clash(
     if not bits:
         return "", False
     size = _anchor_gap_ring_size(events)
-    return f"clash · gap {gap_speak} · {' · '.join(bits)}{size}", True
+    raw_pin = str(memory_pin_size or "").strip().lstrip("·").strip()
+    pin = f" · {raw_pin}" if raw_pin else ""
+    return f"clash · gap {gap_speak} · {' · '.join(bits)}{size}{pin}", True
 
 
 def soft_allow_vs_gap_clock_clash(
@@ -459,11 +465,12 @@ def soft_allow_clock_band_size(
 ) -> str:
     """`` · ×N · P%`` for rows on one scan clock (display only).
 
-    Soft≠scan and soft≠memory name a generation verb; this is the soft
-    last-clock band (``expired``≡``stale``, ``unknown``≡``fresh``) so
-    those clashes are not a nameless ring. Soft≠cash uses the cash pin
-    sleeve size instead (``cash_print_band_size``). Gap bits already
-    carry the gap sleeve. Missing band stays silent. Not a gate.
+    Soft≠scan names a generation verb; this is the soft last-clock band
+    (``expired``≡``stale``, ``unknown``≡``fresh``) so that clash is not a
+    nameless ring. Soft≠cash uses the cash pin sleeve size
+    (``cash_print_band_size``); soft≠memory uses the advisory pin
+    (``memory_advisory_pin_size``). Gap bits already carry the gap sleeve.
+    Missing band stays silent. Not a gate.
     """
     want = str(clock or "").strip().casefold()
     if want == "expired":
@@ -822,6 +829,7 @@ def format_soft_allow_anchor_gap_bit(
     cash_pin_size: str = "",
     laya_freshness: str = "",
     debate_freshness: str = "",
+    memory_pin_size: str = "",
 ) -> str:
     """Compact ``N gap · last SYM · fresh|aging|expired · lead|n=1|tied · …``.
 
@@ -890,6 +898,7 @@ def format_soft_allow_anchor_gap_bit(
             laya_freshness=laya_freshness,
             debate_freshness=debate_freshness,
             now=now,
+            memory_pin_size=memory_pin_size,
         )
         if gap_vs_mem:
             head = f"{head} · {gap_vs_mem}"

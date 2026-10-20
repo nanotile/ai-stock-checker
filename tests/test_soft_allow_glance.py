@@ -358,9 +358,21 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
     )
     assert (
         soft_allow_lean_meta(
-            "clash · gap expired · laya fresh · debate fresh · ×1 · 50%"
+            "clash · gap expired · laya fresh · debate fresh · ×1 · 50% · ×2 · 100%"
         )
-        == "quiet · 1 fold · gap/memory ×1 50%"
+        == "quiet · 1 fold · gap/memory ×1 50% ×2 100%"
+    )
+    assert (
+        soft_allow_lean_meta(
+            "clash · gap expired · debate stale · ×1 · 50% · debate-only"
+        )
+        == "quiet · 1 fold · gap/memory ×1 50% debate-only"
+    )
+    assert (
+        soft_allow_lean_meta(
+            "clash · gap expired · laya fresh · ×1 · 50% · laya · 50%"
+        )
+        == "quiet · 1 fold · gap/memory ×1 50% laya 50%"
     )
     assert (
         soft_allow_lean_meta(
@@ -407,9 +419,17 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
     )
     assert (
         soft_allow_lean_meta(
-            "clash · laya stale · debate aging · ×2 · 67%"
+            "clash · laya stale · debate aging · ×2 · 100%"
         )
-        == "quiet · 1 fold · memory ×2 67%"
+        == "quiet · 1 fold · memory ×2 100%"
+    )
+    assert (
+        soft_allow_lean_meta("clash · debate stale · debate-only")
+        == "quiet · 1 fold · memory debate-only"
+    )
+    assert (
+        soft_allow_lean_meta("clash · laya stale · laya · 50%")
+        == "quiet · 1 fold · memory laya 50%"
     )
     assert (
         soft_allow_lean_meta("clash · scan stale", warn=True)
@@ -2323,7 +2343,7 @@ def test_soft_allow_glance_vs_memory_clock_clash() -> None:
     assert g["laya_freshness"] == "stale"
     assert g["debate_freshness"] == "aging"
     assert g["soft_vs_memory_clock_clash"] == (
-        "clash · laya stale · debate aging · ×1 · 100%"
+        "clash · laya stale · debate aging · ×2 · 100%"
     )
     assert g["soft_vs_memory_clock_clash_warn"] is True
     assert g["tone"] == "warn"
@@ -2349,7 +2369,8 @@ def test_soft_allow_glance_vs_memory_clock_clash() -> None:
     assert "clash · laya" not in same["line"]
     assert "clash · debate" not in same["line"]
 
-    # Only debate disagrees — compact single-side bit.
+    # Only debate disagrees — half-owner pin (dual advisory configured;
+    # soft ring size no longer rides).
     one = build_soft_allow_glance(
         [
             {
@@ -2363,11 +2384,28 @@ def test_soft_allow_glance_vs_memory_clock_clash() -> None:
         debate_freshness="stale",
     )
     assert one["soft_vs_memory_clock_clash"] == (
-        "clash · debate stale · ×1 · 100%"
+        "clash · debate stale · debate · 50%"
     )
     assert one["soft_vs_memory_clock_clash_warn"] is True
     assert "clash · debate stale" in one["line"]
-    assert "laya" not in one["soft_vs_memory_clock_clash"]
+    assert "laya" not in one["soft_vs_memory_clock_clash"].split(" · debate ")[0]
+
+    # Sole configured advisory that clashes → debate-only (venue-scope).
+    sole = build_soft_allow_glance(
+        [
+            {
+                "at": fresh_at,
+                "gate": "breadth",
+                "reason": "unknown breadth — allow",
+            }
+        ],
+        now=now,
+        laya_freshness="",
+        debate_freshness="stale",
+    )
+    assert sole["soft_vs_memory_clock_clash"] == (
+        "clash · debate stale · debate-only"
+    )
 
 
 def test_soft_allow_glance_gap_vs_memory_when_soft_matches_memory() -> None:
@@ -2401,7 +2439,7 @@ def test_soft_allow_glance_gap_vs_memory_when_soft_matches_memory() -> None:
     assert g["anchor_gap_last_freshness"] == "expired"
     gap_mem = g["anchor_gap_vs_memory_clock_clash"]
     assert gap_mem == (
-        "clash · gap expired · laya fresh · debate fresh · ×1 · 50%"
+        "clash · gap expired · laya fresh · debate fresh · ×1 · 50% · ×2 · 100%"
     )
     assert g["anchor_gap_vs_memory_clock_clash_warn"] is True
     assert gap_mem in g["anchor_gap_bit"]
