@@ -23074,9 +23074,13 @@ def build_laya_glance(
     pinned cash sleeve, speak ``clash · laya fresh|aging|stale · cash …``
     (xang1234 #549; soft matching scan ≠ live cash; soft-allow parity).
     When last-row age ≠ newest soft-allow clock, speak
-    ``clash · soft fresh|aging|stale`` (soft≠memory speak-both-sides —
-    LAYA matching scan/cash can still hide a staler fail-open print).
-    When last-row ticker/verb also disagrees with last-validate, append
+    ``clash · soft fresh|aging|stale · ×N · P%`` (soft≠memory
+    speak-both-sides — LAYA matching scan/cash can still hide a staler
+    fail-open print; ``×N · P%`` is the last-clock band so the verb is
+    not a nameless ring). When last-row age ≠ newest gap cursor, speak
+    ``clash · gap fresh|aging|stale · ×N · P%`` (gap sleeve size; soft
+    matching memory can still hide a staler gap). When last-row
+    ticker/verb also disagrees with last-validate, append
     ``vs NVDA BUY`` / ``vs BUY``.
     Same ticker + same polarity (pass↔BUY / reject↔SELL) or same literal
     verb speaks ``agree`` (portfolio AI confirm; not silent). Same ticker
@@ -23169,6 +23173,14 @@ def build_laya_glance(
     laya_peer_gap_clock_clash_warn = False
     soft_freshness = soft_allow_last_clock_tone(root, now=now)
     gap_freshness = soft_allow_gap_last_clock_tone(root, now=now)
+    from stock_checker.gate_audit import (
+        _anchor_gap_ring_size,
+        enrich_soft_allows,
+        load_soft_allows,
+        soft_allow_clock_band_size,
+    )
+
+    soft_rows = enrich_soft_allows(load_soft_allows(root), now=now)
     name_clash = ""
     verb_oppose = False
     edge_fee_bits = ""
@@ -23216,6 +23228,10 @@ def build_laya_glance(
         laya_vs_soft_clock_clash = (
             _clock_clash(freshness, soft=soft_freshness) if soft_freshness else ""
         )
+        if laya_vs_soft_clock_clash:
+            laya_vs_soft_clock_clash += soft_allow_clock_band_size(
+                soft_rows, clock=soft_freshness
+            )
         laya_vs_soft_clock_clash_warn = bool(laya_vs_soft_clock_clash)
         # LAYA matching soft can still hide debate ≠ soft (peer speak).
         laya_peer_soft_clock_clash, laya_peer_soft_clock_clash_warn = (
@@ -23230,6 +23246,11 @@ def build_laya_glance(
         laya_vs_gap_clock_clash = (
             _clock_clash(freshness, gap=gap_freshness) if gap_freshness else ""
         )
+        if laya_vs_gap_clock_clash:
+            # Newest-first matches gap helpers; count/share ignore order.
+            laya_vs_gap_clock_clash += _anchor_gap_ring_size(
+                list(reversed(soft_rows))
+            )
         laya_vs_gap_clock_clash_warn = bool(laya_vs_gap_clock_clash)
         # LAYA matching gap can still hide debate ≠ gap (peer speak).
         laya_peer_gap_clock_clash, laya_peer_gap_clock_clash_warn = (
@@ -23531,16 +23552,20 @@ def build_ai_debate_glance(
     mixed / same-side speak ``mixed · vs NVDA hold`` / ``align · vs NVDA
     pass`` (bare ``vs`` keeps bull↔bear).     Clash vs a staler scan/LAYA
     escalates glance tone (fresh last BUY ≠ live print). When last-debate
-    age ≠ newest soft-allow clock, speak ``clash · soft fresh|aging|stale``
-    (soft≠memory speak-both-sides — debate matching scan/cash can still
-    hide a staler fail-open print). Bull↔bear verb
-    oppose (BUY vs reject / SELL vs pass) also escalates to aging — name
-    label ≠ polarity severity. Last-row ``conf hi|med|lo`` speaks when
-    typed confidence is present (BUY alone ≠ high conviction); ``conf lo``
-    escalates to aging. Same ticker + typed LAYA edge: ``edge/conf
-    clash|align`` when strength extremes disagree or match. Same ticker
-    + typed LAYA fee: ``fee/conf clash|align`` when churn vs conviction
-    extremes disagree or match.     Same ticker + typed LAYA edge vs fee:
+    age ≠ newest soft-allow clock, speak
+    ``clash · soft fresh|aging|stale · ×N · P%`` (soft≠memory
+    speak-both-sides — debate matching scan/cash can still hide a staler
+    fail-open print; last-clock band so the verb is not a nameless ring).
+    When last-debate age ≠ newest gap cursor, speak
+    ``clash · gap fresh|aging|stale · ×N · P%`` (gap sleeve size).
+    Bull↔bear verb oppose (BUY vs reject / SELL vs pass) also escalates
+    to aging — name label ≠ polarity severity. Last-row ``conf hi|med|lo``
+    speaks when typed confidence is present (BUY alone ≠ high conviction);
+    ``conf lo`` escalates to aging. Same ticker + typed LAYA edge:
+    ``edge/conf clash|align`` when strength extremes disagree or match.
+    Same ticker + typed LAYA fee: ``fee/conf clash|align`` when churn vs
+    conviction extremes disagree or match. Same ticker + typed LAYA edge
+    vs fee:
     ``edge/fee clash|align`` when strength vs churn extremes disagree or
     match. Same ticker + debate action vs LAYA edge:
     ``BUY/edge clash · thin`` / ``SELL/edge clash · strong`` (extremes
@@ -23676,6 +23701,14 @@ def build_ai_debate_glance(
     debate_peer_gap_clock_clash_warn = False
     soft_freshness = soft_allow_last_clock_tone(root, now=now)
     gap_freshness = soft_allow_gap_last_clock_tone(root, now=now)
+    from stock_checker.gate_audit import (
+        _anchor_gap_ring_size,
+        enrich_soft_allows,
+        load_soft_allows,
+        soft_allow_clock_band_size,
+    )
+
+    soft_rows = enrich_soft_allows(load_soft_allows(root), now=now)
     name_clash = ""
     verb_oppose = False
     edge_vs_conf = ""
@@ -23706,11 +23739,19 @@ def build_ai_debate_glance(
         debate_vs_soft_clock_clash = (
             _clock_clash(freshness, soft=soft_freshness) if soft_freshness else ""
         )
+        if debate_vs_soft_clock_clash:
+            debate_vs_soft_clock_clash += soft_allow_clock_band_size(
+                soft_rows, clock=soft_freshness
+            )
         debate_vs_soft_clock_clash_warn = bool(debate_vs_soft_clock_clash)
         # Soft matching memory can still hide a staler gap cursor.
         debate_vs_gap_clock_clash = (
             _clock_clash(freshness, gap=gap_freshness) if gap_freshness else ""
         )
+        if debate_vs_gap_clock_clash:
+            debate_vs_gap_clock_clash += _anchor_gap_ring_size(
+                list(reversed(soft_rows))
+            )
         debate_vs_gap_clock_clash_warn = bool(debate_vs_gap_clock_clash)
         # Debate matching cash can still hide LAYA ≠ cash (peer speak).
         if laya_st.get("advisory"):

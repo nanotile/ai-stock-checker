@@ -426,9 +426,9 @@ def test_laya_glance_vs_soft_clock_clash(monkeypatch, tmp_path: Path) -> None:
     )
     assert g["freshness"] == "fresh"
     assert g["soft_freshness"] == "stale"
-    assert g["laya_vs_soft_clock_clash"] == "clash · soft stale"
+    assert g["laya_vs_soft_clock_clash"] == "clash · soft stale · ×1 · 100%"
     assert g["laya_vs_soft_clock_clash_warn"] is True
-    assert "clash · soft stale" in g["line"]
+    assert "clash · soft stale · ×1 · 100%" in g["line"]
     assert g["tone"] in {"aging", "stale"}
     # Same band — silent.
     (tmp_path / "gate_soft_allows.json").write_text(
@@ -579,9 +579,9 @@ def test_laya_glance_vs_gap_clock_clash(monkeypatch, tmp_path: Path) -> None:
     assert g["soft_freshness"] == "fresh"
     assert g["gap_freshness"] == "stale"
     assert g["laya_vs_soft_clock_clash"] == ""
-    assert g["laya_vs_gap_clock_clash"] == "clash · gap stale"
+    assert g["laya_vs_gap_clock_clash"] == "clash · gap stale · ×1 · 50%"
     assert g["laya_vs_gap_clock_clash_warn"] is True
-    assert "clash · gap stale" in g["line"]
+    assert "clash · gap stale · ×1 · 50%" in g["line"]
     assert g["tone"] in {"aging", "stale"}
     # Same band — silent.
     (tmp_path / "gate_soft_allows.json").write_text(

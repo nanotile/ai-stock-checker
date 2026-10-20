@@ -368,9 +368,9 @@ def test_build_ai_debate_glance_vs_soft_clock_clash(tmp_path: Path) -> None:
     )
     assert g["freshness"] == "fresh"
     assert g["soft_freshness"] == "stale"
-    assert g["debate_vs_soft_clock_clash"] == "clash · soft stale"
+    assert g["debate_vs_soft_clock_clash"] == "clash · soft stale · ×1 · 100%"
     assert g["debate_vs_soft_clock_clash_warn"] is True
-    assert "clash · soft stale" in g["line"]
+    assert "clash · soft stale · ×1 · 100%" in g["line"]
     assert g["tone"] in {"aging", "stale", "buy"}
     # Same band — silent.
     (tmp_path / "gate_soft_allows.json").write_text(
@@ -439,9 +439,9 @@ def test_build_ai_debate_glance_vs_gap_clock_clash(tmp_path: Path) -> None:
     assert g["soft_freshness"] == "fresh"
     assert g["gap_freshness"] == "stale"
     assert g["debate_vs_soft_clock_clash"] == ""
-    assert g["debate_vs_gap_clock_clash"] == "clash · gap stale"
+    assert g["debate_vs_gap_clock_clash"] == "clash · gap stale · ×1 · 50%"
     assert g["debate_vs_gap_clock_clash_warn"] is True
-    assert "clash · gap stale" in g["line"]
+    assert "clash · gap stale · ×1 · 50%" in g["line"]
     assert g["tone"] in {"aging", "stale", "buy"}
     (tmp_path / "gate_soft_allows.json").write_text(
         json.dumps(
