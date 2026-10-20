@@ -354,6 +354,39 @@ def _scan_vs_cash_clash_delta(tone: str, cash: str) -> str:
     return ""
 
 
+def cash_print_band_size(meta: Mapping[str, Any] | None, *, clock: str) -> str:
+    """`` · ×N · P%`` for pinned cash sleeves on one band (display only).
+
+    LAYA/debate ≠ cash (and peer cash) name a generation verb. Soft≠cash
+    already carries the soft last-clock band; this is the cash sleeve ring
+    (US/Xetra last-published on the spoken worst band) so those clashes are
+    not a nameless sleeve. Missing pin / band stays silent. Not a gate.
+    """
+    want = str(clock or "").strip().casefold()
+    if want == "expired":
+        want = "stale"
+    elif want == "unknown":
+        want = "fresh"
+    if want not in _CASH_PRINT_RANK or not isinstance(meta, Mapping):
+        return ""
+    sleeves: list[str] = []
+    if meta.get("cash_print_us_last_published"):
+        us = str(meta.get("cash_print_us_freshness") or "").strip().casefold()
+        if us in _CASH_PRINT_RANK:
+            sleeves.append(us)
+    if meta.get("cash_print_xetra_last_published"):
+        xetra = str(meta.get("cash_print_xetra_freshness") or "").strip().casefold()
+        if xetra in _CASH_PRINT_RANK:
+            sleeves.append(xetra)
+    if not sleeves:
+        return ""
+    n = sum(1 for band in sleeves if band == want)
+    if n <= 0:
+        return ""
+    share = int(round(100.0 * n / len(sleeves)))
+    return f" · ×{n} · {share}%"
+
+
 def memory_vs_cash_clock_clash(
     own_freshness: str, cash_band: str, *, side: str = "soft"
 ) -> tuple[str, bool]:
@@ -23071,9 +23104,11 @@ def build_laya_glance(
     with last-row age, speak ``clash · scan fresh|aging|stale``. When the
     newest validate-debate band also disagrees, append ``debate {tone}``
     (FinRobot last-debate ≠ JEV last-reject).     When last-row age ≠ worst
-    pinned cash sleeve, speak ``clash · laya fresh|aging|stale · cash …``
-    (xang1234 #549; soft matching scan ≠ live cash; soft-allow parity).
-    When last-row age ≠ newest soft-allow clock, speak
+    pinned cash sleeve, speak
+    ``clash · laya fresh|aging|stale · cash … · ×N · P%`` (xang1234 #549;
+    soft matching scan ≠ live cash; soft-allow parity; ``×N · P%`` is the
+    pinned cash sleeve ring so the verb is not a nameless sleeve). When
+    last-row age ≠ newest soft-allow clock, speak
     ``clash · soft fresh|aging|stale · ×N · P%`` (soft≠memory
     speak-both-sides — LAYA matching scan/cash can still hide a staler
     fail-open print; ``×N · P%`` is the last-clock band so the verb is
@@ -23139,6 +23174,7 @@ def build_laya_glance(
         age_bit = age_label
     scan_freshness = ""
     cash_band = ""
+    scan_pack: dict[str, Any] = {}
     if scan_time:
         scan_pack = build_scan_freshness(
             scan_time, now=now, scan_interval_sec=scan_interval_sec
@@ -23215,6 +23251,11 @@ def build_laya_glance(
         laya_vs_cash_clock_clash, laya_vs_cash_clock_clash_warn = (
             memory_vs_cash_clock_clash(freshness, cash_band, side="laya")
         )
+        if laya_vs_cash_clock_clash:
+            # Soft≠cash names the soft last-clock; cash clash names sleeves.
+            laya_vs_cash_clock_clash += cash_print_band_size(
+                scan_pack, clock=cash_band
+            )
         # LAYA matching cash can still hide debate ≠ cash (peer speak).
         laya_peer_cash_clock_clash, laya_peer_cash_clock_clash_warn = (
             memory_peer_cash_clock_clash(
@@ -23224,6 +23265,11 @@ def build_laya_glance(
                 peer_side="debate",
             )
         )
+        if laya_peer_cash_clock_clash:
+            # Own≠cash already names the sleeve; peer cash stayed nameless.
+            laya_peer_cash_clock_clash += cash_print_band_size(
+                scan_pack, clock=cash_band
+            )
         # LAYA matching scan/cash can still hide a staler soft-allow print.
         laya_vs_soft_clock_clash = (
             _clock_clash(freshness, soft=soft_freshness) if soft_freshness else ""
@@ -23552,8 +23598,9 @@ def build_ai_debate_glance(
     debate (fresh/aging/stale vs scan cadence).     When the scan archive band
     disagrees with last-debate age, speak ``clash · scan fresh|aging|stale``.
     When last-debate clock ≠ worst pinned cash sleeve, speak
-    ``clash · debate fresh|aging|stale · cash …`` (LAYA soft≠cash parity;
-    matching scan ≠ live cash print). When LAYA last-row band also
+    ``clash · debate fresh|aging|stale · cash … · ×N · P%`` (LAYA soft≠cash
+    parity; matching scan ≠ live cash print; pinned cash sleeve ring so the
+    verb is not a nameless sleeve). When LAYA last-row band also
     disagrees, append ``laya {tone}`` (JEV last-reject ≠ last BUY). When last-debate ticker/verb also disagrees
     with LAYA last-row, append ``vs MSFT hold`` / ``vs hold``. Same ticker
     + same polarity (BUY↔pass / SELL↔reject) or same literal verb speaks
@@ -23672,6 +23719,7 @@ def build_ai_debate_glance(
     age_sec = fresh.get("age_sec")
     scan_freshness = ""
     cash_band = ""
+    scan_pack: dict[str, Any] = {}
     if scan_time:
         scan_pack = build_scan_freshness(
             scan_time, now=now, scan_interval_sec=scan_interval_sec
@@ -23745,6 +23793,11 @@ def build_ai_debate_glance(
         debate_vs_cash_clock_clash, debate_vs_cash_clock_clash_warn = (
             memory_vs_cash_clock_clash(freshness, cash_band, side="debate")
         )
+        if debate_vs_cash_clock_clash:
+            # Soft≠cash names the soft last-clock; cash clash names sleeves.
+            debate_vs_cash_clock_clash += cash_print_band_size(
+                scan_pack, clock=cash_band
+            )
         # Debate matching scan/cash can still hide a staler soft-allow print.
         debate_vs_soft_clock_clash = (
             _clock_clash(freshness, soft=soft_freshness) if soft_freshness else ""
@@ -23774,6 +23827,11 @@ def build_ai_debate_glance(
                 cash_band,
                 peer_side="laya",
             )
+            if debate_peer_cash_clock_clash:
+                # Own≠cash already names the sleeve; peer cash stayed nameless.
+                debate_peer_cash_clock_clash += cash_print_band_size(
+                    scan_pack, clock=cash_band
+                )
             # Debate matching soft can still hide LAYA ≠ soft (peer speak).
             (
                 debate_peer_soft_clock_clash,

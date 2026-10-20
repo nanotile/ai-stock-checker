@@ -348,6 +348,7 @@ def test_laya_glance_cash_clash_when_laya_matches_scan(
     assert g["scan_vs_laya_clash"] == ""
     cash = g["laya_vs_cash_clock_clash"]
     assert cash.startswith("clash · laya fresh · cash ")
+    assert cash.endswith("· ×2 · 100%")
     assert g["laya_vs_cash_clock_clash_warn"] is True
     assert cash in g["line"]
     assert g["tone"] == "aging"
@@ -733,6 +734,7 @@ def test_laya_glance_peer_cash_clash_when_laya_matches_cash(
     peer = g["laya_peer_cash_clock_clash"]
     assert peer.startswith("peer cash · debate ")
     assert "cash fresh" in peer
+    assert peer.endswith("· ×2 · 100%")
     assert g["laya_peer_cash_clock_clash_warn"] is True
     assert "peer cash" in g["line"]
     # Stale peer clock clash escalates tone above aging warn.

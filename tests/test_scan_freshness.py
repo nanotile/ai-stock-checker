@@ -8,6 +8,7 @@ import pytz
 
 from openbb_backend.desk import (
     build_scan_freshness,
+    cash_print_band_size,
     cash_print_freshness,
     memory_peer_cash_clock_clash,
     memory_peer_gap_clock_clash,
@@ -19,6 +20,27 @@ from openbb_backend.desk import (
     _scan_vs_cash_clash_delta,
     _scan_vs_cash_print_clash,
 )
+
+
+def test_cash_print_band_size() -> None:
+    """Pinned US/Xetra sleeves → ×N · P% on the spoken cash band."""
+    both = {
+        "cash_print_us_last_published": True,
+        "cash_print_us_freshness": "aging",
+        "cash_print_xetra_last_published": True,
+        "cash_print_xetra_freshness": "aging",
+    }
+    assert cash_print_band_size(both, clock="aging") == " · ×2 · 100%"
+    split = {
+        "cash_print_us_last_published": True,
+        "cash_print_us_freshness": "stale",
+        "cash_print_xetra_last_published": True,
+        "cash_print_xetra_freshness": "aging",
+    }
+    assert cash_print_band_size(split, clock="stale") == " · ×1 · 50%"
+    assert cash_print_band_size(split, clock="fresh") == ""
+    assert cash_print_band_size({}, clock="aging") == ""
+    assert cash_print_band_size(None, clock="aging") == ""
 
 
 def test_soft_allow_vs_cash_clock_clash_helper() -> None:
