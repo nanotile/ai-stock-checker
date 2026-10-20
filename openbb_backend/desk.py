@@ -354,6 +354,26 @@ def _scan_vs_cash_clash_delta(tone: str, cash: str) -> str:
     return ""
 
 
+def _scan_vs_cash_delta_vs_sleeve(
+    clash_delta: str, sleeve_delta: str
+) -> tuple[str, bool]:
+    """Scan↔cash Δ vs pin sleeve Δ relationship (display only).
+
+    Naming both gaps alone hid whether the compile-clock spread matches the
+    worst↔runner pin spread (portfolio AI speak-both-sides after sleeve Δ +
+    xang1234 share vs Δ). Same band → ``align · both thin|wide`` (both wide
+    warns as adverse dual-wide). Crossed → ``clash · Δ … · sleeve …`` + warn.
+    Missing either stays silent.
+    """
+    a = str(clash_delta or "").strip().casefold()
+    b = str(sleeve_delta or "").strip().casefold()
+    if a not in ("thin", "wide") or b not in ("thin", "wide"):
+        return "", False
+    if a == b:
+        return f"align · both {a}", a == "wide"
+    return f"clash · Δ {a} · sleeve {b}", True
+
+
 def cash_print_band_size(meta: Mapping[str, Any] | None, *, clock: str) -> str:
     """`` · ×N · P%`` for pinned cash sleeves on one band (display only).
 
@@ -704,9 +724,11 @@ def build_scan_freshness(
     adjacent). When only one market owns the worst print, name that sleeve
     (xang1234 #531 market-pointer) and the calmer runner sleeve when both
     are pinned (portfolio AI speak-both-sides), plus ``sleeve Δ wide|thin``
-    for the worst↔runner gap (share-Δ after naming) and ``runner · ×N · P%``
-    on the calmer sleeve ring when it already spoke (worst size alone hid
-    runner ownership). Not an entry gate.
+    for the worst↔runner gap (share-Δ after naming), ``Δ vs sleeve Δ
+    align|clash`` when both gaps already spoke (portfolio AI speak-both-sides
+    after side-by-side Δ labels), and ``runner · ×N · P%`` on the calmer
+    sleeve ring when it already spoke (worst size alone hid runner
+    ownership). Not an entry gate.
     """
     empty = {
         "ready": False,
@@ -727,6 +749,8 @@ def build_scan_freshness(
         "scan_vs_cash_print": "",
         "scan_vs_cash_clash_delta": "",
         "scan_vs_cash_clash_sleeve_delta": "",
+        "scan_vs_cash_clash_delta_vs_sleeve": "",
+        "scan_vs_cash_clash_delta_vs_sleeve_warn": False,
         "scan_vs_cash_clash_runner": "",
     }
     raw = str(scan_time or "").strip()
@@ -761,16 +785,24 @@ def build_scan_freshness(
         if clash and runner_band
         else ""
     )
+    delta_vs_sleeve, delta_vs_sleeve_warn = (
+        _scan_vs_cash_delta_vs_sleeve(clash_delta, sleeve_delta)
+        if clash and clash_delta and sleeve_delta
+        else ("", False)
+    )
     # Soft/LAYA/debate ≠ cash already name the cash sleeve ring; scan≠cash
     # stayed a nameless generation verb beside Δ alone. Worst ring size is
     # not the runner: when a calmer sleeve already spoke, name its ring too
-    # (portfolio AI speak-both-sides after sleeve Δ).
+    # (portfolio AI speak-both-sides after sleeve Δ). Side-by-side Δ labels
+    # still hide whether compile-clock spread matches pin sleeve spread.
     if clash and cash_worst:
         clash += cash_print_band_size(print_meta, clock=cash_worst)
     if clash and clash_delta:
         clash = f"{clash} · Δ {clash_delta}"
     if clash and sleeve_delta:
         clash = f"{clash} · sleeve Δ {sleeve_delta}"
+    if clash and delta_vs_sleeve:
+        clash = f"{clash} · Δ vs sleeve Δ {delta_vs_sleeve}"
     if clash and runner_band:
         runner_ring = cash_print_band_size(print_meta, clock=runner_band)
         if runner_ring:
@@ -793,6 +825,8 @@ def build_scan_freshness(
         "scan_vs_cash_print": cash_worst,
         "scan_vs_cash_clash_delta": clash_delta,
         "scan_vs_cash_clash_sleeve_delta": sleeve_delta,
+        "scan_vs_cash_clash_delta_vs_sleeve": delta_vs_sleeve,
+        "scan_vs_cash_clash_delta_vs_sleeve_warn": delta_vs_sleeve_warn,
         "scan_vs_cash_clash_runner": runner_band,
         **print_meta,
     }

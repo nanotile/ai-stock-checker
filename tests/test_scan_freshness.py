@@ -19,6 +19,7 @@ from openbb_backend.desk import (
     soft_allow_last_clock_tone,
     soft_allow_vs_cash_clock_clash,
     _scan_vs_cash_clash_delta,
+    _scan_vs_cash_delta_vs_sleeve,
     _scan_vs_cash_print_clash,
 )
 
@@ -300,6 +301,8 @@ def test_scan_freshness_last_published_when_cash_closed() -> None:
     assert g["scan_vs_cash_clash"] == ""
     assert g["scan_vs_cash_clash_delta"] == ""
     assert g["scan_vs_cash_clash_sleeve_delta"] == ""
+    assert g["scan_vs_cash_clash_delta_vs_sleeve"] == ""
+    assert g["scan_vs_cash_clash_delta_vs_sleeve_warn"] is False
     assert g["scan_vs_cash_clash_runner"] == ""
 
 
@@ -407,6 +410,8 @@ def test_scan_freshness_weekend_stocks_paused() -> None:
     assert g["scan_vs_cash_print"] == "aging"
     assert g["scan_vs_cash_clash_delta"] == "thin"
     assert g["scan_vs_cash_clash_sleeve_delta"] == ""
+    assert g["scan_vs_cash_clash_delta_vs_sleeve"] == ""
+    assert g["scan_vs_cash_clash_delta_vs_sleeve_warn"] is False
     assert g["scan_vs_cash_clash_runner"] == ""
     assert "scan vs cash clash" in g["line"]
     assert "×2 · 100%" in g["line"]
@@ -440,6 +445,8 @@ def test_scan_freshness_weekend_sunday_cash_print_stale() -> None:
     assert g["scan_vs_cash_print"] == "stale"
     assert g["scan_vs_cash_clash_delta"] == "wide"
     assert g["scan_vs_cash_clash_sleeve_delta"] == ""
+    assert g["scan_vs_cash_clash_delta_vs_sleeve"] == ""
+    assert g["scan_vs_cash_clash_delta_vs_sleeve_warn"] is False
     assert g["scan_vs_cash_clash_runner"] == ""
     assert "scan vs cash clash" in g["line"]
     assert "×2 · 100%" in g["line"]
@@ -453,6 +460,28 @@ def test_scan_vs_cash_clash_delta_bands() -> None:
     assert _scan_vs_cash_clash_delta("stale", "fresh") == "wide"
     assert _scan_vs_cash_clash_delta("fresh", "fresh") == ""
     assert _scan_vs_cash_clash_delta("fresh", "") == ""
+
+
+def test_scan_vs_cash_delta_vs_sleeve() -> None:
+    """portfolio AI: scan↔cash Δ vs pin sleeve Δ is not two silent labels."""
+    assert _scan_vs_cash_delta_vs_sleeve("thin", "thin") == (
+        "align · both thin",
+        False,
+    )
+    assert _scan_vs_cash_delta_vs_sleeve("wide", "wide") == (
+        "align · both wide",
+        True,
+    )
+    assert _scan_vs_cash_delta_vs_sleeve("wide", "thin") == (
+        "clash · Δ wide · sleeve thin",
+        True,
+    )
+    assert _scan_vs_cash_delta_vs_sleeve("thin", "wide") == (
+        "clash · Δ thin · sleeve wide",
+        True,
+    )
+    assert _scan_vs_cash_delta_vs_sleeve("thin", "") == ("", False)
+    assert _scan_vs_cash_delta_vs_sleeve("", "wide") == ("", False)
 
 
 def test_scan_vs_cash_clash_names_market_pointer_when_sleeves_differ() -> None:
@@ -553,10 +582,37 @@ def test_scan_freshness_weekend_morning_sleeve_delta() -> None:
     assert g["scan_vs_cash_clash_runner"] == "fresh"
     assert g["scan_vs_cash_clash_delta"] == "thin"
     assert g["scan_vs_cash_clash_sleeve_delta"] == "thin"
+    assert g["scan_vs_cash_clash_delta_vs_sleeve"] == "align · both thin"
+    assert g["scan_vs_cash_clash_delta_vs_sleeve_warn"] is False
     assert g["scan_vs_cash_clash"] == (
         "scan vs cash clash · scan fresh · Xetra cash aging · US fresh"
-        " · ×1 · 50% · Δ thin · sleeve Δ thin · runner · ×1 · 50%"
+        " · ×1 · 50% · Δ thin · sleeve Δ thin"
+        " · Δ vs sleeve Δ align · both thin · runner · ×1 · 50%"
     )
     assert "×1 · 50%" in g["line"]
     assert "sleeve Δ thin" in g["line"]
+    assert "Δ vs sleeve Δ align · both thin" in g["line"]
     assert "runner · ×1 · 50%" in g["line"]
+
+
+def test_scan_freshness_delta_vs_sleeve_clash() -> None:
+    """Fresh scan + stale Xetra + aging US → wide scan Δ vs thin sleeve Δ."""
+    clash, cash, runner = _scan_vs_cash_print_clash(
+        "fresh",
+        {
+            "cash_print_us_last_published": True,
+            "cash_print_us_freshness": "aging",
+            "cash_print_xetra_last_published": True,
+            "cash_print_xetra_freshness": "stale",
+        },
+    )
+    assert cash == "stale"
+    assert runner == "aging"
+    clash_delta = _scan_vs_cash_clash_delta("fresh", cash)
+    sleeve_delta = _scan_vs_cash_clash_delta(cash, runner)
+    assert clash_delta == "wide"
+    assert sleeve_delta == "thin"
+    bit, warn = _scan_vs_cash_delta_vs_sleeve(clash_delta, sleeve_delta)
+    assert bit == "clash · Δ wide · sleeve thin"
+    assert warn is True
+    assert "Xetra cash stale · US aging" in clash
