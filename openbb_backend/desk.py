@@ -23366,15 +23366,15 @@ def build_laya_glance(
     age uses RyanJHamby/xang1234 scan-cadence fresh/aging/stale (a last
     reject is not a live print).     When the scan archive band disagrees
     with last-row age, speak
-    ``clash · scan fresh|aging|stale · ×N · P%`` (advisory memory ring so
-    the verb is not a nameless sleeve; soft≠scan parity). When the newest
-    validate-debate band also disagrees, append ``debate {tone}``
-    (FinRobot last-debate ≠ JEV last-reject). Peer-only (own matches
-    scan) speaks ``clash · debate … · ×N · P%`` on the debate advisory
-    ring so the peer verb is not a nameless sleeve — omitted when peer
-    soft/gap/cash already speak size (those bits need the 96-char clip);
-    when scan is already on the clash, own ring size rides and peer stays
-    short. When
+    ``clash · scan fresh|aging|stale · scan-only`` (soft≠scan
+    ``scan-only`` pin — advisory ring ``×N`` lied advisory coverage was
+    the scan archive; #647 / #531). When the newest validate-debate band
+    also disagrees, append ``debate {tone}`` (FinRobot last-debate ≠ JEV
+    last-reject). Peer-only (own matches scan) speaks
+    ``clash · debate … · ×N · P%`` on the debate advisory ring so the peer
+    verb is not a nameless sleeve — omitted when peer soft/gap/cash
+    already speak size (those bits need the 96-char clip); when scan is
+    already on the clash, ``scan-only`` rides and peer stays short. When
     last-row age ≠ worst pinned cash sleeve, speak
     ``clash · laya fresh|aging|stale · cash … · ×N · P%`` (xang1234 #549;
     soft matching scan ≠ live cash; soft-allow parity; ``×N · P%`` is the
@@ -23421,7 +23421,7 @@ def build_laya_glance(
     lead speaks ``tied`` (silent gap hid that last-row is not a tilt).
     See docs/LAYA.md.
     """
-    from stock_checker.laya_decision import load_laya_decisions, laya_status
+    from stock_checker.laya_decision import laya_status
 
     root = data_dir if data_dir is not None else Path(os.getenv("DATA_DIR", "data"))
     st = laya_status(root)
@@ -23518,20 +23518,17 @@ def build_laya_glance(
         clash = _clock_clash(
             freshness, scan=scan_freshness, debate=debate_freshness
         )
-        # Soft≠scan names the soft last-clock; own≠scan names the advisory
-        # memory ring. Peer-only (own matches scan, debate disagrees) names
-        # the debate ring so ``debate {tone}`` is not a nameless sleeve —
-        # but only when peer soft/gap/cash are silent (those bits already
-        # carry ``×N · P%`` and need the 96-char clip). When scan is
-        # already on the clash, own ring rides and peer stays short.
+        # Soft≠scan names scan-only; own≠scan must name the same archive
+        # pin — advisory ring ×N lied advisory coverage was the scan
+        # print (#647 / #531). Peer-only (own matches scan, debate
+        # disagrees) names the debate ring so ``debate {tone}`` is not a
+        # nameless sleeve — but only when peer soft/gap/cash are silent
+        # (those bits already carry size and need the 96-char clip).
+        # When scan is already on the clash, scan-only rides and peer
+        # stays short.
         peer_ring = ""
         if clash and "scan " in clash:
-            clash += memory_advisory_band_size(
-                load_laya_decisions(root),
-                clock=freshness,
-                now=now,
-                scan_interval_sec=scan_interval_sec,
-            )
+            clash += scan_archive_pin_size(scan_freshness=scan_freshness)
         elif clash and "debate " in clash and debate_freshness:
             from stock_checker.ai_validate_memory import load_ai_validate_memory
 
@@ -23900,9 +23897,10 @@ def build_ai_debate_glance(
     opening Ideas. Includes RyanJHamby/xang1234 ``as of`` age on the newest
     debate (fresh/aging/stale vs scan cadence).     When the scan archive band
     disagrees with last-debate age, speak
-    ``clash · scan fresh|aging|stale · ×N · P%`` (advisory memory ring so
-    the verb is not a nameless sleeve; soft≠scan parity). When last-debate
-    clock ≠ worst pinned cash sleeve, speak
+    ``clash · scan fresh|aging|stale · scan-only`` (soft≠scan
+    ``scan-only`` pin — advisory ring ``×N`` lied advisory coverage was
+    the scan archive; #647 / #531). When last-debate clock ≠ worst pinned
+    cash sleeve, speak
     ``clash · debate fresh|aging|stale · cash … · ×N · P%`` (LAYA soft≠cash
     parity; matching scan ≠ live cash print; pinned cash sleeve ring so the
     verb is not a nameless sleeve). When LAYA last-row band also
@@ -23910,7 +23908,7 @@ def build_ai_debate_glance(
     Peer-only (own matches scan) speaks ``clash · laya … · ×N · P%`` on
     the LAYA advisory ring so the peer verb is not a nameless sleeve —
     omitted when peer soft/gap/cash already speak size (those bits need
-    the 96-char clip); when scan is already on the clash, own ring size
+    the 96-char clip); when scan is already on the clash, ``scan-only``
     rides and peer stays short. When last-debate
     ticker/verb also disagrees
     with LAYA last-row, append ``vs MSFT hold`` / ``vs hold``. Same ticker
@@ -24100,22 +24098,17 @@ def build_ai_debate_glance(
     laya_verb = _laya_row_verb(newest_row)
     if age_label:
         clash = _clock_clash(freshness, scan=scan_freshness, laya=laya_freshness)
-        # Soft≠scan names the soft last-clock; own≠scan names the advisory
-        # memory ring. Peer-only (own matches scan, LAYA disagrees) names
-        # the LAYA ring so ``laya {tone}`` is not a nameless sleeve — but
-        # only when peer soft/gap/cash are silent (those bits already
-        # carry ``×N · P%`` and need the 96-char clip). When scan is
-        # already on the clash, own ring rides and peer stays short.
+        # Soft≠scan names scan-only; own≠scan must name the same archive
+        # pin — advisory ring ×N lied advisory coverage was the scan
+        # print (#647 / #531). Peer-only (own matches scan, LAYA
+        # disagrees) names the LAYA ring so ``laya {tone}`` is not a
+        # nameless sleeve — but only when peer soft/gap/cash are silent
+        # (those bits already carry size and need the 96-char clip).
+        # When scan is already on the clash, scan-only rides and peer
+        # stays short.
         peer_ring = ""
         if clash and "scan " in clash:
-            from stock_checker.ai_validate_memory import load_ai_validate_memory
-
-            clash += memory_advisory_band_size(
-                load_ai_validate_memory(root),
-                clock=freshness,
-                now=now,
-                scan_interval_sec=scan_interval_sec,
-            )
+            clash += scan_archive_pin_size(scan_freshness=scan_freshness)
         elif clash and "laya " in clash and laya_freshness:
             peer_ring = memory_advisory_band_size(
                 load_laya_decisions(root),
