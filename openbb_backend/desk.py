@@ -869,9 +869,10 @@ def build_scan_freshness(
     (RyanJHamby triad; hours ≠ weekend vs same-evening). When the scan-archive
     tone disagrees with the worst pinned cash print, speak
     ``scan vs cash clash`` (compile clock ≠ snapshot age) plus
-    cash pin ring size (``US-only`` / ``Xetra · 50%`` / ``×2 · 100%`` —
-    xang1234 #647 venue-scope + #531 market-pointer; soft/LAYA/debate ≠
-    cash parity) plus ``Δ wide|thin`` (fresh↔stale vs adjacent). When only
+    ``scan-only`` then cash pin ring size (``US-only`` /
+    ``Xetra · 50%`` / ``×2 · 100%`` — soft≠cash ``soft-only · US-only``
+    parity; xang1234 #647 venue-scope + #531 market-pointer) plus
+    ``Δ wide|thin`` (fresh↔stale vs adjacent). When only
     one market owns the worst print, name that sleeve (xang1234 #531
     market-pointer) and the calmer runner sleeve when both are pinned
     (portfolio AI speak-both-sides), plus ``sleeve Δ wide|thin`` for the
@@ -941,12 +942,14 @@ def build_scan_freshness(
         if clash and clash_delta and sleeve_delta
         else ("", False)
     )
-    # Soft/LAYA/debate ≠ cash already name the cash sleeve ring; scan≠cash
-    # stayed a nameless generation verb beside Δ alone. Worst ring size is
-    # not the runner: when a calmer sleeve already spoke, name its ring too
-    # (portfolio AI speak-both-sides after sleeve Δ). Side-by-side Δ labels
-    # still hide whether compile-clock spread matches pin sleeve spread.
+    # Soft≠cash already names soft-only + cash pin; scan≠cash named cash
+    # alone and hid that the scan archive is itself a sole published pin.
+    # Worst cash ring size is not the runner: when a calmer sleeve already
+    # spoke, name its ring too (portfolio AI speak-both-sides after sleeve
+    # Δ). Side-by-side Δ labels still hide whether compile-clock spread
+    # matches pin sleeve spread.
     if clash and cash_worst:
+        clash += scan_archive_pin_size(scan_freshness=tone)
         clash += cash_print_band_size(print_meta, clock=cash_worst)
     if clash and clash_delta:
         clash = f"{clash} · Δ {clash_delta}"

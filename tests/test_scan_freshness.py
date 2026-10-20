@@ -469,7 +469,8 @@ def test_scan_freshness_weekend_stocks_paused() -> None:
     assert g["cash_print_xetra_freshness"] == "aging"
     assert "aging" in g["provenance_bit"]
     assert g["scan_vs_cash_clash"] == (
-        "scan vs cash clash · scan fresh · cash aging · ×2 · 100% · Δ thin"
+        "scan vs cash clash · scan fresh · cash aging"
+        " · scan-only · ×2 · 100% · Δ thin"
     )
     assert g["scan_vs_cash_print"] == "aging"
     assert g["scan_vs_cash_clash_delta"] == "thin"
@@ -504,7 +505,8 @@ def test_scan_freshness_weekend_sunday_cash_print_stale() -> None:
     assert "stale" in g["provenance_bit"]
     assert "stocks paused" in g["provenance_bit"]
     assert g["scan_vs_cash_clash"] == (
-        "scan vs cash clash · scan fresh · cash stale · ×2 · 100% · Δ wide"
+        "scan vs cash clash · scan fresh · cash stale"
+        " · scan-only · ×2 · 100% · Δ wide"
     )
     assert g["scan_vs_cash_print"] == "stale"
     assert g["scan_vs_cash_clash_delta"] == "wide"
@@ -650,7 +652,7 @@ def test_scan_freshness_weekend_morning_sleeve_delta() -> None:
     assert g["scan_vs_cash_clash_delta_vs_sleeve_warn"] is False
     assert g["scan_vs_cash_clash"] == (
         "scan vs cash clash · scan fresh · Xetra cash aging · US fresh"
-        " · Xetra · 50% · Δ thin · sleeve Δ thin"
+        " · scan-only · Xetra · 50% · Δ thin · sleeve Δ thin"
         " · Δ vs sleeve Δ align · both thin · runner · US · 50%"
     )
     assert "Xetra · 50%" in g["line"]
