@@ -788,7 +788,7 @@ def test_laya_glance_debate_clash(monkeypatch, tmp_path: Path) -> None:
     assert g["freshness"] == "stale"
     assert g["scan_freshness"] == "stale"
     assert g["debate_freshness"] == "fresh"
-    assert g["scan_vs_laya_clash"] == "clash · debate fresh"
+    assert g["scan_vs_laya_clash"] == "clash · debate fresh · ×1 · 100%"
     assert "clash" in g["line"]
     both = build_laya_glance(
         tmp_path, now=now, scan_interval_sec=900, scan_time=fresh_at
@@ -813,7 +813,7 @@ def test_laya_glance_debate_clash(monkeypatch, tmp_path: Path) -> None:
         tmp_path, now=now, scan_interval_sec=900, scan_time=stale_at
     )
     assert quiet["scan_vs_laya_clash"] == ""
-    assert same["scan_vs_laya_clash"] == "clash · debate fresh"
+    assert same["scan_vs_laya_clash"] == "clash · debate fresh · ×1 · 100%"
 
 
 def test_laya_glance_debate_name_clash(monkeypatch, tmp_path: Path) -> None:

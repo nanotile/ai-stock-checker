@@ -697,7 +697,7 @@ def test_build_ai_debate_glance_laya_clash(monkeypatch, tmp_path: Path) -> None:
     assert g["freshness"] == "stale"
     assert g["scan_freshness"] == "stale"
     assert g["laya_freshness"] == "fresh"
-    assert g["scan_vs_debate_clash"] == "clash · laya fresh"
+    assert g["scan_vs_debate_clash"] == "clash · laya fresh · ×1 · 100%"
     assert "laya" in g["line"]
     both = build_ai_debate_glance(
         tmp_path, now=now, scan_interval_sec=900, scan_time=fresh_at
