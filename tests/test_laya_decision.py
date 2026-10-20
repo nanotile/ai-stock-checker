@@ -255,7 +255,9 @@ def test_laya_glance_scan_clash(monkeypatch, tmp_path: Path) -> None:
     )
     assert g["freshness"] == "stale"
     assert g["scan_freshness"] == "fresh"
-    assert g["scan_vs_laya_clash"] == "clash · scan fresh · scan-only"
+    assert g["scan_vs_laya_clash"] == (
+        "clash · scan fresh · laya-only · scan-only"
+    )
     assert "clash" in g["line"]
     assert g["line"].index("stale") < g["line"].index("clash")
     same = build_laya_glance(
@@ -296,13 +298,17 @@ def test_laya_glance_scan_clash_escalates_tone(monkeypatch, tmp_path: Path) -> N
     )
     assert g["freshness"] == "fresh"
     assert g["scan_freshness"] == "stale"
-    assert g["scan_vs_laya_clash"] == "clash · scan stale · scan-only"
+    assert g["scan_vs_laya_clash"] == (
+        "clash · scan stale · laya-only · scan-only"
+    )
     assert g["tone"] == "stale"
     aging = build_laya_glance(
         tmp_path, now=now, scan_interval_sec=900, scan_time=aging_scan
     )
     assert aging["scan_freshness"] == "aging"
-    assert aging["scan_vs_laya_clash"] == "clash · scan aging · scan-only"
+    assert aging["scan_vs_laya_clash"] == (
+        "clash · scan aging · laya-only · scan-only"
+    )
     assert aging["tone"] == "aging"
     calm = build_laya_glance(
         tmp_path, now=now, scan_interval_sec=900, scan_time=fresh_at
@@ -430,9 +436,11 @@ def test_laya_glance_vs_soft_clock_clash(monkeypatch, tmp_path: Path) -> None:
     )
     assert g["freshness"] == "fresh"
     assert g["soft_freshness"] == "stale"
-    assert g["laya_vs_soft_clock_clash"] == "clash · soft stale · soft-only"
+    assert g["laya_vs_soft_clock_clash"] == (
+        "clash · soft stale · laya-only · soft-only"
+    )
     assert g["laya_vs_soft_clock_clash_warn"] is True
-    assert "clash · soft stale · soft-only" in g["line"]
+    assert "clash · soft stale · laya-only · soft-only" in g["line"]
     assert g["tone"] in {"aging", "stale"}
     # Same band — silent.
     (tmp_path / "gate_soft_allows.json").write_text(
@@ -526,6 +534,7 @@ def test_laya_glance_peer_soft_clash_when_laya_matches_soft(
     peer = g["laya_peer_soft_clock_clash"]
     assert peer.startswith("peer soft · debate ")
     assert "soft fresh" in peer
+    assert " · debate-only · " in peer
     assert peer.endswith("· soft-only")
     assert g["laya_peer_soft_clock_clash_warn"] is True
     assert "peer soft" in g["line"]
@@ -584,9 +593,11 @@ def test_laya_glance_vs_gap_clock_clash(monkeypatch, tmp_path: Path) -> None:
     assert g["soft_freshness"] == "fresh"
     assert g["gap_freshness"] == "stale"
     assert g["laya_vs_soft_clock_clash"] == ""
-    assert g["laya_vs_gap_clock_clash"] == "clash · gap stale · gap-only"
+    assert g["laya_vs_gap_clock_clash"] == (
+        "clash · gap stale · laya-only · gap-only"
+    )
     assert g["laya_vs_gap_clock_clash_warn"] is True
-    assert "clash · gap stale · gap-only" in g["line"]
+    assert "clash · gap stale · laya-only · gap-only" in g["line"]
     assert g["tone"] in {"aging", "stale"}
     # Same band — silent.
     (tmp_path / "gate_soft_allows.json").write_text(
@@ -678,6 +689,7 @@ def test_laya_glance_peer_gap_clash_when_laya_matches_gap(
     peer = g["laya_peer_gap_clock_clash"]
     assert peer.startswith("peer gap · debate ")
     assert "gap fresh" in peer
+    assert " · debate-only · " in peer
     assert peer.endswith("· gap-only")
     assert g["laya_peer_gap_clock_clash_warn"] is True
     assert "peer gap" in g["line"]
@@ -798,7 +810,7 @@ def test_laya_glance_debate_clash(monkeypatch, tmp_path: Path) -> None:
         tmp_path, now=now, scan_interval_sec=900, scan_time=fresh_at
     )
     assert both["scan_vs_laya_clash"] == (
-        "clash · scan fresh · debate fresh · scan-only"
+        "clash · scan fresh · debate fresh · laya-only · scan-only"
     )
     same = build_laya_glance(
         tmp_path, now=now, scan_interval_sec=900, scan_time=stale_at

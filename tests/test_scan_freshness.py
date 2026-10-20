@@ -51,7 +51,7 @@ def test_soft_allow_pin_size() -> None:
 
 
 def test_memory_own_pin_size() -> None:
-    """Sole own advisory pin → laya-only|debate-only (#647/#531 ≠cash wire)."""
+    """Sole own advisory pin → laya-only|debate-only (#647/#531 ≠soft/scan/gap/cash)."""
     assert memory_own_pin_size(side="laya", freshness="fresh") == " · laya-only"
     assert memory_own_pin_size(side="debate", freshness="aging") == " · debate-only"
     assert memory_own_pin_size(side="laya", freshness="expired") == " · laya-only"

@@ -242,7 +242,9 @@ def test_build_ai_debate_glance_scan_clash(tmp_path: Path) -> None:
     )
     assert g["freshness"] == "stale"
     assert g["scan_freshness"] == "fresh"
-    assert g["scan_vs_debate_clash"] == "clash · scan fresh · scan-only"
+    assert g["scan_vs_debate_clash"] == (
+        "clash · scan fresh · debate-only · scan-only"
+    )
     assert "clash" in g["line"]
     assert g["line"].index("stale") < g["line"].index("clash")
     # Scan-only pin may clip last-symbol off the 96-char line; field keeps it.
@@ -276,7 +278,9 @@ def test_build_ai_debate_glance_scan_clash_escalates_tone(tmp_path: Path) -> Non
     )
     assert g["freshness"] == "fresh"
     assert g["scan_freshness"] == "stale"
-    assert g["scan_vs_debate_clash"] == "clash · scan stale · scan-only"
+    assert g["scan_vs_debate_clash"] == (
+        "clash · scan stale · debate-only · scan-only"
+    )
     assert g["tone"] == "stale"
     aging = build_ai_debate_glance(
         tmp_path, now=now, scan_interval_sec=900, scan_time=aging_scan
@@ -372,9 +376,13 @@ def test_build_ai_debate_glance_vs_soft_clock_clash(tmp_path: Path) -> None:
     )
     assert g["freshness"] == "fresh"
     assert g["soft_freshness"] == "stale"
-    assert g["debate_vs_soft_clock_clash"] == "clash · soft stale · soft-only"
+    assert g["debate_vs_soft_clock_clash"] == (
+        "clash · soft stale · debate-only · soft-only"
+    )
     assert g["debate_vs_soft_clock_clash_warn"] is True
-    assert "clash · soft stale · soft-only" in g["line"]
+    # 96-char clip may truncate soft-only; keep clash + own pin.
+    assert "clash · soft stale · debate-only" in g["line"]
+    assert "debate-only" in g["line"]
     assert g["tone"] in {"aging", "stale", "buy"}
     # Same band — silent.
     (tmp_path / "gate_soft_allows.json").write_text(
@@ -443,9 +451,13 @@ def test_build_ai_debate_glance_vs_gap_clock_clash(tmp_path: Path) -> None:
     assert g["soft_freshness"] == "fresh"
     assert g["gap_freshness"] == "stale"
     assert g["debate_vs_soft_clock_clash"] == ""
-    assert g["debate_vs_gap_clock_clash"] == "clash · gap stale · gap-only"
+    assert g["debate_vs_gap_clock_clash"] == (
+        "clash · gap stale · debate-only · gap-only"
+    )
     assert g["debate_vs_gap_clock_clash_warn"] is True
-    assert "clash · gap stale · gap-only" in g["line"]
+    # 96-char clip may truncate gap-only; keep clash + own pin.
+    assert "clash · gap stale · debate-only" in g["line"]
+    assert "debate-only" in g["line"]
     assert g["tone"] in {"aging", "stale", "buy"}
     (tmp_path / "gate_soft_allows.json").write_text(
         json.dumps(
@@ -530,6 +542,7 @@ def test_build_ai_debate_glance_peer_gap_clash_when_debate_matches_gap(
     peer = g["debate_peer_gap_clock_clash"]
     assert peer.startswith("peer gap · laya ")
     assert "gap fresh" in peer
+    assert " · laya-only · " in peer
     assert peer.endswith("· gap-only")
     assert g["debate_peer_gap_clock_clash_warn"] is True
     assert "peer gap" in g["line"]
@@ -597,6 +610,7 @@ def test_build_ai_debate_glance_peer_soft_clash_when_debate_matches_soft(
     peer = g["debate_peer_soft_clock_clash"]
     assert peer.startswith("peer soft · laya ")
     assert "soft fresh" in peer
+    assert " · laya-only · " in peer
     assert peer.endswith("· soft-only")
     assert g["debate_peer_soft_clock_clash_warn"] is True
     assert "peer soft" in g["line"]
@@ -705,7 +719,7 @@ def test_build_ai_debate_glance_laya_clash(monkeypatch, tmp_path: Path) -> None:
         tmp_path, now=now, scan_interval_sec=900, scan_time=fresh_at
     )
     assert both["scan_vs_debate_clash"] == (
-        "clash · scan fresh · laya fresh · scan-only"
+        "clash · scan fresh · laya fresh · debate-only · scan-only"
     )
 
 
