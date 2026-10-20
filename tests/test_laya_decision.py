@@ -522,6 +522,7 @@ def test_laya_glance_peer_soft_clash_when_laya_matches_soft(
     peer = g["laya_peer_soft_clock_clash"]
     assert peer.startswith("peer soft · debate ")
     assert "soft fresh" in peer
+    assert peer.endswith("· ×1 · 100%")
     assert g["laya_peer_soft_clock_clash_warn"] is True
     assert "peer soft" in g["line"]
     assert g["tone"] in {"aging", "stale"}
@@ -673,6 +674,7 @@ def test_laya_glance_peer_gap_clash_when_laya_matches_gap(
     peer = g["laya_peer_gap_clock_clash"]
     assert peer.startswith("peer gap · debate ")
     assert "gap fresh" in peer
+    assert peer.endswith("· ×1 · 100%")
     assert g["laya_peer_gap_clock_clash_warn"] is True
     assert "peer gap" in g["line"]
     assert g["tone"] in {"aging", "stale"}

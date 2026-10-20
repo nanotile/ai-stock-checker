@@ -23242,6 +23242,11 @@ def build_laya_glance(
                 peer_side="debate",
             )
         )
+        if laya_peer_soft_clock_clash:
+            # Own≠soft already names the band; peer soft stayed nameless.
+            laya_peer_soft_clock_clash += soft_allow_clock_band_size(
+                soft_rows, clock=soft_freshness
+            )
         # Soft matching memory can still hide a staler gap cursor.
         laya_vs_gap_clock_clash = (
             _clock_clash(freshness, gap=gap_freshness) if gap_freshness else ""
@@ -23261,6 +23266,11 @@ def build_laya_glance(
                 peer_side="debate",
             )
         )
+        if laya_peer_gap_clock_clash:
+            # Own≠gap already names the sleeve; peer gap stayed nameless.
+            laya_peer_gap_clock_clash += _anchor_gap_ring_size(
+                list(reversed(soft_rows))
+            )
         name_clash = _memory_name_clash(
             own_sym, own_verb, debate_sym, debate_action
         )
@@ -23774,6 +23784,11 @@ def build_ai_debate_glance(
                 soft_freshness,
                 peer_side="laya",
             )
+            if debate_peer_soft_clock_clash:
+                # Own≠soft already names the band; peer soft stayed nameless.
+                debate_peer_soft_clock_clash += soft_allow_clock_band_size(
+                    soft_rows, clock=soft_freshness
+                )
             # Debate matching gap can still hide LAYA ≠ gap (peer speak).
             (
                 debate_peer_gap_clock_clash,
@@ -23784,6 +23799,11 @@ def build_ai_debate_glance(
                 gap_freshness,
                 peer_side="laya",
             )
+            if debate_peer_gap_clock_clash:
+                # Own≠gap already names the sleeve; peer gap stayed nameless.
+                debate_peer_gap_clock_clash += _anchor_gap_ring_size(
+                    list(reversed(soft_rows))
+                )
             name_clash = _memory_name_clash(sym, action, laya_sym, laya_verb)
             verb_oppose = bool(name_clash) and _memory_verb_oppose(
                 action, laya_verb

@@ -526,6 +526,7 @@ def test_build_ai_debate_glance_peer_gap_clash_when_debate_matches_gap(
     peer = g["debate_peer_gap_clock_clash"]
     assert peer.startswith("peer gap · laya ")
     assert "gap fresh" in peer
+    assert peer.endswith("· ×1 · 100%")
     assert g["debate_peer_gap_clock_clash_warn"] is True
     assert "peer gap" in g["line"]
     assert g["tone"] in {"aging", "stale", "buy"}
@@ -592,6 +593,7 @@ def test_build_ai_debate_glance_peer_soft_clash_when_debate_matches_soft(
     peer = g["debate_peer_soft_clock_clash"]
     assert peer.startswith("peer soft · laya ")
     assert "soft fresh" in peer
+    assert peer.endswith("· ×1 · 100%")
     assert g["debate_peer_soft_clock_clash_warn"] is True
     assert "peer soft" in g["line"]
     assert g["tone"] in {"aging", "stale"}
