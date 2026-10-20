@@ -154,18 +154,21 @@ def soft_allow_anchor_gap_vs_scan_clash(
     *,
     scan_freshness: str = "",
     now: datetime | None = None,
+    scan_pin_size: str = "",
 ) -> tuple[str, bool]:
     """Gap cursor vs scan archive generation (display only).
 
     Returns ``(bit, warn)``. When newest gap-row clock ≠ scan band
     (``expired``≡``stale``), speak
-    ``clash · gap expired|aging|fresh · scan fresh|aging|stale · ×N · P%``.
-    Same band / missing either silent. Gap count and share ride the bit
-    so a generation verb is not a nameless sleeve. Soft-allow *last* matching the
-    scan can still hide a staler gap cursor — speak both sides
-    (xang1234 #549 / e3c84e1 generation coherence + portfolio AI
-    speak-both-sides + soft-allow vs scan parity). A fresh scan does
-    not make an expired gap fail-open live. Not a gate.
+    ``clash · gap expired|aging|fresh · scan fresh|aging|stale · ×N · P%``
+    then optional scan pin (``scan-only`` via ``scan_pin_size``). Gap
+    ``×N`` stays gap-sleeve ownership; pin names the sole archive so
+    friends do not confuse the two (soft≠scan wire + #647 / #531). Same
+    band / missing either silent. Soft-allow *last* matching the scan can
+    still hide a staler gap cursor — speak both sides (xang1234 #549 /
+    e3c84e1 generation coherence + portfolio AI speak-both-sides +
+    soft-allow vs scan parity). A fresh scan does not make an expired
+    gap fail-open live. Not a gate.
     """
     scan = str(scan_freshness or "").strip().casefold()
     if scan not in {"fresh", "aging", "stale"}:
@@ -177,7 +180,9 @@ def soft_allow_anchor_gap_vs_scan_clash(
     # Speak soft-allow vocabulary on the gap side (expired not stale).
     gap_speak = gap_band if gap_band in {"fresh", "aging", "expired"} else gap_clock
     size = _anchor_gap_ring_size(events)
-    return f"clash · gap {gap_speak} · scan {scan}{size}", True
+    raw_pin = str(scan_pin_size or "").strip().lstrip("·").strip()
+    pin = f" · {raw_pin}" if raw_pin else ""
+    return f"clash · gap {gap_speak} · scan {scan}{size}{pin}", True
 
 
 def soft_allow_anchor_gap_vs_cash_clock_clash(
@@ -463,11 +468,12 @@ def soft_allow_clock_band_size(
     *,
     clock: str,
 ) -> str:
-    """`` · ×N · P%`` for rows on one scan clock (display only).
+    """`` · ×N · P%`` for rows on one soft last-clock band (display only).
 
-    Soft≠scan names a generation verb; this is the soft last-clock band
-    (``expired``≡``stale``, ``unknown``≡``fresh``) so that clash is not a
-    nameless ring. Soft≠cash uses the cash pin sleeve size
+    LAYA/debate ≠ soft (and peer soft) name a generation verb; this is
+    the soft last-clock band (``expired``≡``stale``, ``unknown``≡``fresh``)
+    so that clash is not a nameless ring. Soft≠scan uses the scan archive
+    pin (``scan_archive_pin_size``); soft≠cash uses the cash pin
     (``cash_print_band_size``); soft≠memory uses the advisory pin
     (``memory_advisory_pin_size``). Gap bits already carry the gap sleeve.
     Missing band stays silent. Not a gate.
@@ -825,6 +831,7 @@ def format_soft_allow_anchor_gap_bit(
     *,
     now: datetime | None = None,
     scan_freshness: str = "",
+    scan_pin_size: str = "",
     cash_band: str = "",
     cash_pin_size: str = "",
     laya_freshness: str = "",
@@ -881,7 +888,10 @@ def format_soft_allow_anchor_gap_bit(
         if last_fresh:
             head = f"{head} · {last_fresh}"
         gap_vs_scan, _ = soft_allow_anchor_gap_vs_scan_clash(
-            events, scan_freshness=scan_freshness, now=now
+            events,
+            scan_freshness=scan_freshness,
+            now=now,
+            scan_pin_size=scan_pin_size,
         )
         if gap_vs_scan:
             head = f"{head} · {gap_vs_scan}"

@@ -332,15 +332,28 @@ def test_soft_allow_anchor_gap_last_freshness() -> None:
         [expired_row, other], scan_freshness="fresh", now=now
     ) == ("clash · gap expired · scan fresh · ×1 · 50%", True)
     assert soft_allow_anchor_gap_vs_scan_clash(
+        [expired_row, other],
+        scan_freshness="fresh",
+        now=now,
+        scan_pin_size=" · scan-only",
+    ) == (
+        "clash · gap expired · scan fresh · ×1 · 50% · scan-only",
+        True,
+    )
+    assert soft_allow_anchor_gap_vs_scan_clash(
         [fresh_row, other], scan_freshness="fresh", now=now
     ) == ("", False)
     assert soft_allow_anchor_gap_vs_scan_clash(
         [aging_row, other], scan_freshness="fresh", now=now
     ) == ("clash · gap aging · scan fresh · ×1 · 50%", True)
     assert format_soft_allow_anchor_gap_bit(
-        [expired_row, other], now=now, scan_freshness="fresh"
+        [expired_row, other],
+        now=now,
+        scan_freshness="fresh",
+        scan_pin_size=" · scan-only",
     ) == (
-        "1 gap · last AAPL · expired · clash · gap expired · scan fresh · ×1 · 50% · "
+        "1 gap · last AAPL · expired · clash · gap expired · scan fresh · "
+        "×1 · 50% · scan-only · "
         "n=1 · hot · 50% · "
         "last/share clash · expired · hot · ×1 · 50% · vs 1 other · 50% · "
         "gap vs other clash · gap hot · other ok · "
@@ -424,12 +437,14 @@ def test_soft_allow_anchor_gap_last_freshness() -> None:
         [expired_row, other],
         now=now,
         scan_freshness="fresh",
+        scan_pin_size=" · scan-only",
         cash_band="aging",
         laya_freshness="fresh",
         debate_freshness="aging",
         memory_pin_size=" · ×2 · 100%",
     ) == (
-        "1 gap · last AAPL · expired · clash · gap expired · scan fresh · ×1 · 50% · "
+        "1 gap · last AAPL · expired · clash · gap expired · scan fresh · "
+        "×1 · 50% · scan-only · "
         "clash · gap expired · cash aging · ×1 · 50% · "
         "clash · gap expired · laya fresh · debate aging · ×1 · 50% · ×2 · 100% · "
         "n=1 · hot · 50% · "

@@ -374,6 +374,26 @@ def _scan_vs_cash_delta_vs_sleeve(
     return f"clash · Δ {a} · sleeve {b}", True
 
 
+def scan_archive_pin_size(*, scan_freshness: str = "") -> str:
+    """Scan archive pin (display only).
+
+    Soft≠scan and gap≠scan name a generation verb. Soft last-clock ``×N``
+    lied soft coverage was the scan print; gap sleeve ``×N`` is gap
+    ownership, not the archive. Sole published scan archive →
+    `` · scan-only`` (cash ``US-only`` / advisory ``laya-only`` parity;
+    xang1234 #647 venue-scope + #531). Missing / unknown band silent.
+    Not a gate.
+    """
+    t = str(scan_freshness or "").strip().casefold()
+    if t == "expired":
+        t = "stale"
+    elif t == "unknown":
+        t = "fresh"
+    if t not in _CASH_PRINT_RANK:
+        return ""
+    return " · scan-only"
+
+
 def cash_print_band_size(meta: Mapping[str, Any] | None, *, clock: str) -> str:
     """Cash pin ring size with venue pointer (display only).
 
@@ -1866,12 +1886,13 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
         ),
         "",
     ),
-    # ``×N`` / share ride so soft≠scan is not a nameless last-clock band
-    # (soft≠cash ring-size parity; portfolio AI count≠share).
+    # Scan archive pin (``scan-only``) so soft≠scan does not use soft
+    # last-clock size as if it were the archive (soft≠cash / soft≠memory
+    # / #647 / #531 parity).
     (
         re.compile(
             r"^clash · scan(?: \S+)?"
-            r"(?: · (×\d+))?(?: · (\d+(?:\.\d+)?%))?"
+            r"(?: · (scan-only))?"
         ),
         "scan",
     ),
@@ -1910,12 +1931,13 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
         ),
         "memory",
     ),
-    # ``×N`` / share ride so a generation verb is not a nameless gap sleeve
-    # (portfolio AI count≠share; relationship ring-size parity).
+    # Gap sleeve ``×N · P%`` then scan pin (``scan-only``) so gap ownership
+    # ≠ archive coverage (gap≠cash / gap≠memory / #647 / #531).
     (
         re.compile(
             r"^clash · gap \S+ · scan(?: \S+)?"
-            r"(?: · (×\d+))?(?: · (\d+(?:\.\d+)?%))?"
+            r"(?: · (×\d+) · (\d+(?:\.\d+)?%))?"
+            r"(?: · (scan-only))?"
         ),
         "gap/scan",
     ),
@@ -2287,7 +2309,6 @@ def build_soft_allow_glance(
         soft_allow_anchor_gap_vs_cash_clock_clash,
         soft_allow_anchor_gap_vs_memory_clock_clash,
         soft_allow_anchor_gap_vs_scan_clash,
-        soft_allow_clock_band_size,
         soft_allow_vs_gap_clock_clash,
         soft_allow_last_vs_lead,
         soft_allow_last_vs_lead_freshness,
@@ -2429,10 +2450,16 @@ def build_soft_allow_glance(
     scan_vs_soft_allow_clash = (
         _clock_clash(last_clock, scan=scan_freshness) if last_clock else ""
     )
-    if scan_vs_soft_allow_clash:
-        scan_vs_soft_allow_clash += soft_allow_clock_band_size(
-            rows, clock=last_clock
-        )
+    scan_pin = (
+        scan_archive_pin_size(scan_freshness=scan_freshness)
+        if scan_freshness
+        else ""
+    )
+    if scan_vs_soft_allow_clash and scan_pin:
+        # Soft≠cash / soft≠memory name the other sleeve pin; soft≠scan must
+        # name the scan archive (scan-only) — soft ring size lied that soft
+        # coverage was the archive print (#647 / #531).
+        scan_vs_soft_allow_clash += scan_pin
     soft_vs_gap_clock_clash, soft_vs_gap_clock_clash_warn = (
         soft_allow_vs_gap_clock_clash(
             rows, soft_last_freshness=last_clock, now=now
@@ -2447,9 +2474,9 @@ def build_soft_allow_glance(
         else ""
     )
     if soft_vs_cash_clock_clash and cash_pin:
-        # Soft≠scan already names the soft last-clock; soft≠cash must name
-        # the cash pin sleeve (US-only / venue · 50% / ×2) — soft ring size
-        # lied that advisory coverage was the cash print (#647 / #531).
+        # Soft≠scan names the archive pin; soft≠cash must name the cash
+        # pin sleeve (US-only / venue · 50% / ×2) — soft ring size lied
+        # that soft coverage was the cash print (#647 / #531).
         soft_vs_cash_clock_clash += cash_pin
     laya_tone = str(laya_freshness or "").strip()
     debate_tone = str(debate_freshness or "").strip()
@@ -2468,7 +2495,7 @@ def build_soft_allow_glance(
         else ""
     )
     if soft_vs_memory_clock_clash and memory_pin:
-        # Soft≠scan names the soft last-clock; soft≠memory must name the
+        # Soft≠scan names the archive pin; soft≠memory must name the
         # advisory pin sleeve (laya-only / venue · 50% / ×2) — soft ring
         # size lied that soft coverage was the memory print (#647 / #531).
         soft_vs_memory_clock_clash += memory_pin
@@ -2537,7 +2564,10 @@ def build_soft_allow_glance(
     )
     anchor_gap_vs_scan_clash, anchor_gap_vs_scan_clash_warn = (
         soft_allow_anchor_gap_vs_scan_clash(
-            rows, scan_freshness=scan_freshness, now=now
+            rows,
+            scan_freshness=scan_freshness,
+            now=now,
+            scan_pin_size=scan_pin,
         )
     )
     anchor_gap_vs_cash_clock_clash, anchor_gap_vs_cash_clock_clash_warn = (
@@ -2571,6 +2601,7 @@ def build_soft_allow_glance(
         rows,
         now=now,
         scan_freshness=scan_freshness,
+        scan_pin_size=scan_pin,
         cash_band=cash_band,
         cash_pin_size=cash_pin,
         laya_freshness=laya_tone,

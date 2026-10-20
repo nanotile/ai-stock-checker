@@ -331,6 +331,12 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
     )
     # gap↔scan / cash / memory were silent on the chip (N gap alone ≠ generation).
     assert (
+        soft_allow_lean_meta(
+            "clash · gap expired · scan fresh · ×1 · 50% · scan-only"
+        )
+        == "quiet · 1 fold · gap/scan ×1 50% scan-only"
+    )
+    assert (
         soft_allow_lean_meta("clash · gap expired · scan fresh · ×1 · 50%")
         == "quiet · 1 fold · gap/scan ×1 50%"
     )
@@ -414,8 +420,8 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
         == "quiet · 1 fold · soft/cash ×2 100%"
     )
     assert (
-        soft_allow_lean_meta("clash · scan fresh · ×1 · 50%")
-        == "quiet · 1 fold · scan ×1 50%"
+        soft_allow_lean_meta("clash · scan fresh · scan-only")
+        == "quiet · 1 fold · scan scan-only"
     )
     assert (
         soft_allow_lean_meta(
@@ -2019,17 +2025,17 @@ def test_soft_allow_glance_scan_clash_expired_vs_fresh() -> None:
     assert g["ready"] is True
     assert g["last_freshness"] == "stale"
     assert g["scan_freshness"] == "fresh"
-    assert g["scan_vs_soft_allow_clash"] == "clash · scan fresh · ×1 · 100%"
+    assert g["scan_vs_soft_allow_clash"] == "clash · scan fresh · scan-only"
     assert g["tone"] == "warn"
     assert g["severity"] == "cool"
-    assert g["line"].startswith("cool · clash · scan fresh · ")
+    assert g["line"].startswith("cool · clash · scan fresh · scan-only")
     assert "clash" in g["line"]
     assert g["line_core"].startswith("cool · ")
     assert "clash · scan" not in g["line_core"]
-    assert g["soft_lean"].startswith("clash · scan fresh")
+    assert g["soft_lean"].startswith("clash · scan fresh · scan-only")
     assert g["soft_lean_warn"] is True
     assert g["soft_lean_meta"].startswith("clash · scan")
-    assert "scan" in g["soft_lean_meta"]
+    assert "scan-only" in g["soft_lean_meta"]
     same = build_soft_allow_glance(
         [
             {
@@ -2072,10 +2078,11 @@ def test_soft_allow_glance_scan_clash_fresh_vs_stale() -> None:
     )
     assert g["last_freshness"] == "fresh"
     assert g["scan_freshness"] == "stale"
-    assert g["scan_vs_soft_allow_clash"] == "clash · scan stale · ×1 · 100%"
+    assert g["scan_vs_soft_allow_clash"] == "clash · scan stale · scan-only"
     assert g["tone"] == "warn"
-    assert g["line"].startswith("hot · clash · scan stale · ")
-    # Last-clock band ≠ whole ring (one fresh row, one expired).
+    assert g["line"].startswith("hot · clash · scan stale · scan-only")
+    # Soft ring share lied soft coverage was the archive; pin stays
+    # scan-only even when the soft ring is mixed.
     expired_at = (now - timedelta(hours=30)).strftime("%Y-%m-%dT%H:%M:%SZ")
     mixed = build_soft_allow_glance(
         [
@@ -2094,8 +2101,9 @@ def test_soft_allow_glance_scan_clash_fresh_vs_stale() -> None:
         scan_time=stale_scan,
         scan_interval_sec=900,
     )
-    assert mixed["scan_vs_soft_allow_clash"] == "clash · scan stale · ×1 · 50%"
-    assert "scan ×1 50%" in mixed["soft_lean_meta"]
+    assert mixed["scan_vs_soft_allow_clash"] == "clash · scan stale · scan-only"
+    assert "scan-only" in mixed["soft_lean_meta"]
+    assert "×1" not in mixed["scan_vs_soft_allow_clash"]
 
 
 def test_soft_allow_glance_gap_vs_scan_when_last_matches_scan() -> None:
@@ -2131,13 +2139,16 @@ def test_soft_allow_glance_gap_vs_scan_when_last_matches_scan() -> None:
     )
     assert g["soft_vs_gap_clock_clash_warn"] is True
     assert "clash · soft fresh · gap expired · ×1 · 50%" in g["line"]
-    # Gap cursor is a different generation — speak both sides.
+    # Gap cursor is a different generation — speak both sides; gap sleeve
+    # keeps ×N · P%, scan pin names the sole archive (scan-only).
     assert g["anchor_gap_vs_scan_clash"] == (
-        "clash · gap expired · scan fresh · ×1 · 50%"
+        "clash · gap expired · scan fresh · ×1 · 50% · scan-only"
     )
     assert g["anchor_gap_vs_scan_clash_warn"] is True
     assert g["tone"] == "warn"
-    assert "clash · gap expired · scan fresh" in g["anchor_gap_bit"]
+    assert "clash · gap expired · scan fresh · ×1 · 50% · scan-only" in (
+        g["anchor_gap_bit"]
+    )
     assert "last AAPL · expired · clash · gap expired · scan fresh" in (
         g["anchor_gap_bit"]
     )

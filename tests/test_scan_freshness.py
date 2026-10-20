@@ -9,6 +9,7 @@ import pytz
 from openbb_backend.desk import (
     build_scan_freshness,
     cash_print_band_size,
+    scan_archive_pin_size,
     cash_print_freshness,
     memory_advisory_band_size,
     memory_peer_cash_clock_clash,
@@ -22,6 +23,17 @@ from openbb_backend.desk import (
     _scan_vs_cash_delta_vs_sleeve,
     _scan_vs_cash_print_clash,
 )
+
+
+def test_scan_archive_pin_size() -> None:
+    """Sole published scan archive → scan-only (#647/#531 soft≠scan wire)."""
+    assert scan_archive_pin_size(scan_freshness="fresh") == " · scan-only"
+    assert scan_archive_pin_size(scan_freshness="aging") == " · scan-only"
+    assert scan_archive_pin_size(scan_freshness="stale") == " · scan-only"
+    assert scan_archive_pin_size(scan_freshness="expired") == " · scan-only"
+    assert scan_archive_pin_size(scan_freshness="unknown") == " · scan-only"
+    assert scan_archive_pin_size(scan_freshness="") == ""
+    assert scan_archive_pin_size() == ""
 
 
 def test_cash_print_band_size() -> None:
