@@ -108,7 +108,6 @@ def test_soft_allow_anchor_gap_last_freshness() -> None:
         soft_allow_anchor_gap_vs_cash_clock_clash,
         soft_allow_anchor_gap_vs_memory_clock_clash,
         soft_allow_anchor_gap_vs_scan_clash,
-        soft_allow_clock_band_size,
         soft_allow_vs_gap_clock_clash,
     )
 
@@ -370,11 +369,6 @@ def test_soft_allow_anchor_gap_last_freshness() -> None:
     assert soft_allow_vs_gap_clock_clash(
         [fresh_row, other], soft_last_freshness="fresh", now=now
     ) == ("", False)
-    # Last-clock band size: cash clash describes that band, not the gap sleeve.
-    mixed = enrich_soft_allows([other, expired_row], now=now)
-    assert soft_allow_clock_band_size(mixed, clock="fresh") == " · ×1 · 50%"
-    assert soft_allow_clock_band_size(mixed, clock="stale") == " · ×1 · 50%"
-    assert soft_allow_clock_band_size(mixed, clock="") == ""
     # Gap ≠ cash: expired≡stale vs aging speaks; same band silent.
     assert soft_allow_anchor_gap_vs_cash_clock_clash(
         [expired_row, other], cash_band="aging", now=now

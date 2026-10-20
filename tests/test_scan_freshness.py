@@ -10,6 +10,7 @@ from openbb_backend.desk import (
     build_scan_freshness,
     cash_print_band_size,
     scan_archive_pin_size,
+    soft_allow_pin_size,
     cash_print_freshness,
     memory_advisory_band_size,
     memory_peer_cash_clock_clash,
@@ -34,6 +35,17 @@ def test_scan_archive_pin_size() -> None:
     assert scan_archive_pin_size(scan_freshness="unknown") == " · scan-only"
     assert scan_archive_pin_size(scan_freshness="") == ""
     assert scan_archive_pin_size() == ""
+
+
+def test_soft_allow_pin_size() -> None:
+    """Sole soft last pin → soft-only (#647/#531 LAYA/debate≠soft wire)."""
+    assert soft_allow_pin_size(soft_freshness="fresh") == " · soft-only"
+    assert soft_allow_pin_size(soft_freshness="aging") == " · soft-only"
+    assert soft_allow_pin_size(soft_freshness="stale") == " · soft-only"
+    assert soft_allow_pin_size(soft_freshness="expired") == " · soft-only"
+    assert soft_allow_pin_size(soft_freshness="unknown") == " · soft-only"
+    assert soft_allow_pin_size(soft_freshness="") == ""
+    assert soft_allow_pin_size() == ""
 
 
 def test_cash_print_band_size() -> None:

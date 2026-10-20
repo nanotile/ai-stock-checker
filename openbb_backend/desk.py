@@ -380,9 +380,9 @@ def scan_archive_pin_size(*, scan_freshness: str = "") -> str:
     Soft≠scan and gap≠scan name a generation verb. Soft last-clock ``×N``
     lied soft coverage was the scan print; gap sleeve ``×N`` is gap
     ownership, not the archive. Sole published scan archive →
-    `` · scan-only`` (cash ``US-only`` / advisory ``laya-only`` parity;
-    xang1234 #647 venue-scope + #531). Missing / unknown band silent.
-    Not a gate.
+    `` · scan-only`` (cash ``US-only`` / advisory ``laya-only`` /
+    soft ``soft-only`` parity; xang1234 #647 venue-scope + #531).
+    Missing / unknown band silent. Not a gate.
     """
     t = str(scan_freshness or "").strip().casefold()
     if t == "expired":
@@ -392,6 +392,26 @@ def scan_archive_pin_size(*, scan_freshness: str = "") -> str:
     if t not in _CASH_PRINT_RANK:
         return ""
     return " · scan-only"
+
+
+def soft_allow_pin_size(*, soft_freshness: str = "") -> str:
+    """Soft-allow last pin (display only).
+
+    LAYA/debate ≠ soft (and peer soft) name a generation verb. Soft
+    ring ``×N · P%`` lied fail-open row count was the soft last print;
+    soft last is a sole published pin like the scan archive →
+    `` · soft-only`` (``scan-only`` / ``US-only`` / ``laya-only`` parity;
+    xang1234 #647 venue-scope + #531). Missing / unknown band silent.
+    Not a gate.
+    """
+    t = str(soft_freshness or "").strip().casefold()
+    if t == "expired":
+        t = "stale"
+    elif t == "unknown":
+        t = "fresh"
+    if t not in _CASH_PRINT_RANK:
+        return ""
+    return " · soft-only"
 
 
 def cash_print_band_size(meta: Mapping[str, Any] | None, *, clock: str) -> str:
@@ -23360,10 +23380,10 @@ def build_laya_glance(
     soft matching scan ≠ live cash; soft-allow parity; ``×N · P%`` is the
     pinned cash sleeve ring so the verb is not a nameless sleeve). When
     last-row age ≠ newest soft-allow clock, speak
-    ``clash · soft fresh|aging|stale · ×N · P%`` (soft≠memory
+    ``clash · soft fresh|aging|stale · soft-only`` (soft≠scan
     speak-both-sides — LAYA matching scan/cash can still hide a staler
-    fail-open print; ``×N · P%`` is the last-clock band so the verb is
-    not a nameless ring). When last-row age ≠ newest gap cursor, speak
+    fail-open print; soft last is a sole pin like scan-only, not soft
+    ring membership). When last-row age ≠ newest gap cursor, speak
     ``clash · gap fresh|aging|stale · ×N · P%`` (gap sleeve size; soft
     matching memory can still hide a staler gap). When last-row
     ticker/verb also disagrees with last-validate, append
@@ -23464,7 +23484,6 @@ def build_laya_glance(
         _anchor_gap_ring_size,
         enrich_soft_allows,
         load_soft_allows,
-        soft_allow_clock_band_size,
     )
 
     soft_rows = enrich_soft_allows(load_soft_allows(root), now=now)
@@ -23545,13 +23564,19 @@ def build_laya_glance(
                 scan_pack, clock=cash_band
             )
         # LAYA matching scan/cash can still hide a staler soft-allow print.
+        soft_pin = (
+            soft_allow_pin_size(soft_freshness=soft_freshness)
+            if soft_freshness
+            else ""
+        )
         laya_vs_soft_clock_clash = (
             _clock_clash(freshness, soft=soft_freshness) if soft_freshness else ""
         )
-        if laya_vs_soft_clock_clash:
-            laya_vs_soft_clock_clash += soft_allow_clock_band_size(
-                soft_rows, clock=soft_freshness
-            )
+        if laya_vs_soft_clock_clash and soft_pin:
+            # Soft≠scan names scan-only; LAYA≠soft must name soft-only —
+            # soft ring ×N lied fail-open row count was the soft last
+            # print (#647 / #531).
+            laya_vs_soft_clock_clash += soft_pin
         laya_vs_soft_clock_clash_warn = bool(laya_vs_soft_clock_clash)
         # LAYA matching soft can still hide debate ≠ soft (peer speak).
         laya_peer_soft_clock_clash, laya_peer_soft_clock_clash_warn = (
@@ -23562,11 +23587,9 @@ def build_laya_glance(
                 peer_side="debate",
             )
         )
-        if laya_peer_soft_clock_clash:
-            # Own≠soft already names the band; peer soft stayed nameless.
-            laya_peer_soft_clock_clash += soft_allow_clock_band_size(
-                soft_rows, clock=soft_freshness
-            )
+        if laya_peer_soft_clock_clash and soft_pin:
+            # Own≠soft already names soft-only; peer soft stayed nameless.
+            laya_peer_soft_clock_clash += soft_pin
         # Soft matching memory can still hide a staler gap cursor.
         laya_vs_gap_clock_clash = (
             _clock_clash(freshness, gap=gap_freshness) if gap_freshness else ""
@@ -23898,9 +23921,10 @@ def build_ai_debate_glance(
     pass`` (bare ``vs`` keeps bull↔bear).     Clash vs a staler scan/LAYA
     escalates glance tone (fresh last BUY ≠ live print). When last-debate
     age ≠ newest soft-allow clock, speak
-    ``clash · soft fresh|aging|stale · ×N · P%`` (soft≠memory
+    ``clash · soft fresh|aging|stale · soft-only`` (soft≠scan
     speak-both-sides — debate matching scan/cash can still hide a staler
-    fail-open print; last-clock band so the verb is not a nameless ring).
+    fail-open print; soft last is a sole pin like scan-only, not soft
+    ring membership).
     When last-debate age ≠ newest gap cursor, speak
     ``clash · gap fresh|aging|stale · ×N · P%`` (gap sleeve size).
     Bull↔bear verb oppose (BUY vs reject / SELL vs pass) also escalates
@@ -24051,7 +24075,6 @@ def build_ai_debate_glance(
         _anchor_gap_ring_size,
         enrich_soft_allows,
         load_soft_allows,
-        soft_allow_clock_band_size,
     )
 
     soft_rows = enrich_soft_allows(load_soft_allows(root), now=now)
@@ -24110,13 +24133,19 @@ def build_ai_debate_glance(
                 scan_pack, clock=cash_band
             )
         # Debate matching scan/cash can still hide a staler soft-allow print.
+        soft_pin = (
+            soft_allow_pin_size(soft_freshness=soft_freshness)
+            if soft_freshness
+            else ""
+        )
         debate_vs_soft_clock_clash = (
             _clock_clash(freshness, soft=soft_freshness) if soft_freshness else ""
         )
-        if debate_vs_soft_clock_clash:
-            debate_vs_soft_clock_clash += soft_allow_clock_band_size(
-                soft_rows, clock=soft_freshness
-            )
+        if debate_vs_soft_clock_clash and soft_pin:
+            # Soft≠scan names scan-only; debate≠soft must name soft-only —
+            # soft ring ×N lied fail-open row count was the soft last
+            # print (#647 / #531).
+            debate_vs_soft_clock_clash += soft_pin
         debate_vs_soft_clock_clash_warn = bool(debate_vs_soft_clock_clash)
         # Soft matching memory can still hide a staler gap cursor.
         debate_vs_gap_clock_clash = (
@@ -24153,11 +24182,9 @@ def build_ai_debate_glance(
                 soft_freshness,
                 peer_side="laya",
             )
-            if debate_peer_soft_clock_clash:
-                # Own≠soft already names the band; peer soft stayed nameless.
-                debate_peer_soft_clock_clash += soft_allow_clock_band_size(
-                    soft_rows, clock=soft_freshness
-                )
+            if debate_peer_soft_clock_clash and soft_pin:
+                # Own≠soft already names soft-only; peer soft stayed nameless.
+                debate_peer_soft_clock_clash += soft_pin
             # Debate matching gap can still hide LAYA ≠ gap (peer speak).
             (
                 debate_peer_gap_clock_clash,
