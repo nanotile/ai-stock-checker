@@ -416,6 +416,29 @@ def soft_allow_pin_size(*, soft_freshness: str = "") -> str:
     return " · soft-only"
 
 
+def memory_own_pin_size(*, side: str, freshness: str = "") -> str:
+    """Sole own advisory pin on LAYA/debate ≠ cash (and peer cash).
+
+    Soft≠cash speaks soft-only then the cash pin. LAYA/debate ≠ cash
+    only named the cash sleeve — lied advisory coverage was the cash
+    print. Own last is a sole published pin → `` · laya-only|debate-only``
+    then cash (``soft-only`` / ``scan-only`` / ``US-only`` / ``gap-only``
+    parity; xang1234 #647 venue-scope + #531). Missing / unknown band
+    or unknown side silent. Not a gate.
+    """
+    t = str(freshness or "").strip().casefold()
+    if t == "expired":
+        t = "stale"
+    elif t == "unknown":
+        t = "fresh"
+    if t not in _CASH_PRINT_RANK:
+        return ""
+    label = str(side or "").strip().casefold()
+    if label not in ("laya", "debate"):
+        return ""
+    return f" · {label}-only"
+
+
 def gap_cursor_pin_size(*, gap_freshness: str = "") -> str:
     """Gap cursor pin (display only).
 
@@ -23582,7 +23605,12 @@ def build_laya_glance(
             memory_vs_cash_clock_clash(freshness, cash_band, side="laya")
         )
         if laya_vs_cash_clock_clash:
-            # Soft≠cash names the soft last-clock; cash clash names sleeves.
+            # Soft≠cash speaks soft-only then cash; LAYA≠cash must name
+            # laya-only then cash — cash sleeve alone lied advisory
+            # coverage was the cash print (#647 / #531).
+            laya_vs_cash_clock_clash += memory_own_pin_size(
+                side="laya", freshness=freshness
+            )
             laya_vs_cash_clock_clash += cash_print_band_size(
                 scan_pack, clock=cash_band
             )
@@ -23596,7 +23624,11 @@ def build_laya_glance(
             )
         )
         if laya_peer_cash_clock_clash:
-            # Own≠cash already names the sleeve; peer cash stayed nameless.
+            # Soft≠cash speak-both-sides; peer cash names debate-only
+            # then cash (#647 / #531).
+            laya_peer_cash_clock_clash += memory_own_pin_size(
+                side="debate", freshness=debate_freshness
+            )
             laya_peer_cash_clock_clash += cash_print_band_size(
                 scan_pack, clock=cash_band
             )
@@ -24157,7 +24189,12 @@ def build_ai_debate_glance(
             memory_vs_cash_clock_clash(freshness, cash_band, side="debate")
         )
         if debate_vs_cash_clock_clash:
-            # Soft≠cash names the soft last-clock; cash clash names sleeves.
+            # Soft≠cash speaks soft-only then cash; debate≠cash must name
+            # debate-only then cash — cash sleeve alone lied advisory
+            # coverage was the cash print (#647 / #531).
+            debate_vs_cash_clock_clash += memory_own_pin_size(
+                side="debate", freshness=freshness
+            )
             debate_vs_cash_clock_clash += cash_print_band_size(
                 scan_pack, clock=cash_band
             )
@@ -24203,7 +24240,11 @@ def build_ai_debate_glance(
                 peer_side="laya",
             )
             if debate_peer_cash_clock_clash:
-                # Own≠cash already names the sleeve; peer cash stayed nameless.
+                # Soft≠cash speak-both-sides; peer cash names laya-only
+                # then cash (#647 / #531).
+                debate_peer_cash_clock_clash += memory_own_pin_size(
+                    side="laya", freshness=laya_freshness
+                )
                 debate_peer_cash_clock_clash += cash_print_band_size(
                     scan_pack, clock=cash_band
                 )

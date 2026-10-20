@@ -317,6 +317,7 @@ def test_build_ai_debate_glance_cash_clash_when_debate_matches_scan(
     assert g["scan_vs_debate_clash"] == ""
     cash = g["debate_vs_cash_clock_clash"]
     assert cash.startswith("clash · debate fresh · cash ")
+    assert " · debate-only · " in cash
     assert cash.endswith("· ×2 · 100%")
     assert g["debate_vs_cash_clock_clash_warn"] is True
     # 96-char clip may truncate ×N · P%; keep the cash clash prefix.
@@ -649,6 +650,7 @@ def test_build_ai_debate_glance_peer_cash_clash_when_debate_matches_cash(
     peer = g["debate_peer_cash_clock_clash"]
     assert peer.startswith("peer cash · laya ")
     assert "cash fresh" in peer
+    assert " · laya-only · " in peer
     assert peer.endswith("· ×2 · 100%")
     assert g["debate_peer_cash_clock_clash_warn"] is True
     # 96-char clip may truncate the peer sleeve name; keep the prefix.

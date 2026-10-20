@@ -14,6 +14,7 @@ from openbb_backend.desk import (
     soft_allow_pin_size,
     cash_print_freshness,
     memory_advisory_band_size,
+    memory_own_pin_size,
     memory_peer_cash_clock_clash,
     memory_peer_gap_clock_clash,
     memory_peer_soft_clock_clash,
@@ -47,6 +48,17 @@ def test_soft_allow_pin_size() -> None:
     assert soft_allow_pin_size(soft_freshness="unknown") == " · soft-only"
     assert soft_allow_pin_size(soft_freshness="") == ""
     assert soft_allow_pin_size() == ""
+
+
+def test_memory_own_pin_size() -> None:
+    """Sole own advisory pin → laya-only|debate-only (#647/#531 ≠cash wire)."""
+    assert memory_own_pin_size(side="laya", freshness="fresh") == " · laya-only"
+    assert memory_own_pin_size(side="debate", freshness="aging") == " · debate-only"
+    assert memory_own_pin_size(side="laya", freshness="expired") == " · laya-only"
+    assert memory_own_pin_size(side="debate", freshness="unknown") == " · debate-only"
+    assert memory_own_pin_size(side="laya", freshness="") == ""
+    assert memory_own_pin_size(side="soft", freshness="fresh") == ""
+    assert memory_own_pin_size(side="", freshness="fresh") == ""
 
 
 def test_gap_cursor_pin_size() -> None:
