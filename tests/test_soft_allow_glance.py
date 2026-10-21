@@ -751,17 +751,26 @@ def test_soft_allow_glance_short_history_count() -> None:
     assert g["ready"] is True
     assert g["short_history_count"] == 2
     assert g["short_history_last"] == "IPO"
-    assert g["short_history_bit"] == "2 short · last IPO"
-    assert "2 short · last IPO" in g["line"]
+    # Two distinct short names → no strict lead (gap sample-gap parity).
+    assert g["short_history_symbol_lead"] == ""
+    assert g["short_history_symbol_sample_gap"] == "tied"
+    assert g["short_history_symbol_last_vs_lead"] == ""
+    assert g["short_history_bit"] == "2 short · last IPO · tied"
+    assert "2 short · last IPO · tied" in g["line"]
     assert g["anchor_gap_count"] == 1
     # Short before gap so the young-listing count is not clipped by gap lean.
     assert g["line"].index("2 short") < g["line"].index("1 gap")
-    # Lean fold chip must name short (and gap) — ``2 short · …`` used to
-    # leave soft_lean_meta bare ``quiet`` because only ``N gap`` had a stage.
-    # Cursor ticker rides on the short stage (#546 after #668).
+    # Lean fold chip must name short — ``2 short · …`` used to leave
+    # soft_lean_meta bare ``quiet`` because only ``N gap`` had a stage.
+    # Cursor ticker rides on the short stage (#546 after #668); tied is
+    # its own stage so last ≠ ring ownership is visible on the chip.
+    # Gap still owns soft_lean; the 4-name meta clip may spill it to +N
+    # when gate last/lead + short + tied already fill the inventory.
     assert "2 short · last IPO" in g["soft_lean"]
+    assert "tied" in g["soft_lean"]
+    assert "1 gap" in g["soft_lean"]
     assert "short IPO" in g["soft_lean_meta"]
-    assert "gap" in g["soft_lean_meta"]
+    assert "tied" in g["soft_lean_meta"]
     assert soft_allow_lean_meta("2 short") == "quiet · 1 fold · short"
     assert soft_allow_lean_meta("2 short · last IPO") == (
         "quiet · 1 fold · short IPO"
@@ -769,6 +778,54 @@ def test_soft_allow_glance_short_history_count() -> None:
     assert soft_allow_lean_meta(
         "2 short · last IPO · 1 gap · last AAPL · fresh"
     ) == ("quiet · 2 folds · short IPO · gap AAPL fresh")
+    assert soft_allow_lean_meta(
+        "2 short · last IPO · tied · 1 gap · last AAPL · fresh"
+    ) == ("quiet · 3 folds · short IPO · tied · gap AAPL fresh")
+
+
+def test_soft_allow_glance_short_history_symbol_lead() -> None:
+    """last SYM alone ≠ which young/short name owns the fail-open ring."""
+    now = datetime(2026, 10, 22, 12, 0, tzinfo=timezone.utc)
+    g = build_soft_allow_glance(
+        [
+            {
+                "at": "2026-10-22T11:00:00Z",
+                "gate": "rs",
+                "reason": "NEW RS unknown — short history — allow",
+            },
+            {
+                "at": "2026-10-22T10:45:00Z",
+                "gate": "rs",
+                "reason": "IPO RS unknown — short history — allow",
+            },
+            {
+                "at": "2026-10-22T10:30:00Z",
+                "gate": "rs",
+                "reason": "IPO RS unknown — short history — allow",
+            },
+            {
+                "at": "2026-10-22T10:00:00Z",
+                "gate": "rs",
+                "reason": "AAPL RS unknown — anchor gap — allow",
+            },
+        ],
+        now=now,
+    )
+    assert g["ready"] is True
+    assert g["short_history_count"] == 3
+    assert g["short_history_last"] == "NEW"
+    assert g["short_history_symbol_lead"] == "lead IPO · 2 · 67%"
+    assert g["short_history_symbol_lead_name"] == "IPO"
+    assert g["short_history_symbol_lead_share"] == 67
+    assert g["short_history_symbol_sample_gap"] == ""
+    assert g["short_history_symbol_last_vs_lead"] == "last vs lead · NEW"
+    assert g["short_history_bit"] == (
+        "3 short · last NEW · lead IPO · 2 · 67% · last vs lead · NEW"
+    )
+    assert "lead IPO · 2 · 67%" in g["line"]
+    assert "last vs lead · NEW" in g["line"]
+    assert "short NEW" in g["soft_lean_meta"]
+    assert "lead IPO" in g["soft_lean_meta"]
 
 
 def test_soft_allow_glance_anchor_gap_count() -> None:

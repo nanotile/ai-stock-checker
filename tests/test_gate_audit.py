@@ -45,14 +45,22 @@ def test_is_soft_allow_reason_markers() -> None:
 def test_soft_allow_short_history_count() -> None:
     """xang1234 #668: short history ≠ anchor gap ≠ bare RS unknown."""
     from stock_checker.gate_audit import (
+        format_soft_allow_short_history_bit,
         soft_allow_short_history_count,
         soft_allow_short_history_last_symbol,
+        soft_allow_short_history_symbol_last_vs_lead,
+        soft_allow_short_history_symbol_lead,
+        soft_allow_short_history_symbol_sample_gap,
     )
 
     assert soft_allow_short_history_count(None) == 0
     assert soft_allow_short_history_count([]) == 0
     assert soft_allow_short_history_last_symbol(None) == ""
     assert soft_allow_short_history_last_symbol([]) == ""
+    assert soft_allow_short_history_symbol_lead(None) == ("", "", None)
+    assert soft_allow_short_history_symbol_sample_gap(None) == ""
+    assert soft_allow_short_history_symbol_last_vs_lead(None) == ""
+    assert format_soft_allow_short_history_bit(None) == ""
     assert (
         soft_allow_short_history_count(
             [{"gate": "rs", "reason": "AAPL RS unknown — allow"}]
@@ -86,6 +94,47 @@ def test_soft_allow_short_history_count() -> None:
     assert soft_allow_short_history_count(mixed) == 2
     # Newest-first ring — IPO is the cursor (#546 after #668).
     assert soft_allow_short_history_last_symbol(mixed) == "IPO"
+    # Two distinct short names → tied (no strict lead).
+    assert soft_allow_short_history_symbol_lead(mixed) == ("", "", None)
+    assert soft_allow_short_history_symbol_sample_gap(mixed) == "tied"
+    assert soft_allow_short_history_symbol_last_vs_lead(mixed) == ""
+    assert format_soft_allow_short_history_bit(mixed) == (
+        "2 short · last IPO · tied"
+    )
+    lead_rows = [
+        {"gate": "rs", "reason": "NEW RS unknown — short history — allow"},
+        {"gate": "rs", "reason": "IPO RS unknown — short history — allow"},
+        {"gate": "rs", "reason": "IPO RS unknown — short history — allow"},
+    ]
+    assert soft_allow_short_history_symbol_lead(lead_rows) == (
+        "lead IPO · 2 · 67%",
+        "IPO",
+        67,
+    )
+    assert soft_allow_short_history_symbol_sample_gap(lead_rows) == ""
+    assert soft_allow_short_history_symbol_last_vs_lead(lead_rows) == (
+        "last vs lead · NEW"
+    )
+    assert format_soft_allow_short_history_bit(lead_rows) == (
+        "3 short · last NEW · lead IPO · 2 · 67% · last vs lead · NEW"
+    )
+    sole = [
+        {"gate": "rs", "reason": "IPO RS unknown — short history — allow"},
+    ]
+    assert soft_allow_short_history_symbol_lead(sole) == ("", "", None)
+    assert soft_allow_short_history_symbol_sample_gap(sole) == "n=1"
+    assert format_soft_allow_short_history_bit(sole) == (
+        "1 short · last IPO · n=1"
+    )
+    agree_rows = [
+        {"gate": "rs", "reason": "IPO RS unknown — short history — allow"},
+        {"gate": "rs", "reason": "IPO RS unknown — short history — allow"},
+        {"gate": "rs", "reason": "NEW RS unknown — short history — allow"},
+    ]
+    assert soft_allow_short_history_symbol_last_vs_lead(agree_rows) == "agree"
+    assert format_soft_allow_short_history_bit(agree_rows) == (
+        "3 short · last IPO · lead IPO · 2 · 67% · agree"
+    )
 
 
 def test_soft_allow_anchor_gap_count() -> None:

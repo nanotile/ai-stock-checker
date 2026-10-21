@@ -2405,6 +2405,10 @@ def build_soft_allow_glance(
         soft_allow_anchor_gap_vs_scan_clash,
         soft_allow_short_history_count,
         soft_allow_short_history_last_symbol,
+        soft_allow_short_history_symbol_lead,
+        soft_allow_short_history_symbol_last_vs_lead,
+        soft_allow_short_history_symbol_sample_gap,
+        format_soft_allow_short_history_bit,
         soft_allow_vs_gap_clock_clash,
         soft_allow_last_vs_lead,
         soft_allow_last_vs_lead_freshness,
@@ -2465,6 +2469,11 @@ def build_soft_allow_glance(
         "sample_gap": "",
         "short_history_count": 0,
         "short_history_last": "",
+        "short_history_symbol_lead": "",
+        "short_history_symbol_lead_name": "",
+        "short_history_symbol_lead_share": None,
+        "short_history_symbol_last_vs_lead": "",
+        "short_history_symbol_sample_gap": "",
         "short_history_bit": "",
         "anchor_gap_count": 0,
         "anchor_gap_last": "",
@@ -2739,16 +2748,23 @@ def build_soft_allow_glance(
     )
     # xang1234 #668: young / short-series fail-opens ≠ gappy anchors —
     # absolute ``rs×N`` hid which why owns the ring beside ``N gap``.
-    # #546: ``last SYM`` right after the count so lean cannot clip the
-    # young-listing cursor (gap last-symbol parity; share/lean deferred).
+    # #546: ``last SYM`` right after the count; symbol lead / n=1 /
+    # tied / last-vs-lead follow so the cursor ≠ ring owner (gap
+    # symbol-lead parity; share/freshness/lean still deferred).
     short_history_n = soft_allow_short_history_count(rows)
     short_history_last = soft_allow_short_history_last_symbol(rows)
-    if short_history_n > 0:
-        short_history_bit = f"{short_history_n} short"
-        if short_history_last:
-            short_history_bit = f"{short_history_bit} · last {short_history_last}"
-    else:
-        short_history_bit = ""
+    (
+        short_history_symbol_lead,
+        short_history_symbol_lead_name,
+        short_history_symbol_lead_share,
+    ) = soft_allow_short_history_symbol_lead(rows)
+    short_history_symbol_last_vs_lead = (
+        soft_allow_short_history_symbol_last_vs_lead(rows)
+    )
+    short_history_symbol_sample_gap = (
+        soft_allow_short_history_symbol_sample_gap(rows)
+    )
+    short_history_bit = format_soft_allow_short_history_bit(rows)
     anchor_gap_n, anchor_gap_share_pct, anchor_gap_share_severity = (
         soft_allow_anchor_gap_share(rows)
     )
@@ -3236,6 +3252,13 @@ def build_soft_allow_glance(
         "sample_gap": sample_gap,
         "short_history_count": short_history_n,
         "short_history_last": short_history_last,
+        "short_history_symbol_lead": short_history_symbol_lead,
+        "short_history_symbol_lead_name": short_history_symbol_lead_name,
+        "short_history_symbol_lead_share": short_history_symbol_lead_share,
+        "short_history_symbol_last_vs_lead": (
+            short_history_symbol_last_vs_lead
+        ),
+        "short_history_symbol_sample_gap": short_history_symbol_sample_gap,
         "short_history_bit": short_history_bit,
         "anchor_gap_count": anchor_gap_n,
         "anchor_gap_last": anchor_gap_last,

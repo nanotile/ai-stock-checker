@@ -113,7 +113,7 @@ def soft_allow_short_history_last_symbol(
     — allow`` / ``SPY RS unknown — short history — allow`` — first
     token is the asset or bench label. Ring order is newest-first.
     xang1234 #546 resume-cursor after #668 short count + FinRobot
-    last-row; zero / unparseable silent. Share/lean cascade still
+    last-row; zero / unparseable silent. Share/lean / freshness still
     deferred. Not a gate.
     """
     for row in events or []:
@@ -123,6 +123,124 @@ def soft_allow_short_history_last_symbol(
         if sym:
             return sym
     return ""
+
+
+def _short_history_symbol_counts(
+    events: list[dict[str, Any]] | None,
+) -> dict[str, int]:
+    """Parseable short-history symbol tallies (newest-first; display only)."""
+    counts: dict[str, int] = {}
+    for row in events or []:
+        if not isinstance(row, dict):
+            continue
+        sym = _short_history_symbol(str(row.get("reason") or ""))
+        if not sym:
+            continue
+        counts[sym] = counts.get(sym, 0) + 1
+    return counts
+
+
+def soft_allow_short_history_symbol_lead(
+    events: list[dict[str, Any]] | None,
+) -> tuple[str, str, int | None]:
+    """Strict lead among parseable short-history symbols (display only).
+
+    Returns ``(lead_bit, lead_name, share_pct)``. ``last SYM`` alone ≠
+    which name owns the young/short fail-open ring. When ≥2 parseable
+    short symbols and one is strictly largest, speak
+    ``lead IPO · N · P%`` (row count then share of parseable short rows).
+    Ties / sole-symbol / <2 parseable stay silent on lead (use
+    ``soft_allow_short_history_symbol_sample_gap``). Gap symbol-lead +
+    Screener junk-list lead + xang1234 multi-meter after last-cursor.
+    Share/freshness/lean cascade still deferred. Not a gate.
+    """
+    counts = _short_history_symbol_counts(events)
+    total = sum(counts.values())
+    if total < 2:
+        return "", "", None
+    ranked = sorted(counts.items(), key=lambda x: x[1], reverse=True)
+    lead_name, lead_n = ranked[0]
+    if lead_n <= 0:
+        return "", "", None
+    if len(ranked) > 1 and ranked[1][1] == lead_n:
+        return "", "", None
+    share = int(round(100.0 * lead_n / total))
+    return f"lead {lead_name} · {lead_n} · {share}%", lead_name, share
+
+
+def soft_allow_short_history_symbol_sample_gap(
+    events: list[dict[str, Any]] | None,
+) -> str:
+    """Speak ``n=1`` / ``tied`` when parseable short names have no lead.
+
+    One parseable short row speaks compact ``n=1`` (``last SYM`` alone ≠
+    a thin sample; gap / LAYA ``_decision_sample_gap`` parity). ≥2 with
+    no strict lead speaks ``tied``. Lead cases / zero stay silent on
+    gap. Display only; not a gate.
+    """
+    counts = _short_history_symbol_counts(events)
+    total = sum(counts.values())
+    if total <= 0:
+        return ""
+    lead_bit, _name, _share = soft_allow_short_history_symbol_lead(events)
+    if lead_bit:
+        return ""
+    if total < 2:
+        return "n=1"
+    return "tied"
+
+
+def soft_allow_short_history_symbol_last_vs_lead(
+    events: list[dict[str, Any]] | None,
+) -> str:
+    """Newest short ticker vs symbol lead (display only).
+
+    ``last SYM`` + ``lead SYM · N%`` alone hid whether the resume cursor
+    matches the ring owner. When lead already spoke: same name speaks
+    ``agree``; different speaks ``last vs lead · NEW``. Tied / no-lead /
+    missing cursor stay silent. Reuses ``soft_allow_last_vs_lead``
+    (gap symbol last-vs-lead parity). xang1234 #546 + FinRobot
+    last≠ring tilt + portfolio AI speak-both-sides. Not a gate.
+    """
+    _bit, lead_name, _share = soft_allow_short_history_symbol_lead(events)
+    if not lead_name:
+        return ""
+    last = soft_allow_short_history_last_symbol(events)
+    return soft_allow_last_vs_lead(lead_name, last)
+
+
+def format_soft_allow_short_history_bit(
+    events: list[dict[str, Any]] | None,
+) -> str:
+    """Compact ``N short · last SYM · lead|n=1|tied · agree|last vs lead``.
+
+    Zero silent. ``last SYM`` sits right after the count so lean cannot
+    clip the young-listing cursor (#546 after #668). Symbol lead /
+    n=1 / tied follows the cursor (last ≠ ring ownership; gap symbol
+    lead parity); when lead spoke, ``last vs lead`` / ``agree`` sits
+    right after so cursor≠owner is not clipped. Share / freshness /
+    lean / margin-sides still deferred. Display only; not a gate.
+    """
+    n = soft_allow_short_history_count(events)
+    if n <= 0:
+        return ""
+    head = f"{n} short"
+    last = soft_allow_short_history_last_symbol(events)
+    if last:
+        head = f"{head} · last {last}"
+    lead_bit, _lead_name, _lead_share = soft_allow_short_history_symbol_lead(
+        events
+    )
+    if lead_bit:
+        head = f"{head} · {lead_bit}"
+        last_vs = soft_allow_short_history_symbol_last_vs_lead(events)
+        if last_vs:
+            head = f"{head} · {last_vs}"
+    else:
+        sample_gap = soft_allow_short_history_symbol_sample_gap(events)
+        if sample_gap:
+            head = f"{head} · {sample_gap}"
+    return head
 
 
 def _anchor_gap_symbol(reason: str) -> str:
