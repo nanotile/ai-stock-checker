@@ -23276,6 +23276,45 @@ def laya_fail_reason_class(reason: Any) -> str:
     return "error"
 
 
+# Long exception stems → desk-short (clip budget; #674 logs full class).
+_LAYA_FAIL_DETAIL_SHORT = {
+    "authentication": "auth",
+    "permissiondenied": "perm",
+    "connectionrefused": "refused",
+    "connectionreset": "reset",
+}
+
+
+def laya_fail_reason_detail(reason: Any) -> str:
+    """Exception subtype after provider/parse class (xang1234 #674).
+
+    ``provider_error:TimeoutError`` → ``timeout``; ``parse_error:JSONDecodeError``
+    → ``jsondecode``. Bare reasons (no ``:``) stay silent — class alone is
+    enough. Speaks the exception *name*, never the message (full text / Ops
+    tooltip still deferred). Not a gate.
+    """
+    raw = str(reason or "").strip()
+    if ":" not in raw:
+        return ""
+    _head, _, tail = raw.partition(":")
+    tail = tail.strip()
+    if not tail or " " in tail or len(tail) > 40:
+        return ""
+    if "." in tail:
+        tail = tail.rsplit(".", 1)[-1]
+    name = tail
+    for suffix in ("Error", "Exception", "error", "exception"):
+        if name.endswith(suffix) and len(name) > len(suffix):
+            name = name[: -len(suffix)]
+            break
+    detail = name.replace("_", "").casefold()
+    if not detail or not detail.isalnum():
+        return ""
+    if len(detail) > 12:
+        detail = _LAYA_FAIL_DETAIL_SHORT.get(detail, "")
+    return detail
+
+
 # Laya edge score criteria: none / thin / ok / strong (PAPER_ENTRY_QUESTIONS).
 _LAYA_EDGE_THIN = 1.5
 _LAYA_EDGE_STRONG = 2.5
@@ -23773,6 +23812,7 @@ def build_laya_glance(
     laya_peer_gap_clock_clash = ""
     laya_peer_gap_clock_clash_warn = False
     fail_reason_class = ""
+    fail_reason_detail = ""
     fail_reason_warn = False
     soft_freshness = soft_allow_last_clock_tone(root, now=now)
     gap_freshness = soft_allow_gap_last_clock_tone(root, now=now)
@@ -24122,13 +24162,23 @@ def build_laya_glance(
         bits = ["advisory on", model]
         if age_bit:
             bits.append(age_bit)
-        # Fail-why early so the 96-char clip keeps it (Yahoo last-error
-        # class + age-before-last parity; bare fail-open hid provider vs
-        # parse — xang1234 #674).
+        # Fail-why + last early so the 96-char clip keeps both (Yahoo
+        # last-error class + age-before-last parity; bare fail-open hid
+        # provider vs parse — xang1234 #674). Detail speaks Timeout vs
+        # Auth so class alone cannot hide the exception name; last rides
+        # immediately after so subtype cannot push the cursor off.
+        fail_open_last_spoke = False
         if newest and (newest.get("fail_open") or not newest.get("ok")):
-            fail_reason_class = laya_fail_reason_class(newest.get("reason"))
+            reason = newest.get("reason")
+            fail_reason_class = laya_fail_reason_class(reason)
             if fail_reason_class:
-                bits.append(f"fail · {fail_reason_class}")
+                fail_reason_detail = laya_fail_reason_detail(reason)
+                if fail_reason_detail:
+                    bits.append(
+                        f"fail · {fail_reason_class} · {fail_reason_detail}"
+                    )
+                else:
+                    bits.append(f"fail · {fail_reason_class}")
                 # Only typed adverse classes escalate (provider/parse/…
                 # error). Unknown short tags (legacy ``timeout``) still
                 # speak but stay calm so mixed fail-open vs BUY stays
@@ -24139,6 +24189,11 @@ def build_laya_glance(
                     "invalid",
                     "error",
                 }
+            sym = str(newest.get("symbol") or "").strip()
+            bits.append(
+                f"last {sym or '?'} fail-open" if sym else "last fail-open"
+            )
+            fail_open_last_spoke = True
         if clash:
             bits.append(clash)
         # Soft matching scan ≠ live cash (xang1234 #549; soft-allow parity).
@@ -24215,14 +24270,10 @@ def build_laya_glance(
                 bits.append(sample_lead_sides)
             if n_fo:
                 bits.append(f"{n_fo} fail-open")
-        if newest:
+        if newest and not fail_open_last_spoke:
             sym = str(newest.get("symbol") or "").strip()
             entry = str(newest.get("entry") or "").strip().lower()
-            if newest.get("fail_open") or not newest.get("ok"):
-                # Why class already spoke early as ``fail · provider``;
-                # last keeps the cursor name without re-pinning the class.
-                last = f"last {sym or '?'} fail-open" if sym else "last fail-open"
-            elif entry:
+            if entry:
                 last = f"last {sym or '?'} {entry}" if sym else f"last {entry}"
             else:
                 last = ""
@@ -24301,6 +24352,7 @@ def build_laya_glance(
         "soft_freshness": soft_freshness,
         "gap_freshness": gap_freshness,
         "fail_reason_class": fail_reason_class,
+        "fail_reason_detail": fail_reason_detail,
         "fail_reason_warn": fail_reason_warn,
         "scan_vs_laya_clash": clash,
         "laya_vs_cash_clock_clash": laya_vs_cash_clock_clash,

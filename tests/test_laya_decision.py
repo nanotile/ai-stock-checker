@@ -199,7 +199,10 @@ def test_laya_glance_advisory(monkeypatch, tmp_path: Path) -> None:
 
 def test_laya_fail_reason_class_maps_provider_parse() -> None:
     """xang1234 #674 — typed System-1 fail reasons → compact why class."""
-    from openbb_backend.desk import laya_fail_reason_class
+    from openbb_backend.desk import (
+        laya_fail_reason_class,
+        laya_fail_reason_detail,
+    )
 
     assert laya_fail_reason_class("provider_error:TimeoutError") == "provider"
     assert laya_fail_reason_class("parse_error:JSONDecodeError") == "parse"
@@ -209,6 +212,15 @@ def test_laya_fail_reason_class_maps_provider_parse() -> None:
     assert laya_fail_reason_class("unexpected_error") == "error"
     assert laya_fail_reason_class("ok") == ""
     assert laya_fail_reason_class("") == ""
+    # Exception name after class (Timeout vs Auth; never the message).
+    assert laya_fail_reason_detail("provider_error:TimeoutError") == "timeout"
+    assert laya_fail_reason_detail("parse_error:JSONDecodeError") == "jsondecode"
+    assert (
+        laya_fail_reason_detail("provider_error:AuthenticationError") == "auth"
+    )
+    assert laya_fail_reason_detail("not_configured") == ""
+    assert laya_fail_reason_detail("provider_error: bad msg") == ""
+    assert laya_fail_reason_detail("ok") == ""
 
 
 def test_laya_glance_fail_open_speaks_reason_class(
@@ -239,11 +251,14 @@ def test_laya_glance_fail_open_speaks_reason_class(
     )
     g = build_laya_glance(tmp_path, now=now, scan_interval_sec=900)
     assert g["fail_reason_class"] == "provider"
+    assert g["fail_reason_detail"] == "timeout"
     assert g["fail_reason_warn"] is True
-    assert "fail · provider" in g["line"]
+    assert "fail · provider · timeout" in g["line"]
     assert "last MSFT" in g["line"]
     # Why sits before last so the 96-char clip keeps it.
-    assert g["line"].index("fail · provider") < g["line"].index("last MSFT")
+    assert g["line"].index("fail · provider · timeout") < g["line"].index(
+        "last MSFT"
+    )
     assert g["tone"] == "aging"
     # Config/off stay calm (no warn escalate) but still speak the class.
     (tmp_path / "laya_decisions.json").write_text(
@@ -266,6 +281,7 @@ def test_laya_glance_fail_open_speaks_reason_class(
     )
     calm = build_laya_glance(tmp_path, now=now, scan_interval_sec=900)
     assert calm["fail_reason_class"] == "config"
+    assert calm["fail_reason_detail"] == ""
     assert calm["fail_reason_warn"] is False
     assert "fail · config" in calm["line"]
     assert "last AAPL" in calm["line"]
