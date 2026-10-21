@@ -475,8 +475,11 @@ def test_laya_glance_vs_soft_clock_clash(monkeypatch, tmp_path: Path) -> None:
     assert g["freshness"] == "fresh"
     assert g["scan_freshness"] == "fresh"
     assert g["soft_freshness"] == "stale"
+    # Own matches cash (evening last-published) → keep cash pin so soft
+    # alone cannot hide the cash match (soft≠* keep-cash / #660 / #647).
+    assert g["laya_vs_cash_clock_clash"] == ""
     assert g["laya_vs_soft_clock_clash"] == (
-        "clash · soft stale · laya-only · soft-only · scan-only"
+        "clash · soft stale · laya-only · soft-only · scan-only · ×2 · 100%"
     )
     assert g["laya_vs_soft_clock_clash_warn"] is True
     assert "clash · soft stale · laya-only · soft-only" in g["line"]
@@ -785,10 +788,12 @@ def test_laya_glance_vs_gap_clock_clash(monkeypatch, tmp_path: Path) -> None:
     assert g["gap_freshness"] == "stale"
     assert g["scan_freshness"] == "fresh"
     assert g["laya_vs_soft_clock_clash"] == ""
-    # Own matches soft → keep soft-only so gap alone cannot hide the
-    # soft match (gap≠scan keep-cash / #660 / #647 / #531).
+    # Own matches soft + cash → keep soft-only · cash so gap alone cannot
+    # hide either match (gap≠scan keep-cash / #660 / #647 / #531).
+    assert g["laya_vs_cash_clock_clash"] == ""
     assert g["laya_vs_gap_clock_clash"] == (
-        "clash · gap stale · laya-only · gap-only · scan-only · soft-only"
+        "clash · gap stale · laya-only · gap-only · scan-only · "
+        "soft-only · ×2 · 100%"
     )
     assert g["laya_vs_gap_clock_clash_warn"] is True
     assert "clash · gap stale · laya-only · gap-only" in g["line"]
