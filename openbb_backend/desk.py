@@ -24016,6 +24016,31 @@ def build_laya_glance(
                     laya_vs_soft_clock_clash += keep_peer
                 if laya_vs_gap_clock_clash:
                     laya_vs_gap_clock_clash += keep_peer
+        # Own matches soft/cash/gap — keep those pins on peer soft/gap/cash
+        # that already spoke (peer soft keep-scan-only parity; soft≠* keep
+        # pins speak-both-sides). Skip the peer bit that already names that
+        # sleeve (peer soft already has soft-only, etc.).
+        if own_matches_soft:
+            keep_soft_peer = soft_allow_pin_size(soft_freshness=soft_freshness)
+            if keep_soft_peer:
+                if laya_peer_cash_clock_clash:
+                    laya_peer_cash_clock_clash += keep_soft_peer
+                if laya_peer_gap_clock_clash:
+                    laya_peer_gap_clock_clash += keep_soft_peer
+        if own_matches_cash:
+            keep_cash_peer = cash_print_band_size(scan_pack, clock=cash_band)
+            if keep_cash_peer:
+                if laya_peer_soft_clock_clash:
+                    laya_peer_soft_clock_clash += keep_cash_peer
+                if laya_peer_gap_clock_clash:
+                    laya_peer_gap_clock_clash += keep_cash_peer
+        if own_matches_gap:
+            keep_gap_peer = gap_cursor_pin_size(gap_freshness=gap_freshness)
+            if keep_gap_peer:
+                if laya_peer_soft_clock_clash:
+                    laya_peer_soft_clock_clash += keep_gap_peer
+                if laya_peer_cash_clock_clash:
+                    laya_peer_cash_clock_clash += keep_gap_peer
         name_clash = _memory_name_clash(
             own_sym, own_verb, debate_sym, debate_action
         )
@@ -24743,6 +24768,37 @@ def build_ai_debate_glance(
                     debate_peer_gap_clock_clash += scan_only
                 if debate_peer_cash_clock_clash and scan_only:
                     debate_peer_cash_clock_clash += scan_only
+            # Own matches soft/cash/gap — keep those pins on peer soft/gap/cash
+            # that already spoke (LAYA peer keep soft/cash/gap parity; peer
+            # soft keep-scan-only). Skip the peer bit that already names that
+            # sleeve (peer soft already has soft-only, etc.).
+            if own_matches_soft:
+                keep_soft_peer = soft_allow_pin_size(
+                    soft_freshness=soft_freshness
+                )
+                if keep_soft_peer:
+                    if debate_peer_cash_clock_clash:
+                        debate_peer_cash_clock_clash += keep_soft_peer
+                    if debate_peer_gap_clock_clash:
+                        debate_peer_gap_clock_clash += keep_soft_peer
+            if own_matches_cash:
+                keep_cash_peer = cash_print_band_size(
+                    scan_pack, clock=cash_band
+                )
+                if keep_cash_peer:
+                    if debate_peer_soft_clock_clash:
+                        debate_peer_soft_clock_clash += keep_cash_peer
+                    if debate_peer_gap_clock_clash:
+                        debate_peer_gap_clock_clash += keep_cash_peer
+            if own_matches_gap:
+                keep_gap_peer = gap_cursor_pin_size(
+                    gap_freshness=gap_freshness
+                )
+                if keep_gap_peer:
+                    if debate_peer_soft_clock_clash:
+                        debate_peer_soft_clock_clash += keep_gap_peer
+                    if debate_peer_cash_clock_clash:
+                        debate_peer_cash_clock_clash += keep_gap_peer
             name_clash = _memory_name_clash(sym, action, laya_sym, laya_verb)
             verb_oppose = bool(name_clash) and _memory_verb_oppose(
                 action, laya_verb

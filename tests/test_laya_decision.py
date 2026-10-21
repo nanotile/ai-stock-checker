@@ -653,7 +653,9 @@ def test_laya_glance_peer_soft_keeps_scan_only_when_own_matches_scan(
     assert " · soft-only" in peer
     # Peer soft crowded the full peer_ring off the clash; scan-only
     # rides the peer bit so matching the archive is not silent.
-    assert peer.endswith("· soft-only · scan-only")
+    # Own matching cash also keeps the cash pin (soft≠* keep-cash
+    # speak-both-sides on peer soft).
+    assert peer.endswith("· soft-only · scan-only · ×2 · 100%")
     assert g["scan_vs_laya_clash"] == "clash · debate stale"
     assert "scan-only" not in g["scan_vs_laya_clash"]
 
@@ -729,8 +731,10 @@ def test_laya_glance_peer_soft_and_gap_both_keep_scan_only(
     gap = g["laya_peer_gap_clock_clash"]
     assert soft.startswith("peer soft · debate ")
     assert gap.startswith("peer gap · debate ")
-    assert soft.endswith("· soft-only · scan-only")
-    assert gap.endswith("· gap-only · scan-only")
+    # Own matches cash+gap → cash pin + gap-only on peer soft; soft+cash
+    # on peer gap (peer keep soft/cash/gap after scan-only).
+    assert soft.endswith("· soft-only · scan-only · ×2 · 100% · gap-only")
+    assert gap.endswith("· gap-only · scan-only · soft-only · ×2 · 100%")
     assert g["scan_vs_laya_clash"] == "clash · debate stale"
     assert "scan-only" not in g["scan_vs_laya_clash"]
 
@@ -967,7 +971,9 @@ def test_laya_glance_peer_gap_clash_when_laya_matches_gap(
     assert peer.startswith("peer gap · debate ")
     assert "gap fresh" in peer
     assert " · debate-only · " in peer
-    assert peer.endswith("· gap-only")
+    # Gap row is also soft last — own matches soft → soft-only rides
+    # peer gap (peer keep soft/cash/gap).
+    assert peer.endswith("· gap-only · soft-only")
     assert g["laya_peer_gap_clock_clash_warn"] is True
     assert "peer gap" in g["line"]
     assert g["tone"] in {"aging", "stale"}
