@@ -1919,19 +1919,21 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
         ),
         "scan",
     ),
-    # Soft last pin (``soft-only``) then gap cursor (``gap-only``) so
-    # soft≠gap does not use gap sleeve size as if it were the cursor
-    # (gap≠* own+other pin parity / #647 / #531).
+    # Soft last pin (``soft-only``) then gap cursor (``gap-only``); when
+    # soft matches scan, keep ``scan-only`` so soft≠gap does not hide
+    # the archive match (peer soft keep-scan-only / #660 / #647 / #531).
     (
         re.compile(
             r"^clash · soft \S+ · gap \S+"
             r"(?: · (soft-only))?"
             r"(?: · (gap-only))?"
+            r"(?: · (scan-only))?"
         ),
         "soft/gap",
     ),
     # Soft last pin then cash pin: sole ``US-only`` · dual half
-    # ``US · 50%`` · both ``×2 · 100%`` (#647 / #531).
+    # ``US · 50%`` · both ``×2 · 100%``; optional keep ``scan-only`` when
+    # soft≠scan is silent (#647 / #531 / #660).
     (
         re.compile(
             r"^clash · soft \S+ · cash \S+"
@@ -1939,13 +1941,15 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
             r"(?: · ((?:US|Xetra)-only)"
             r"| · (US|Xetra) · (\d+(?:\.\d+)?%)"
             r"| · (×\d+) · (\d+(?:\.\d+)?%))?"
+            r"(?: · (scan-only))?"
         ),
         "soft/cash",
     ),
     # Soft last pin then advisory pin (laya-only / venue · 50% / ×2) so
-    # soft≠memory names both sole/half pins (#647 / #531). Tone words
-    # are required so `` · debate-only`` is not eaten as a second
-    # advisory side (pin capture would stay empty).
+    # soft≠memory names both sole/half pins; optional keep ``scan-only``
+    # when soft≠scan is silent (#647 / #531 / #660). Tone words are
+    # required so `` · debate-only`` is not eaten as a second advisory
+    # side (pin capture would stay empty).
     (
         re.compile(
             r"^clash · (?:laya|debate) (?:fresh|aging|stale|expired)"
@@ -1954,6 +1958,7 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
             r"(?: · ((?:laya|debate)-only)"
             r"| · (laya|debate) · (\d+(?:\.\d+)?%)"
             r"| · (×\d+) · (\d+(?:\.\d+)?%))?"
+            r"(?: · (scan-only))?"
         ),
         "memory",
     ),
@@ -1968,8 +1973,8 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
         "gap/scan",
     ),
     # Gap cursor pin (``gap-only``) then cash pin (US-only / venue · 50% /
-    # ×2 · 100%) so sleeve membership ≠ cursor print ≠ cash coverage
-    # (#647 / #531).
+    # ×2 · 100%); optional keep ``scan-only`` when gap≠scan is silent
+    # (#647 / #531 / #660).
     (
         re.compile(
             r"^clash · gap \S+ · cash(?: \S+)?"
@@ -1977,13 +1982,14 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
             r"(?: · ((?:US|Xetra)-only)"
             r"| · (US|Xetra) · (\d+(?:\.\d+)?%)"
             r"| · (×\d+) · (\d+(?:\.\d+)?%))?"
+            r"(?: · (scan-only))?"
         ),
         "gap/cash",
     ),
     # Gap cursor pin (``gap-only``) then advisory pin (laya-only /
-    # venue · 50% / ×2 · 100%) so sleeve membership ≠ cursor print ≠
-    # LAYA/debate coverage (#647 / #531). Tone words required so pin
-    # ``debate-only`` is not eaten as a side.
+    # venue · 50% / ×2 · 100%); optional keep ``scan-only`` when
+    # gap≠scan is silent (#647 / #531 / #660). Tone words required so
+    # pin ``debate-only`` is not eaten as a side.
     (
         re.compile(
             r"^clash · gap \S+ · (?:laya|debate) (?:fresh|aging|stale|expired)"
@@ -1992,6 +1998,7 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
             r"(?: · ((?:laya|debate)-only)"
             r"| · (laya|debate) · (\d+(?:\.\d+)?%)"
             r"| · (×\d+) · (\d+(?:\.\d+)?%))?"
+            r"(?: · (scan-only))?"
         ),
         "gap/memory",
     ),
@@ -2547,6 +2554,21 @@ def build_soft_allow_glance(
             gap_pin_size=gap_pin,
         )
     )
+    # Soft≠scan silent (soft matches archive) — keep scan-only on soft≠
+    # cash / soft≠gap / soft≠memory so those bits cannot hide the match
+    # (peer soft/gap/cash keep-scan-only parity + #660 / #647 / #531).
+    if (
+        scan_pin
+        and not scan_vs_soft_allow_clash
+        and last_clock
+        and scan_freshness
+    ):
+        if soft_vs_cash_clock_clash:
+            soft_vs_cash_clock_clash += scan_pin
+        if soft_vs_memory_clock_clash:
+            soft_vs_memory_clock_clash += scan_pin
+        if soft_vs_gap_clock_clash:
+            soft_vs_gap_clock_clash += scan_pin
     (
         anchor_gap_symbol_lead,
         anchor_gap_symbol_lead_name,
@@ -2614,6 +2636,19 @@ def build_soft_allow_glance(
             scan_pin_size=scan_pin,
         )
     )
+    # Gap≠scan silent (gap matches archive) — keep scan-only on gap≠cash /
+    # gap≠memory so those bits cannot hide the match (soft≠cash keep +
+    # peer soft/gap/cash keep-scan-only + #660 / #647 / #531).
+    gap_keep_scan = (
+        scan_pin
+        if (
+            scan_pin
+            and not anchor_gap_vs_scan_clash
+            and anchor_gap_last_freshness
+            and scan_freshness
+        )
+        else ""
+    )
     anchor_gap_vs_cash_clock_clash, anchor_gap_vs_cash_clock_clash_warn = (
         soft_allow_anchor_gap_vs_cash_clock_clash(
             rows,
@@ -2621,6 +2656,7 @@ def build_soft_allow_glance(
             now=now,
             gap_pin_size=gap_pin,
             cash_pin_size=cash_pin,
+            keep_scan_pin_size=gap_keep_scan,
         )
     )
     gap_memory_pin = (
@@ -2642,6 +2678,7 @@ def build_soft_allow_glance(
         now=now,
         gap_pin_size=gap_pin,
         memory_pin_size=gap_memory_pin,
+        keep_scan_pin_size=gap_keep_scan,
     )
     anchor_gap_bit = format_soft_allow_anchor_gap_bit(
         rows,
@@ -2654,6 +2691,7 @@ def build_soft_allow_glance(
         laya_freshness=laya_tone,
         debate_freshness=debate_tone,
         memory_pin_size=gap_memory_pin,
+        keep_scan_pin_size=gap_keep_scan,
     )
     expired_n = sum(1 for r in rows if r.get("freshness") == "expired")
     aging_n = sum(1 for r in rows if r.get("freshness") == "aging")

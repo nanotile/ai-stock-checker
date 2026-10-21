@@ -360,6 +360,12 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
     )
     assert (
         soft_allow_lean_meta(
+            "clash · gap expired · cash aging · gap-only · US-only · scan-only"
+        )
+        == "quiet · 1 fold · gap/cash gap-only US-only scan-only"
+    )
+    assert (
+        soft_allow_lean_meta(
             "clash · gap expired · cash aging · gap-only · ×2 · 100%"
         )
         == "quiet · 1 fold · gap/cash gap-only ×2 100%"
@@ -370,6 +376,13 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
             "gap-only · ×2 · 100%"
         )
         == "quiet · 1 fold · gap/memory gap-only ×2 100%"
+    )
+    assert (
+        soft_allow_lean_meta(
+            "clash · gap expired · laya fresh · debate fresh · "
+            "gap-only · ×2 · 100% · scan-only"
+        )
+        == "quiet · 1 fold · gap/memory gap-only ×2 100% scan-only"
     )
     assert (
         soft_allow_lean_meta(
@@ -406,6 +419,12 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
     )
     assert (
         soft_allow_lean_meta(
+            "clash · soft fresh · gap expired · soft-only · gap-only · scan-only"
+        )
+        == "quiet · 1 fold · soft/gap soft-only gap-only scan-only"
+    )
+    assert (
+        soft_allow_lean_meta(
             "clash · soft fresh · gap expired · gap-only"
         )
         == "quiet · 1 fold · soft/gap gap-only"
@@ -415,6 +434,12 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
             "clash · soft fresh · cash aging · soft-only · US-only"
         )
         == "quiet · 1 fold · soft/cash soft-only US-only"
+    )
+    assert (
+        soft_allow_lean_meta(
+            "clash · soft fresh · cash aging · soft-only · US-only · scan-only"
+        )
+        == "quiet · 1 fold · soft/cash soft-only US-only scan-only"
     )
     assert (
         soft_allow_lean_meta(
@@ -449,6 +474,12 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
             "clash · debate stale · soft-only · debate-only"
         )
         == "quiet · 1 fold · memory soft-only debate-only"
+    )
+    assert (
+        soft_allow_lean_meta(
+            "clash · debate stale · soft-only · debate-only · scan-only"
+        )
+        == "quiet · 1 fold · memory soft-only debate-only scan-only"
     )
     assert (
         soft_allow_lean_meta(
@@ -2180,13 +2211,15 @@ def test_soft_allow_glance_gap_vs_scan_when_last_matches_scan() -> None:
     assert g["scan_freshness"] == "fresh"
     # Soft-allow last matches scan — no ring-level clash.
     assert g["scan_vs_soft_allow_clash"] == ""
-    # Soft last ≠ gap cursor — close the generation triangle.
+    # Soft last ≠ gap cursor — close the generation triangle; soft matches
+    # scan so keep scan-only (peer soft keep-scan-only / #660).
     assert g["soft_vs_gap_clock_clash"] == (
-        "clash · soft fresh · gap expired · soft-only · gap-only"
+        "clash · soft fresh · gap expired · soft-only · gap-only · scan-only"
     )
     assert g["soft_vs_gap_clock_clash_warn"] is True
-    assert "clash · soft fresh · gap expired · soft-only · gap-only" in (
-        g["line"]
+    assert (
+        "clash · soft fresh · gap expired · soft-only · gap-only · scan-only"
+        in g["line"]
     )
     # Gap cursor is a different generation — speak both sides; soft≠gap
     # names soft-only · gap-only; gap≠scan names gap-only · scan-only.
@@ -2224,14 +2257,17 @@ def test_soft_allow_glance_gap_vs_scan_when_last_matches_scan() -> None:
     assert "clash · soft stale · gap" not in same["line"]
     assert same["anchor_gap_vs_scan_clash"] == ""
     assert same["anchor_gap_vs_scan_clash_warn"] is False
-    assert "clash · gap" not in same["anchor_gap_bit"] or "scan" not in (
+    # Soft↔gap + gap↔scan silent; soft≠cash / gap≠cash may still speak
+    # and keep scan-only when the archive match is silent (#660).
+    assert "clash · gap" not in same["anchor_gap_bit"] or "scan fresh" not in (
         same["anchor_gap_bit"]
     )
-    # Soft↔gap + gap↔scan silent; soft≠cash / gap≠cash may still speak.
     if same["soft_vs_cash_clock_clash"]:
         assert same["soft_vs_cash_clock_clash"] in same["line"]
+        assert same["soft_vs_cash_clock_clash"].endswith(" · scan-only")
     if same["anchor_gap_vs_cash_clock_clash"]:
         assert same["anchor_gap_vs_cash_clock_clash"] in same["anchor_gap_bit"]
+        assert same["anchor_gap_vs_cash_clock_clash"].endswith(" · scan-only")
 
 
 def test_soft_allow_glance_soft_vs_gap_same_when_last_is_gap() -> None:
@@ -2280,15 +2316,17 @@ def test_soft_allow_glance_soft_vs_cash_when_soft_matches_scan() -> None:
     cash = g["soft_vs_cash_clock_clash"]
     assert cash.startswith("clash · soft fresh · cash ")
     # Soft-only then cash pin sleeve (not soft ring): sole → venue-only;
-    # dual half → named venue · 50%; both same band → ×2 · 100%
-    # (#647 / #531; gap≠* own+other pin parity).
+    # dual half → named venue · 50%; both same band → ×2 · 100%; soft
+    # matches scan → keep scan-only (#647 / #531 / #660; peer soft keep
+    # scan-only parity; gap≠* own+other pin parity).
     assert " · soft-only · " in cash
+    assert cash.endswith(" · scan-only")
     assert (
-        cash.endswith(" · US-only")
-        or cash.endswith(" · Xetra-only")
-        or cash.endswith(" · US · 50%")
-        or cash.endswith(" · Xetra · 50%")
-        or cash.endswith(" · ×2 · 100%")
+        " · US-only · scan-only" in cash
+        or " · Xetra-only · scan-only" in cash
+        or " · US · 50% · scan-only" in cash
+        or " · Xetra · 50% · scan-only" in cash
+        or " · ×2 · 100% · scan-only" in cash
     )
     assert g["soft_vs_cash_clock_clash_warn"] is True
     assert cash in g["line"]
@@ -2405,7 +2443,7 @@ def test_soft_allow_glance_vs_memory_clock_clash() -> None:
     assert g["laya_freshness"] == "stale"
     assert g["debate_freshness"] == "aging"
     assert g["soft_vs_memory_clock_clash"] == (
-        "clash · laya stale · debate aging · soft-only · ×2 · 100%"
+        "clash · laya stale · debate aging · soft-only · ×2 · 100% · scan-only"
     )
     assert g["soft_vs_memory_clock_clash_warn"] is True
     assert g["tone"] == "warn"
