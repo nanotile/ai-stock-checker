@@ -338,6 +338,12 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
     )
     assert (
         soft_allow_lean_meta(
+            "clash · gap expired · scan fresh · gap-only · scan-only · US-only"
+        )
+        == "quiet · 1 fold · gap/scan gap-only scan-only US-only"
+    )
+    assert (
+        soft_allow_lean_meta(
             "clash · gap expired · scan fresh · gap-only"
         )
         == "quiet · 1 fold · gap/scan gap-only"
@@ -383,6 +389,13 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
             "gap-only · ×2 · 100% · scan-only"
         )
         == "quiet · 1 fold · gap/memory gap-only ×2 100% scan-only"
+    )
+    assert (
+        soft_allow_lean_meta(
+            "clash · gap expired · debate stale · gap-only · debate-only · "
+            "US-only"
+        )
+        == "quiet · 1 fold · gap/memory gap-only debate-only US-only"
     )
     assert (
         soft_allow_lean_meta(
@@ -2569,6 +2582,59 @@ def test_soft_allow_glance_soft_vs_memory_keeps_cash_when_soft_matches_cash() ->
     )
     assert " · scan-only" not in mem
     assert mem in g["line"]
+    assert g["tone"] == "warn"
+
+
+def test_soft_allow_glance_gap_keeps_cash_when_gap_matches_cash() -> None:
+    """Gap matching cash keeps cash pin on gap≠scan / gap≠memory (#660)."""
+    # Saturday afternoon UTC — cash last-published aging. Gap aging
+    # matches cash → gap≠cash silent; fresh scan ≠ gap → gap≠scan keeps
+    # cash; stale debate ≠ gap → gap≠memory keeps cash (soft≠* keep-cash
+    # mirror + #660 / #647 / #531).
+    now = datetime(2026, 10, 10, 14, 0, tzinfo=timezone.utc)
+    aging_at = (now - timedelta(hours=16)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    fresh_scan = (now - timedelta(minutes=5)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    g = build_soft_allow_glance(
+        [
+            {
+                "at": aging_at,
+                "gate": "rs",
+                "reason": "AAPL RS unknown — anchor gap — allow",
+            }
+        ],
+        now=now,
+        scan_time=fresh_scan,
+        scan_interval_sec=900,
+        laya_freshness="",
+        debate_freshness="stale",
+    )
+    assert g["anchor_gap_last_freshness"] == "aging"
+    assert g["anchor_gap_vs_cash_clock_clash"] == ""
+    gap_scan = g["anchor_gap_vs_scan_clash"]
+    assert gap_scan.startswith(
+        "clash · gap aging · scan fresh · gap-only · scan-only · "
+    )
+    assert (
+        gap_scan.endswith("US-only")
+        or gap_scan.endswith("Xetra-only")
+        or gap_scan.endswith("US · 50%")
+        or gap_scan.endswith("Xetra · 50%")
+        or gap_scan.endswith("×2 · 100%")
+    )
+    gap_mem = g["anchor_gap_vs_memory_clock_clash"]
+    assert gap_mem.startswith(
+        "clash · gap aging · debate stale · gap-only · debate-only · "
+    )
+    assert (
+        gap_mem.endswith("US-only")
+        or gap_mem.endswith("Xetra-only")
+        or gap_mem.endswith("US · 50%")
+        or gap_mem.endswith("Xetra · 50%")
+        or gap_mem.endswith("×2 · 100%")
+    )
+    assert " · scan-only" not in gap_mem
+    assert gap_scan in g["anchor_gap_bit"]
+    assert gap_mem in g["anchor_gap_bit"]
     assert g["tone"] == "warn"
 
 

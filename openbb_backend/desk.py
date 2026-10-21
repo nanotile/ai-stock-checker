@@ -1963,12 +1963,16 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
         "memory",
     ),
     # Gap cursor pin (``gap-only``) then scan pin (``scan-only``) so
-    # sleeve membership ≠ cursor print ≠ archive coverage (#647 / #531).
+    # sleeve membership ≠ cursor print ≠ archive coverage (#647 / #531);
+    # optional keep cash pin when gap≠cash is silent (#660 / #647).
     (
         re.compile(
             r"^clash · gap \S+ · scan(?: \S+)?"
             r"(?: · (gap-only))?"
             r"(?: · (scan-only))?"
+            r"(?: · ((?:US|Xetra)-only)"
+            r"| · (US|Xetra) · (\d+(?:\.\d+)?%)"
+            r"| · (×\d+) · (\d+(?:\.\d+)?%))?"
         ),
         "gap/scan",
     ),
@@ -1988,8 +1992,9 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
     ),
     # Gap cursor pin (``gap-only``) then advisory pin (laya-only /
     # venue · 50% / ×2 · 100%); optional keep ``scan-only`` when
-    # gap≠scan is silent (#647 / #531 / #660). Tone words required so
-    # pin ``debate-only`` is not eaten as a side.
+    # gap≠scan is silent; optional keep cash when gap≠cash is silent
+    # (#647 / #531 / #660). Tone words required so pin ``debate-only``
+    # is not eaten as a side.
     (
         re.compile(
             r"^clash · gap \S+ · (?:laya|debate) (?:fresh|aging|stale|expired)"
@@ -1999,6 +2004,9 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
             r"| · (laya|debate) · (\d+(?:\.\d+)?%)"
             r"| · (×\d+) · (\d+(?:\.\d+)?%))?"
             r"(?: · (scan-only))?"
+            r"(?: · ((?:US|Xetra)-only)"
+            r"| · (US|Xetra) · (\d+(?:\.\d+)?%)"
+            r"| · (×\d+) · (\d+(?:\.\d+)?%))?"
         ),
         "gap/memory",
     ),
@@ -2643,6 +2651,8 @@ def build_soft_allow_glance(
     anchor_gap_last_share_vs_lean, anchor_gap_last_share_vs_lean_warn = (
         soft_allow_anchor_gap_last_share_vs_lean(rows, now=now)
     )
+    # Gap≠scan first without keep-cash — cash match is known only after
+    # gap≠cash below (soft≠scan keep-cash parity).
     anchor_gap_vs_scan_clash, anchor_gap_vs_scan_clash_warn = (
         soft_allow_anchor_gap_vs_scan_clash(
             rows,
@@ -2675,6 +2685,31 @@ def build_soft_allow_glance(
             keep_scan_pin_size=gap_keep_scan,
         )
     )
+    # Gap≠cash silent (gap matches cash) — keep cash pin on gap≠scan /
+    # gap≠memory so those bits cannot hide the match (soft≠* keep-cash
+    # + #660 / #647 / #531). Gap≠cash already names gap-only · cash; a
+    # silent match must ride the other clashes.
+    gap_keep_cash = (
+        cash_pin
+        if (
+            cash_pin
+            and not anchor_gap_vs_cash_clock_clash
+            and anchor_gap_last_freshness
+            and cash_band
+        )
+        else ""
+    )
+    if gap_keep_cash and anchor_gap_vs_scan_clash:
+        anchor_gap_vs_scan_clash, anchor_gap_vs_scan_clash_warn = (
+            soft_allow_anchor_gap_vs_scan_clash(
+                rows,
+                scan_freshness=scan_freshness,
+                now=now,
+                gap_pin_size=gap_pin,
+                scan_pin_size=scan_pin,
+                keep_cash_pin_size=gap_keep_cash,
+            )
+        )
     gap_memory_pin = (
         memory_advisory_pin_size(
             own_clock=anchor_gap_last_freshness,
@@ -2695,6 +2730,7 @@ def build_soft_allow_glance(
         gap_pin_size=gap_pin,
         memory_pin_size=gap_memory_pin,
         keep_scan_pin_size=gap_keep_scan,
+        keep_cash_pin_size=gap_keep_cash,
     )
     anchor_gap_bit = format_soft_allow_anchor_gap_bit(
         rows,
@@ -2708,6 +2744,7 @@ def build_soft_allow_glance(
         debate_freshness=debate_tone,
         memory_pin_size=gap_memory_pin,
         keep_scan_pin_size=gap_keep_scan,
+        keep_cash_pin_size=gap_keep_cash,
     )
     expired_n = sum(1 for r in rows if r.get("freshness") == "expired")
     aging_n = sum(1 for r in rows if r.get("freshness") == "aging")
