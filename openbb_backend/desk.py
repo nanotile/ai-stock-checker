@@ -2039,6 +2039,11 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
         ),
         "gap/memory",
     ),
+    # Young / short-series fail-opens (xang1234 #668) sit before gap so
+    # ``N short · N gap`` does not leave the lean chip bare ``quiet`` —
+    # absolute short count already spoke; the fold must name it (gap
+    # stage parity; share/last/lean cascade still deferred).
+    (re.compile(r"^\d+ short\b"), "short"),
     # Cursor ticker + age ride with the count so ``N gap`` does not hide
     # who last failed open or whether that print is still live (#546).
     (
@@ -2132,9 +2137,10 @@ def soft_allow_lean_meta(soft_lean: str, *, warn: bool = False) -> str:
     """Summary chip for soft-allow lean fold — which cascades spoke / why open.
 
     Quiet names sleeves that spoke (``quiet · N folds · lead/config rs on ·
-    last/lead rs · last/config align both agree · scan · gap AAPL
+    last/lead rs · last/config align both agree · scan · short · gap AAPL
     fresh``), so the primary line does not claim gen-clash, lead↔Ops,
-    last≠lead, last/config meta, or RS-gap when those bits are absent.
+    last≠lead, last/config meta, short-history, or RS-gap when those bits
+    are absent.
     ``lead/config`` keeps the gate, ``×N`` / share, and on|off so ring
     ownership is not treated as a nameless live knob (tradermonty #576
     + portfolio AI count≠share). ``last/lead`` keeps the

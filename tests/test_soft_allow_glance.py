@@ -755,6 +755,15 @@ def test_soft_allow_glance_short_history_count() -> None:
     assert g["anchor_gap_count"] == 1
     # Short before gap so the young-listing count is not clipped by gap lean.
     assert g["line"].index("2 short") < g["line"].index("1 gap")
+    # Lean fold chip must name short (and gap) — ``2 short · …`` used to
+    # leave soft_lean_meta bare ``quiet`` because only ``N gap`` had a stage.
+    assert "2 short" in g["soft_lean"]
+    assert "short" in g["soft_lean_meta"]
+    assert "gap" in g["soft_lean_meta"]
+    assert soft_allow_lean_meta("2 short") == "quiet · 1 fold · short"
+    assert soft_allow_lean_meta("2 short · 1 gap · last AAPL · fresh") == (
+        "quiet · 2 folds · short · gap AAPL fresh"
+    )
 
 
 def test_soft_allow_glance_anchor_gap_count() -> None:
