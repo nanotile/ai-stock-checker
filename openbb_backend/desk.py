@@ -23399,11 +23399,12 @@ def build_laya_glance(
     also disagrees, append ``debate {tone}`` (FinRobot last-debate ≠ JEV
     last-reject). Peer-only (own matches scan) speaks
     ``clash · debate … · scan-only · debate-only`` — peer soft/gap/cash
-    keep peer-only on those bits and append ``scan-only`` there so
-    matching the archive is not silent when the full peer_ring is
-    crowded off the clash (xang1234 #660 batch-peer scope + #647 /
-    #531; clip keeps the peer prefix); when scan is already on the
-    clash, own+scan pins ride and peer stays short. When last-row age ≠
+    keep peer-only on those bits and append ``scan-only`` on *each*
+    that spoke so matching the archive is not silent when the full
+    peer_ring is crowded off the clash (xang1234 #660 accept duplicate
+    batch-peer refs + #647 / #531; clip keeps the peer prefix); when
+    scan is already on the clash, own+scan pins ride and peer stays
+    short. When last-row age ≠
     worst pinned cash sleeve, speak
     ``clash · laya fresh|aging|stale · cash … · laya-only · US-only|…``
     (xang1234 #549; soft matching scan ≠ live cash; soft-allow parity;
@@ -23665,18 +23666,19 @@ def build_laya_glance(
             clash += peer_ring
         elif peer_ring:
             # Peer soft/gap/cash already name peer-only; keep scan-only
-            # on that peer bit (not the clash) so matching the archive
-            # is not silent and the 96-char clip still keeps the peer
-            # prefix (#647 / #531; xang1234 #660 batch-peer scope —
-            # peer speak ≠ drop the matched pin).
+            # on *each* peer bit that spoke (not elif — two peers can
+            # both reference the matched archive pin; dropping all but
+            # the first hid the match on the quieter sleeve). Clip still
+            # keeps the peer prefix (#647 / #531; xang1234 #660 accept
+            # duplicate batch-peer refs — self-ref still omitted).
             scan_only = scan_archive_pin_size(
                 scan_freshness=scan_freshness
             )
             if laya_peer_soft_clock_clash and scan_only:
                 laya_peer_soft_clock_clash += scan_only
-            elif laya_peer_gap_clock_clash and scan_only:
+            if laya_peer_gap_clock_clash and scan_only:
                 laya_peer_gap_clock_clash += scan_only
-            elif laya_peer_cash_clock_clash and scan_only:
+            if laya_peer_cash_clock_clash and scan_only:
                 laya_peer_cash_clock_clash += scan_only
         name_clash = _memory_name_clash(
             own_sym, own_verb, debate_sym, debate_action
@@ -23968,11 +23970,11 @@ def build_ai_debate_glance(
     disagrees, append ``laya {tone}`` (JEV last-reject ≠ last BUY).
     Peer-only (own matches scan) speaks ``clash · laya … · scan-only ·
     laya-only`` — peer soft/gap/cash keep peer-only on those bits and
-    append ``scan-only`` there so matching the archive is not silent
-    when the full peer_ring is crowded off the clash (xang1234 #660
-    batch-peer scope + #647 / #531; clip keeps the peer prefix); when
-    scan is already on the clash, own+scan pins ride and peer stays
-    short. When last-debate
+    append ``scan-only`` on *each* that spoke so matching the archive
+    is not silent when the full peer_ring is crowded off the clash
+    (xang1234 #660 accept duplicate batch-peer refs + #647 / #531;
+    clip keeps the peer prefix); when scan is already on the clash,
+    own+scan pins ride and peer stays short. When last-debate
     ticker/verb also disagrees
     with LAYA last-row, append ``vs MSFT hold`` / ``vs hold``. Same ticker
     + same polarity (BUY↔pass / SELL↔reject) or same literal verb speaks
@@ -24285,18 +24287,19 @@ def build_ai_debate_glance(
                 clash += peer_ring
             elif peer_ring:
                 # Peer soft/gap/cash already name peer-only; keep scan-only
-                # on that peer bit (not the clash) so matching the archive
-                # is not silent and the 96-char clip still keeps the peer
-                # prefix (#647 / #531; xang1234 #660 batch-peer scope —
-                # peer speak ≠ drop the matched pin).
+                # on *each* peer bit that spoke (not elif — two peers can
+                # both reference the matched archive pin; dropping all but
+                # the first hid the match on the quieter sleeve). Clip still
+                # keeps the peer prefix (#647 / #531; xang1234 #660 accept
+                # duplicate batch-peer refs — self-ref still omitted).
                 scan_only = scan_archive_pin_size(
                     scan_freshness=scan_freshness
                 )
                 if debate_peer_soft_clock_clash and scan_only:
                     debate_peer_soft_clock_clash += scan_only
-                elif debate_peer_gap_clock_clash and scan_only:
+                if debate_peer_gap_clock_clash and scan_only:
                     debate_peer_gap_clock_clash += scan_only
-                elif debate_peer_cash_clock_clash and scan_only:
+                if debate_peer_cash_clock_clash and scan_only:
                     debate_peer_cash_clock_clash += scan_only
             name_clash = _memory_name_clash(sym, action, laya_sym, laya_verb)
             verb_oppose = bool(name_clash) and _memory_verb_oppose(

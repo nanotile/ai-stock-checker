@@ -616,6 +616,83 @@ def test_laya_glance_peer_soft_keeps_scan_only_when_own_matches_scan(
     assert "scan-only" not in g["scan_vs_laya_clash"]
 
 
+def test_laya_glance_peer_soft_and_gap_both_keep_scan_only(
+    monkeypatch, tmp_path: Path
+) -> None:
+    """Two peer bits that crowd peer_ring each keep scan-only (#660)."""
+    from stock_checker.ai_validate_memory import record_ai_validate
+
+    monkeypatch.setenv("LAYA_BASE_URL", "http://laya.test")
+    monkeypatch.setenv("LAYA_ADVISORY", "1")
+    now = datetime(2026, 9, 8, 1, 30, tzinfo=timezone.utc)
+    fresh_at = (now - timedelta(minutes=10)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    stale_at = (now - timedelta(hours=30)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    (tmp_path / "laya_decisions.json").write_text(
+        json.dumps(
+            {
+                "events": [
+                    {
+                        "at": fresh_at,
+                        "symbol": "MSFT",
+                        "ok": True,
+                        "fail_open": False,
+                        "reason": "ok",
+                        "entry": "hold",
+                    }
+                ]
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    # One gap row is also soft last — own matches soft+gap; stale debate
+    # peers both; elif used to keep scan-only only on soft.
+    (tmp_path / "gate_soft_allows.json").write_text(
+        json.dumps(
+            {
+                "events": [
+                    {
+                        "at": fresh_at,
+                        "gate": "rs",
+                        "reason": "AAPL RS unknown — anchor gap — allow",
+                    }
+                ]
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    record_ai_validate(
+        tmp_path,
+        {"action": "BUY", "confidence": "HIGH", "score": 40, "reasons": ["tape"]},
+        symbol="NVDA",
+        kept=True,
+    )
+    events = json.loads(
+        (tmp_path / "ai_validate_memory.json").read_text(encoding="utf-8")
+    )
+    events["events"][-1]["at"] = stale_at
+    events["updated_at"] = stale_at
+    (tmp_path / "ai_validate_memory.json").write_text(
+        json.dumps(events) + "\n", encoding="utf-8"
+    )
+    g = build_laya_glance(
+        tmp_path, now=now, scan_interval_sec=900, scan_time=fresh_at
+    )
+    assert g["freshness"] == "fresh"
+    assert g["scan_freshness"] == "fresh"
+    assert g["soft_freshness"] == "fresh"
+    assert g["gap_freshness"] == "fresh"
+    soft = g["laya_peer_soft_clock_clash"]
+    gap = g["laya_peer_gap_clock_clash"]
+    assert soft.startswith("peer soft · debate ")
+    assert gap.startswith("peer gap · debate ")
+    assert soft.endswith("· soft-only · scan-only")
+    assert gap.endswith("· gap-only · scan-only")
+    assert g["scan_vs_laya_clash"] == "clash · debate stale"
+    assert "scan-only" not in g["scan_vs_laya_clash"]
+
+
 def test_laya_glance_vs_gap_clock_clash(monkeypatch, tmp_path: Path) -> None:
     """Soft last matching LAYA can still hide a staler gap cursor."""
     monkeypatch.setenv("LAYA_BASE_URL", "http://laya.test")
