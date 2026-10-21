@@ -819,11 +819,21 @@ def test_soft_allow_glance_short_history_symbol_lead() -> None:
     assert g["short_history_symbol_lead_share"] == 67
     assert g["short_history_symbol_sample_gap"] == ""
     assert g["short_history_symbol_last_vs_lead"] == "last vs lead · NEW"
+    assert g["short_history_symbol_lead_margin"] == 1
+    assert g["short_history_symbol_lead_margin_severity"] == "thin"
+    assert g["short_history_symbol_lead_margin_bit"] == "ahead thin · +1"
+    assert g["short_history_symbol_lead_runner"] == "NEW"
+    assert g["short_history_symbol_lead_runner_count"] == 1
+    assert g["short_history_symbol_lead_runner_share"] == 33
+    assert g["short_history_symbol_lead_sides"] == "vs NEW · 1 · 33%"
     assert g["short_history_bit"] == (
-        "3 short · last NEW · lead IPO · 2 · 67% · last vs lead · NEW"
+        "3 short · last NEW · lead IPO · 2 · 67% · last vs lead · NEW · "
+        "ahead thin · +1 · vs NEW · 1 · 33%"
     )
     assert "lead IPO · 2 · 67%" in g["line"]
     assert "last vs lead · NEW" in g["line"]
+    assert "ahead thin · +1" in g["line"]
+    assert "vs NEW · 1 · 33%" in g["line"]
     assert "short NEW" in g["soft_lean_meta"]
     assert "lead IPO" in g["soft_lean_meta"]
 

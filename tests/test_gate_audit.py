@@ -50,6 +50,8 @@ def test_soft_allow_short_history_count() -> None:
         soft_allow_short_history_last_symbol,
         soft_allow_short_history_symbol_last_vs_lead,
         soft_allow_short_history_symbol_lead,
+        soft_allow_short_history_symbol_lead_margin,
+        soft_allow_short_history_symbol_lead_sides,
         soft_allow_short_history_symbol_sample_gap,
     )
 
@@ -58,6 +60,8 @@ def test_soft_allow_short_history_count() -> None:
     assert soft_allow_short_history_last_symbol(None) == ""
     assert soft_allow_short_history_last_symbol([]) == ""
     assert soft_allow_short_history_symbol_lead(None) == ("", "", None)
+    assert soft_allow_short_history_symbol_lead_margin(None) is None
+    assert soft_allow_short_history_symbol_lead_sides(None) is None
     assert soft_allow_short_history_symbol_sample_gap(None) == ""
     assert soft_allow_short_history_symbol_last_vs_lead(None) == ""
     assert format_soft_allow_short_history_bit(None) == ""
@@ -96,6 +100,8 @@ def test_soft_allow_short_history_count() -> None:
     assert soft_allow_short_history_last_symbol(mixed) == "IPO"
     # Two distinct short names → tied (no strict lead).
     assert soft_allow_short_history_symbol_lead(mixed) == ("", "", None)
+    assert soft_allow_short_history_symbol_lead_margin(mixed) is None
+    assert soft_allow_short_history_symbol_lead_sides(mixed) is None
     assert soft_allow_short_history_symbol_sample_gap(mixed) == "tied"
     assert soft_allow_short_history_symbol_last_vs_lead(mixed) == ""
     assert format_soft_allow_short_history_bit(mixed) == (
@@ -115,13 +121,27 @@ def test_soft_allow_short_history_count() -> None:
     assert soft_allow_short_history_symbol_last_vs_lead(lead_rows) == (
         "last vs lead · NEW"
     )
+    # Lead % alone ≠ how far ahead ≠ who is #2 (gap margin/sides parity).
+    assert soft_allow_short_history_symbol_lead_margin(lead_rows) == (
+        "ahead thin · +1",
+        1,
+        "thin",
+    )
+    assert soft_allow_short_history_symbol_lead_sides(lead_rows) == (
+        "vs NEW · 1 · 33%",
+        "NEW",
+        1,
+        33,
+    )
     assert format_soft_allow_short_history_bit(lead_rows) == (
-        "3 short · last NEW · lead IPO · 2 · 67% · last vs lead · NEW"
+        "3 short · last NEW · lead IPO · 2 · 67% · last vs lead · NEW · "
+        "ahead thin · +1 · vs NEW · 1 · 33%"
     )
     sole = [
         {"gate": "rs", "reason": "IPO RS unknown — short history — allow"},
     ]
     assert soft_allow_short_history_symbol_lead(sole) == ("", "", None)
+    assert soft_allow_short_history_symbol_lead_margin(sole) is None
     assert soft_allow_short_history_symbol_sample_gap(sole) == "n=1"
     assert format_soft_allow_short_history_bit(sole) == (
         "1 short · last IPO · n=1"
@@ -132,8 +152,41 @@ def test_soft_allow_short_history_count() -> None:
         {"gate": "rs", "reason": "NEW RS unknown — short history — allow"},
     ]
     assert soft_allow_short_history_symbol_last_vs_lead(agree_rows) == "agree"
+    assert soft_allow_short_history_symbol_lead_margin(agree_rows) == (
+        "ahead thin · +1",
+        1,
+        "thin",
+    )
+    assert soft_allow_short_history_symbol_lead_sides(agree_rows) == (
+        "vs NEW · 1 · 33%",
+        "NEW",
+        1,
+        33,
+    )
     assert format_soft_allow_short_history_bit(agree_rows) == (
-        "3 short · last IPO · lead IPO · 2 · 67% · agree"
+        "3 short · last IPO · lead IPO · 2 · 67% · agree · "
+        "ahead thin · +1 · vs NEW · 1 · 33%"
+    )
+    wide_rows = [
+        {"gate": "rs", "reason": "NEW RS unknown — short history — allow"},
+        {"gate": "rs", "reason": "IPO RS unknown — short history — allow"},
+        {"gate": "rs", "reason": "IPO RS unknown — short history — allow"},
+        {"gate": "rs", "reason": "IPO RS unknown — short history — allow"},
+    ]
+    assert soft_allow_short_history_symbol_lead_margin(wide_rows) == (
+        "ahead wide · +2",
+        2,
+        "wide",
+    )
+    assert soft_allow_short_history_symbol_lead_sides(wide_rows) == (
+        "vs NEW · 1 · 25%",
+        "NEW",
+        1,
+        25,
+    )
+    assert format_soft_allow_short_history_bit(wide_rows) == (
+        "4 short · last NEW · lead IPO · 3 · 75% · last vs lead · NEW · "
+        "ahead wide · +2 · vs NEW · 1 · 25%"
     )
 
 

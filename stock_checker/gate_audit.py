@@ -152,7 +152,8 @@ def soft_allow_short_history_symbol_lead(
     Ties / sole-symbol / <2 parseable stay silent on lead (use
     ``soft_allow_short_history_symbol_sample_gap``). Gap symbol-lead +
     Screener junk-list lead + xang1234 multi-meter after last-cursor.
-    Share/freshness/lean cascade still deferred. Not a gate.
+    Margin/sides follow when a runner exists; share/freshness/lean
+    cascade still deferred. Not a gate.
     """
     counts = _short_history_symbol_counts(events)
     total = sum(counts.values())
@@ -209,17 +210,72 @@ def soft_allow_short_history_symbol_last_vs_lead(
     return soft_allow_last_vs_lead(lead_name, last)
 
 
+def soft_allow_short_history_symbol_lead_margin(
+    events: list[dict[str, Any]] | None,
+) -> tuple[str, int, str] | None:
+    """Lead share plus margin over #2 short symbol (display only).
+
+    Returns ``(ahead_bit, margin, severity)``. Ownership % ≠ how far
+    ahead. Speaks only when symbol lead already spoke **and** a
+    runner-up name exists (sole 100% omits ahead). Severity: ``wide``
+    when margin ≥ ``SOFT_ALLOW_LEAD_MARGIN_WIDE``, else ``thin``. Gap
+    symbol-lead margin + Screener junk-list lead + portfolio AI after
+    lead %. Not a gate.
+    """
+    lead_bit, _name, _share = soft_allow_short_history_symbol_lead(events)
+    if not lead_bit:
+        return None
+    counts = _short_history_symbol_counts(events)
+    ranked = sorted(counts.items(), key=lambda x: x[1], reverse=True)
+    if len(ranked) < 2:
+        return None
+    margin = int(ranked[0][1]) - int(ranked[1][1])
+    if margin < 1:
+        return None
+    severity = "wide" if margin >= SOFT_ALLOW_LEAD_MARGIN_WIDE else "thin"
+    return f"ahead {severity} · +{margin}", margin, severity
+
+
+def soft_allow_short_history_symbol_lead_sides(
+    events: list[dict[str, Any]] | None,
+) -> tuple[str, str, int, int] | None:
+    """Lead margin plus runner-up short symbol (display only).
+
+    Returns ``(sides_bit, runner, runner_n, runner_share_pct)``. Ahead
+    +K ≠ who is #2. Speaks when margin already spoke; runner share is
+    runner÷parseable short total (absolute count ≠ ownership). Gap
+    symbol-lead sides + portfolio AI speak-both-sides. Not a gate.
+    """
+    margin = soft_allow_short_history_symbol_lead_margin(events)
+    if margin is None:
+        return None
+    counts = _short_history_symbol_counts(events)
+    ranked = sorted(counts.items(), key=lambda x: x[1], reverse=True)
+    if len(ranked) < 2:
+        return None
+    total = sum(counts.values())
+    if total <= 0:
+        return None
+    runner, runner_n = ranked[1]
+    runner_share = int(round(100.0 * int(runner_n) / total))
+    bit = f"vs {runner} · {runner_n} · {runner_share}%"
+    return bit, str(runner), int(runner_n), runner_share
+
+
 def format_soft_allow_short_history_bit(
     events: list[dict[str, Any]] | None,
 ) -> str:
-    """Compact ``N short · last SYM · lead|n=1|tied · agree|last vs lead``.
+    """Compact ``N short · last SYM · lead|n=1|tied · agree|last vs lead · ahead · vs``.
 
     Zero silent. ``last SYM`` sits right after the count so lean cannot
     clip the young-listing cursor (#546 after #668). Symbol lead /
     n=1 / tied follows the cursor (last ≠ ring ownership; gap symbol
     lead parity); when lead spoke, ``last vs lead`` / ``agree`` sits
-    right after so cursor≠owner is not clipped. Share / freshness /
-    lean / margin-sides still deferred. Display only; not a gate.
+    right after so cursor≠owner is not clipped; when a runner exists,
+    ``ahead wide|thin · +K`` then ``vs SYM · N · P%`` follow so ownership
+    % ≠ how far ahead ≠ who is #2 (gap margin/sides parity; sole 100%
+    omits). Share / freshness / lean still deferred. Display only; not
+    a gate.
     """
     n = soft_allow_short_history_count(events)
     if n <= 0:
@@ -236,6 +292,12 @@ def format_soft_allow_short_history_bit(
         last_vs = soft_allow_short_history_symbol_last_vs_lead(events)
         if last_vs:
             head = f"{head} · {last_vs}"
+        margin = soft_allow_short_history_symbol_lead_margin(events)
+        if margin is not None:
+            head = f"{head} · {margin[0]}"
+            sides = soft_allow_short_history_symbol_lead_sides(events)
+            if sides is not None:
+                head = f"{head} · {sides[0]}"
     else:
         sample_gap = soft_allow_short_history_symbol_sample_gap(events)
         if sample_gap:

@@ -2406,6 +2406,8 @@ def build_soft_allow_glance(
         soft_allow_short_history_count,
         soft_allow_short_history_last_symbol,
         soft_allow_short_history_symbol_lead,
+        soft_allow_short_history_symbol_lead_margin,
+        soft_allow_short_history_symbol_lead_sides,
         soft_allow_short_history_symbol_last_vs_lead,
         soft_allow_short_history_symbol_sample_gap,
         format_soft_allow_short_history_bit,
@@ -2472,6 +2474,13 @@ def build_soft_allow_glance(
         "short_history_symbol_lead": "",
         "short_history_symbol_lead_name": "",
         "short_history_symbol_lead_share": None,
+        "short_history_symbol_lead_margin": None,
+        "short_history_symbol_lead_margin_severity": "",
+        "short_history_symbol_lead_margin_bit": "",
+        "short_history_symbol_lead_runner": "",
+        "short_history_symbol_lead_runner_count": 0,
+        "short_history_symbol_lead_runner_share": None,
+        "short_history_symbol_lead_sides": "",
         "short_history_symbol_last_vs_lead": "",
         "short_history_symbol_sample_gap": "",
         "short_history_bit": "",
@@ -2749,8 +2758,9 @@ def build_soft_allow_glance(
     # xang1234 #668: young / short-series fail-opens ≠ gappy anchors —
     # absolute ``rs×N`` hid which why owns the ring beside ``N gap``.
     # #546: ``last SYM`` right after the count; symbol lead / n=1 /
-    # tied / last-vs-lead follow so the cursor ≠ ring owner (gap
-    # symbol-lead parity; share/freshness/lean still deferred).
+    # tied / last-vs-lead / ahead / vs follow so the cursor ≠ ring owner
+    # and ownership % ≠ how far ahead ≠ who is #2 (gap symbol-lead
+    # margin/sides parity; share/freshness/lean still deferred).
     short_history_n = soft_allow_short_history_count(rows)
     short_history_last = soft_allow_short_history_last_symbol(rows)
     (
@@ -2758,6 +2768,29 @@ def build_soft_allow_glance(
         short_history_symbol_lead_name,
         short_history_symbol_lead_share,
     ) = soft_allow_short_history_symbol_lead(rows)
+    _short_margin = soft_allow_short_history_symbol_lead_margin(rows)
+    short_history_symbol_lead_margin_bit = (
+        _short_margin[0] if _short_margin else ""
+    )
+    short_history_symbol_lead_margin = (
+        _short_margin[1] if _short_margin else None
+    )
+    short_history_symbol_lead_margin_severity = (
+        _short_margin[2] if _short_margin else ""
+    )
+    _short_sides = soft_allow_short_history_symbol_lead_sides(rows)
+    short_history_symbol_lead_sides = (
+        _short_sides[0] if _short_sides else ""
+    )
+    short_history_symbol_lead_runner = (
+        _short_sides[1] if _short_sides else ""
+    )
+    short_history_symbol_lead_runner_count = (
+        _short_sides[2] if _short_sides else 0
+    )
+    short_history_symbol_lead_runner_share = (
+        _short_sides[3] if _short_sides else None
+    )
     short_history_symbol_last_vs_lead = (
         soft_allow_short_history_symbol_last_vs_lead(rows)
     )
@@ -3255,6 +3288,21 @@ def build_soft_allow_glance(
         "short_history_symbol_lead": short_history_symbol_lead,
         "short_history_symbol_lead_name": short_history_symbol_lead_name,
         "short_history_symbol_lead_share": short_history_symbol_lead_share,
+        "short_history_symbol_lead_margin": short_history_symbol_lead_margin,
+        "short_history_symbol_lead_margin_severity": (
+            short_history_symbol_lead_margin_severity
+        ),
+        "short_history_symbol_lead_margin_bit": (
+            short_history_symbol_lead_margin_bit
+        ),
+        "short_history_symbol_lead_runner": short_history_symbol_lead_runner,
+        "short_history_symbol_lead_runner_count": (
+            short_history_symbol_lead_runner_count
+        ),
+        "short_history_symbol_lead_runner_share": (
+            short_history_symbol_lead_runner_share
+        ),
+        "short_history_symbol_lead_sides": short_history_symbol_lead_sides,
         "short_history_symbol_last_vs_lead": (
             short_history_symbol_last_vs_lead
         ),
