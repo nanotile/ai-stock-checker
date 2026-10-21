@@ -823,6 +823,84 @@ def test_laya_glance_vs_gap_clock_clash(monkeypatch, tmp_path: Path) -> None:
     assert "clash · gap" not in same["line"]
 
 
+def test_laya_glance_keep_peer_when_own_matches_debate(
+    monkeypatch, tmp_path: Path
+) -> None:
+    """Own matching debate → keep debate-only on ≠gap (soft keep-memory parity)."""
+    from stock_checker.ai_validate_memory import record_ai_validate
+
+    monkeypatch.setenv("LAYA_BASE_URL", "http://laya.test")
+    monkeypatch.setenv("LAYA_ADVISORY", "1")
+    now = datetime(2026, 9, 8, 1, 30, tzinfo=timezone.utc)
+    fresh_at = (now - timedelta(minutes=10)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    stale_at = (now - timedelta(hours=30)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    (tmp_path / "laya_decisions.json").write_text(
+        json.dumps(
+            {
+                "events": [
+                    {
+                        "at": fresh_at,
+                        "symbol": "MSFT",
+                        "ok": True,
+                        "fail_open": False,
+                        "reason": "ok",
+                        "entry": "hold",
+                    }
+                ]
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    record_ai_validate(
+        tmp_path,
+        {"action": "BUY", "confidence": "HIGH", "score": 40, "reasons": ["tape"]},
+        symbol="NVDA",
+        kept=True,
+    )
+    events = json.loads(
+        (tmp_path / "ai_validate_memory.json").read_text(encoding="utf-8")
+    )
+    events["events"][-1]["at"] = fresh_at
+    events["updated_at"] = fresh_at
+    (tmp_path / "ai_validate_memory.json").write_text(
+        json.dumps(events) + "\n", encoding="utf-8"
+    )
+    (tmp_path / "gate_soft_allows.json").write_text(
+        json.dumps(
+            {
+                "events": [
+                    {
+                        "at": stale_at,
+                        "gate": "rs",
+                        "reason": "AAPL RS unknown — anchor gap — allow",
+                    },
+                    {
+                        "at": fresh_at,
+                        "gate": "breadth",
+                        "reason": "unknown breadth — allow",
+                    },
+                ]
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    g = build_laya_glance(
+        tmp_path, now=now, scan_interval_sec=900, scan_time=fresh_at
+    )
+    assert g["freshness"] == "fresh"
+    assert g["debate_freshness"] == "fresh"
+    assert g["gap_freshness"] == "stale"
+    assert g["laya_vs_gap_clock_clash"] == (
+        "clash · gap stale · laya-only · gap-only · scan-only · "
+        "soft-only · ×2 · 100% · debate-only"
+    )
+    assert g["laya_vs_gap_clock_clash_warn"] is True
+    # Same band peer — no peer-gap speak (keep rides own ≠gap instead).
+    assert g["laya_peer_gap_clock_clash"] == ""
+
+
 def test_laya_glance_peer_gap_clash_when_laya_matches_gap(
     monkeypatch, tmp_path: Path
 ) -> None:

@@ -23983,6 +23983,39 @@ def build_laya_glance(
                     clash += keep_gap
                 if laya_vs_soft_clock_clash:
                     laya_vs_soft_clock_clash += keep_gap
+        # Own matches peer (same clock) — keep peer-only on
+        # ≠cash / ≠soft / ≠scan / ≠gap so those bits cannot hide the match
+        # (soft≠* keep-memory + #660 / #647 / #531). Peer soft/gap/cash
+        # already name debate-only when peer disagrees with those sleeves;
+        # a silent peer match must ride the own clashes.
+        own_band = str(freshness or "").strip().casefold()
+        if own_band == "expired":
+            own_band = "stale"
+        elif own_band == "unknown":
+            own_band = "fresh"
+        peer_band = str(debate_freshness or "").strip().casefold()
+        if peer_band == "expired":
+            peer_band = "stale"
+        elif peer_band == "unknown":
+            peer_band = "fresh"
+        own_matches_peer = bool(
+            own_band in _CASH_PRINT_RANK
+            and peer_band in _CASH_PRINT_RANK
+            and own_band == peer_band
+        )
+        if own_matches_peer:
+            keep_peer = memory_own_pin_size(
+                side="debate", freshness=debate_freshness
+            )
+            if keep_peer:
+                if laya_vs_cash_clock_clash:
+                    laya_vs_cash_clock_clash += keep_peer
+                if clash and "scan " in clash:
+                    clash += keep_peer
+                if laya_vs_soft_clock_clash:
+                    laya_vs_soft_clock_clash += keep_peer
+                if laya_vs_gap_clock_clash:
+                    laya_vs_gap_clock_clash += keep_peer
         name_clash = _memory_name_clash(
             own_sym, own_verb, debate_sym, debate_action
         )
@@ -24601,6 +24634,39 @@ def build_ai_debate_glance(
                     clash += keep_gap
                 if debate_vs_soft_clock_clash:
                     debate_vs_soft_clock_clash += keep_gap
+        # Own matches peer (same clock) — keep peer-only on
+        # ≠cash / ≠soft / ≠scan / ≠gap so those bits cannot hide the match
+        # (LAYA keep-peer + soft≠* keep-memory + #660 / #647 / #531).
+        # Peer soft/gap/cash already name laya-only when peer disagrees;
+        # a silent peer match must ride the own clashes.
+        own_band = str(freshness or "").strip().casefold()
+        if own_band == "expired":
+            own_band = "stale"
+        elif own_band == "unknown":
+            own_band = "fresh"
+        peer_band = str(laya_freshness or "").strip().casefold()
+        if peer_band == "expired":
+            peer_band = "stale"
+        elif peer_band == "unknown":
+            peer_band = "fresh"
+        own_matches_peer = bool(
+            own_band in _CASH_PRINT_RANK
+            and peer_band in _CASH_PRINT_RANK
+            and own_band == peer_band
+        )
+        if own_matches_peer:
+            keep_peer = memory_own_pin_size(
+                side="laya", freshness=laya_freshness
+            )
+            if keep_peer:
+                if debate_vs_cash_clock_clash:
+                    debate_vs_cash_clock_clash += keep_peer
+                if clash and "scan " in clash:
+                    clash += keep_peer
+                if debate_vs_soft_clock_clash:
+                    debate_vs_soft_clock_clash += keep_peer
+                if debate_vs_gap_clock_clash:
+                    debate_vs_gap_clock_clash += keep_peer
         # Debate matching cash can still hide LAYA ≠ cash (peer speak).
         if laya_st.get("advisory"):
             (
