@@ -124,8 +124,12 @@ def beats_benchmark(
     gap_ceil = rs_anchor_max_miss()
     asset_miss = anchor_miss_ratio(asset_closes, lookback)
     bench_miss = anchor_miss_ratio(bench_closes, lookback)
-    if asset_miss is None or bench_miss is None:
-        return True, f"{asset_label} RS unknown — allow"
+    # xang1234 #668: young / short listings are not gappy-anchor holes —
+    # series shorter than lookback+1 is short history, not inventable RS.
+    if asset_miss is None:
+        return True, f"{asset_label} RS unknown — short history — allow"
+    if bench_miss is None:
+        return True, f"{bench_label} RS unknown — short history — allow"
     if asset_miss > gap_ceil:
         return True, f"{asset_label} RS unknown — anchor gap — allow"
     if bench_miss > gap_ceil:

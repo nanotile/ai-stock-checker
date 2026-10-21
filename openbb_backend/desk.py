@@ -2381,6 +2381,7 @@ def build_soft_allow_glance(
         soft_allow_anchor_gap_vs_cash_clock_clash,
         soft_allow_anchor_gap_vs_memory_clock_clash,
         soft_allow_anchor_gap_vs_scan_clash,
+        soft_allow_short_history_count,
         soft_allow_vs_gap_clock_clash,
         soft_allow_last_vs_lead,
         soft_allow_last_vs_lead_freshness,
@@ -2439,6 +2440,8 @@ def build_soft_allow_glance(
         "last_lead_vs_config": "",
         "last_lead_vs_config_warn": False,
         "sample_gap": "",
+        "short_history_count": 0,
+        "short_history_bit": "",
         "anchor_gap_count": 0,
         "anchor_gap_last": "",
         "anchor_gap_last_freshness": "",
@@ -2709,6 +2712,12 @@ def build_soft_allow_glance(
     ) = soft_allow_anchor_gap_last_vs_lead_freshness(rows, now=now)
     anchor_gap_symbol_sample_gap = soft_allow_anchor_gap_symbol_sample_gap(
         rows
+    )
+    # xang1234 #668: young / short-series fail-opens ≠ gappy anchors —
+    # absolute ``rs×N`` hid which why owns the ring beside ``N gap``.
+    short_history_n = soft_allow_short_history_count(rows)
+    short_history_bit = (
+        f"{short_history_n} short" if short_history_n > 0 else ""
     )
     anchor_gap_n, anchor_gap_share_pct, anchor_gap_share_severity = (
         soft_allow_anchor_gap_share(rows)
@@ -3112,6 +3121,7 @@ def build_soft_allow_glance(
             lead_vs_config_freshness,
             last_lead_vs_config_freshness,
             *gen_clash_bits,
+            short_history_bit,
             anchor_gap_bit,
         )
         if b
@@ -3147,6 +3157,8 @@ def build_soft_allow_glance(
         line = f"{severity} · {' · '.join(gen_clash_bits)} · {rest}"
     elif gen_clash_bits:
         line = f"{' · '.join(gen_clash_bits)} · {line}"
+    if short_history_bit:
+        line = f"{line} · {short_history_bit}"
     if anchor_gap_bit:
         line = f"{line} · {anchor_gap_bit}"
     if reason_short:
@@ -3192,6 +3204,8 @@ def build_soft_allow_glance(
         "last_lead_vs_config": last_lead_vs_config,
         "last_lead_vs_config_warn": last_lead_vs_config_warn,
         "sample_gap": sample_gap,
+        "short_history_count": short_history_n,
+        "short_history_bit": short_history_bit,
         "anchor_gap_count": anchor_gap_n,
         "anchor_gap_last": anchor_gap_last,
         "anchor_gap_last_freshness": anchor_gap_last_freshness,

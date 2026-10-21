@@ -37,8 +37,36 @@ def test_is_soft_allow_reason_markers() -> None:
     assert is_soft_allow_reason("empty Yahoo earnings window · fail-open")
     assert is_soft_allow_reason("malformed Yahoo earnings · fail-open")
     assert is_soft_allow_reason("SPY RS unknown — anchor gap — allow")
+    assert is_soft_allow_reason("IPO RS unknown — short history — allow")
     assert not is_soft_allow_reason("SPY above SMA200")
     assert not is_soft_allow_reason("")
+
+
+def test_soft_allow_short_history_count() -> None:
+    """xang1234 #668: short history ≠ anchor gap ≠ bare RS unknown."""
+    from stock_checker.gate_audit import soft_allow_short_history_count
+
+    assert soft_allow_short_history_count(None) == 0
+    assert soft_allow_short_history_count([]) == 0
+    assert (
+        soft_allow_short_history_count(
+            [{"gate": "rs", "reason": "AAPL RS unknown — allow"}]
+        )
+        == 0
+    )
+    assert (
+        soft_allow_short_history_count(
+            [{"gate": "rs", "reason": "AAPL RS unknown — anchor gap — allow"}]
+        )
+        == 0
+    )
+    mixed = [
+        {"gate": "rs", "reason": "IPO RS unknown — short history — allow"},
+        {"gate": "rs", "reason": "AAPL RS unknown — anchor gap — allow"},
+        {"gate": "rs", "reason": "MSFT RS unknown — short history — allow"},
+        "junk",
+    ]
+    assert soft_allow_short_history_count(mixed) == 2
 
 
 def test_soft_allow_anchor_gap_count() -> None:

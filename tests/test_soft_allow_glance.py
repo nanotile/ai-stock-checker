@@ -725,6 +725,38 @@ def test_soft_allow_glance_one() -> None:
     assert g["soft_lean_meta"] == "quiet"
 
 
+def test_soft_allow_glance_short_history_count() -> None:
+    """xang1234 #668: rs×N alone ≠ young/short-series fail-open count."""
+    now = datetime(2026, 10, 21, 12, 0, tzinfo=timezone.utc)
+    g = build_soft_allow_glance(
+        [
+            {
+                "at": "2026-10-21T11:00:00Z",
+                "gate": "rs",
+                "reason": "IPO RS unknown — short history — allow",
+            },
+            {
+                "at": "2026-10-21T10:30:00Z",
+                "gate": "rs",
+                "reason": "AAPL RS unknown — anchor gap — allow",
+            },
+            {
+                "at": "2026-10-21T10:00:00Z",
+                "gate": "rs",
+                "reason": "NEW RS unknown — short history — allow",
+            },
+        ],
+        now=now,
+    )
+    assert g["ready"] is True
+    assert g["short_history_count"] == 2
+    assert g["short_history_bit"] == "2 short"
+    assert "2 short" in g["line"]
+    assert g["anchor_gap_count"] == 1
+    # Short before gap so the young-listing count is not clipped by gap lean.
+    assert g["line"].index("2 short") < g["line"].index("1 gap")
+
+
 def test_soft_allow_glance_anchor_gap_count() -> None:
     """xang1234 #539: rs×N alone ≠ gappy-anchor fail-open count + share."""
     now = datetime(2026, 10, 8, 12, 0, tzinfo=timezone.utc)
@@ -749,6 +781,8 @@ def test_soft_allow_glance_anchor_gap_count() -> None:
         now=now,
     )
     assert g["ready"] is True
+    assert g["short_history_count"] == 0
+    assert g["short_history_bit"] == ""
     assert g["anchor_gap_count"] == 2
     assert g["anchor_gap_last"] == "AAPL"
     assert g["anchor_gap_last_freshness"] == "fresh"

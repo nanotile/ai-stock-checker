@@ -46,10 +46,19 @@ def test_beats_benchmark_allow_and_block():
 
 
 def test_beats_benchmark_fail_open_short_history():
+    """xang1234 #668: short series ≠ gappy-anchor inventable RS."""
     ok, why = beats_benchmark([1.0, 2.0], [1.0, 1.1], 63)
     assert ok
-    assert "unknown" in why
+    assert "short history" in why
     assert "anchor gap" not in why
+    # Bench short while asset is long enough — name the bench.
+    asset = _series(100.0, 0.01, 64)
+    ok_b, why_b = beats_benchmark(
+        asset, [1.0, 1.1], 63, asset_label="AAA", bench_label="SPY"
+    )
+    assert ok_b
+    assert why_b.startswith("SPY")
+    assert "short history" in why_b
 
 
 def test_anchor_miss_ratio_positional():

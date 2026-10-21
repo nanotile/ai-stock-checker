@@ -26,6 +26,7 @@ _SOFT_MARKERS = (
     "empty earnings",
     "malformed yahoo",
     "anchor gap",  # xang1234 #539 RS positional miss >25%
+    "short history",  # xang1234 #668 young / short listing vs lookback
 )
 
 
@@ -67,6 +68,26 @@ def soft_allow_anchor_gap_count(
         if not isinstance(row, dict):
             continue
         if "anchor gap" in str(row.get("reason") or "").casefold():
+            n += 1
+    return n
+
+
+def soft_allow_short_history_count(
+    events: list[dict[str, Any]] | None,
+) -> int:
+    """Count soft-allows whose reason is an RS short-history fail-open.
+
+    Gate tallies only say ``rs×N`` — bare ``RS unknown``,
+    ``short history``, and ``anchor gap`` looked the same. xang1234
+    #668 rates young listings on the horizons they have; we fail-open
+    instead, but desk should speak how many ring rows are short-series
+    (not gappy anchors). Display only; zero stays silent. Not a gate.
+    """
+    n = 0
+    for row in events or []:
+        if not isinstance(row, dict):
+            continue
+        if "short history" in str(row.get("reason") or "").casefold():
             n += 1
     return n
 
