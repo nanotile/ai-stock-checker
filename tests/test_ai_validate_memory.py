@@ -313,18 +313,39 @@ def test_build_ai_debate_glance_cash_clash_when_debate_matches_scan(
     events[-1]["at"] = fresh_at
     path = tmp_path / "ai_validate_memory.json"
     path.write_text(json.dumps({"updated_at": fresh_at, "events": events}) + "\n")
+    (tmp_path / "gate_soft_allows.json").write_text(
+        json.dumps(
+            {
+                "events": [
+                    {
+                        "at": fresh_at,
+                        "gate": "rs",
+                        "reason": "AAPL RS unknown — anchor gap — allow",
+                    }
+                ]
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     g = build_ai_debate_glance(
         tmp_path, now=now, scan_interval_sec=900, scan_time=fresh_at
     )
     assert g["freshness"] == "fresh"
     assert g["scan_freshness"] == "fresh"
+    assert g["soft_freshness"] == "fresh"
+    assert g["gap_freshness"] == "fresh"
     assert g["scan_vs_debate_clash"] == ""
+    assert g["debate_vs_soft_clock_clash"] == ""
+    assert g["debate_vs_gap_clock_clash"] == ""
     cash = g["debate_vs_cash_clock_clash"]
     assert cash.startswith("clash · debate fresh · cash ")
     assert " · debate-only · " in cash
-    # Own matches scan → keep scan-only so cash alone cannot hide the
-    # archive match (soft≠cash / LAYA own keep-scan-only / #660).
-    assert cash.endswith("· ×2 · 100% · scan-only")
+    # Own matches scan + soft + gap → keep all three so cash alone cannot
+    # hide any match (LAYA keep gap-only / #660 / #647 / #531).
+    assert cash.endswith(
+        "· ×2 · 100% · scan-only · soft-only · gap-only"
+    )
     assert g["debate_vs_cash_clock_clash_warn"] is True
     # 96-char clip may truncate ×N · P%; keep the cash clash prefix.
     assert "clash · debate fresh · cash" in g["line"]
@@ -334,6 +355,21 @@ def test_build_ai_debate_glance_cash_clash_when_debate_matches_scan(
     even_at = (even - timedelta(minutes=10)).strftime("%Y-%m-%dT%H:%M:%SZ")
     events[-1]["at"] = even_at
     path.write_text(json.dumps({"updated_at": even_at, "events": events}) + "\n")
+    (tmp_path / "gate_soft_allows.json").write_text(
+        json.dumps(
+            {
+                "events": [
+                    {
+                        "at": even_at,
+                        "gate": "rs",
+                        "reason": "AAPL RS unknown — anchor gap — allow",
+                    }
+                ]
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     same = build_ai_debate_glance(
         tmp_path, now=even, scan_interval_sec=900, scan_time=even_at
     )

@@ -353,7 +353,7 @@ def test_laya_glance_cash_clash_when_laya_matches_scan(
                     {
                         "at": fresh_at,
                         "gate": "rs",
-                        "reason": "AAPL RS unknown — allow",
+                        "reason": "AAPL RS unknown — anchor gap — allow",
                     }
                 ]
             }
@@ -367,14 +367,18 @@ def test_laya_glance_cash_clash_when_laya_matches_scan(
     assert g["freshness"] == "fresh"
     assert g["scan_freshness"] == "fresh"
     assert g["soft_freshness"] == "fresh"
+    assert g["gap_freshness"] == "fresh"
     assert g["scan_vs_laya_clash"] == ""
     assert g["laya_vs_soft_clock_clash"] == ""
+    assert g["laya_vs_gap_clock_clash"] == ""
     cash = g["laya_vs_cash_clock_clash"]
     assert cash.startswith("clash · laya fresh · cash ")
     assert " · laya-only · " in cash
-    # Own matches scan + soft → keep both pins so cash alone cannot hide
-    # either match (keep-scan-only + keep soft-only / #660 / #647 / #531).
-    assert cash.endswith("· ×2 · 100% · scan-only · soft-only")
+    # Own matches scan + soft + gap → keep all three so cash alone cannot
+    # hide any match (keep-scan + soft + gap / #660 / #647 / #531).
+    assert cash.endswith(
+        "· ×2 · 100% · scan-only · soft-only · gap-only"
+    )
     assert g["laya_vs_cash_clock_clash_warn"] is True
     # 96-char clip may truncate ×N · P%; keep the cash clash + own pin.
     assert "clash · laya fresh · cash" in g["line"]
@@ -408,7 +412,7 @@ def test_laya_glance_cash_clash_when_laya_matches_scan(
                     {
                         "at": even_at,
                         "gate": "rs",
-                        "reason": "AAPL RS unknown — allow",
+                        "reason": "AAPL RS unknown — anchor gap — allow",
                     }
                 ]
             }

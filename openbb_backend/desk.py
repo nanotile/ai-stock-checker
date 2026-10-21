@@ -23812,6 +23812,22 @@ def build_laya_glance(
                     clash += keep_soft
                 if laya_vs_gap_clock_clash:
                     laya_vs_gap_clock_clash += keep_soft
+        # Own≠gap silent (own matches gap) — keep gap-only on
+        # ≠cash / ≠scan / ≠soft so those bits cannot hide the match
+        # (keep soft-only + gap≠scan keep-cash + #660 / #647 / #531).
+        # Own≠gap already names gap-only on the gap clash.
+        own_matches_gap = bool(
+            gap_freshness and freshness and not laya_vs_gap_clock_clash
+        )
+        if own_matches_gap:
+            keep_gap = gap_cursor_pin_size(gap_freshness=gap_freshness)
+            if keep_gap:
+                if laya_vs_cash_clock_clash:
+                    laya_vs_cash_clock_clash += keep_gap
+                if clash and "scan " in clash:
+                    clash += keep_gap
+                if laya_vs_soft_clock_clash:
+                    laya_vs_soft_clock_clash += keep_gap
         name_clash = _memory_name_clash(
             own_sym, own_verb, debate_sym, debate_action
         )
@@ -24398,6 +24414,22 @@ def build_ai_debate_glance(
                     clash += keep_soft
                 if debate_vs_gap_clock_clash:
                     debate_vs_gap_clock_clash += keep_soft
+        # Own≠gap silent (own matches gap) — keep gap-only on
+        # ≠cash / ≠scan / ≠soft so those bits cannot hide the match
+        # (LAYA keep gap-only + keep soft-only + #660 / #647 / #531).
+        # Own≠gap already names gap-only on the gap clash.
+        own_matches_gap = bool(
+            gap_freshness and freshness and not debate_vs_gap_clock_clash
+        )
+        if own_matches_gap:
+            keep_gap = gap_cursor_pin_size(gap_freshness=gap_freshness)
+            if keep_gap:
+                if debate_vs_cash_clock_clash:
+                    debate_vs_cash_clock_clash += keep_gap
+                if clash and "scan " in clash:
+                    clash += keep_gap
+                if debate_vs_soft_clock_clash:
+                    debate_vs_soft_clock_clash += keep_gap
         # Debate matching cash can still hide LAYA ≠ cash (peer speak).
         if laya_st.get("advisory"):
             (
