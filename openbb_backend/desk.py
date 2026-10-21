@@ -23398,22 +23398,24 @@ def build_laya_glance(
     the scan archive; #647 / #531). When the newest validate-debate band
     also disagrees, append ``debate {tone}`` (FinRobot last-debate ≠ JEV
     last-reject). Peer-only (own matches scan) speaks
-    ``clash · debate … · ×N · P%`` on the debate advisory ring so the peer
-    verb is not a nameless sleeve — omitted when peer soft/gap/cash
-    already speak size (those bits need the 96-char clip); when scan is
-    already on the clash, ``scan-only`` rides and peer stays short. When
-    last-row age ≠ worst pinned cash sleeve, speak
-    ``clash · laya fresh|aging|stale · cash … · ×N · P%`` (xang1234 #549;
-    soft matching scan ≠ live cash; soft-allow parity; ``×N · P%`` is the
-    pinned cash sleeve ring so the verb is not a nameless sleeve). When
+    ``clash · debate … · scan-only · debate-only`` — peer soft/gap/cash
+    keep peer-only on those bits and append ``scan-only`` there so
+    matching the archive is not silent when the full peer_ring is
+    crowded off the clash (xang1234 #660 batch-peer scope + #647 /
+    #531; clip keeps the peer prefix); when scan is already on the
+    clash, own+scan pins ride and peer stays short. When last-row age ≠
+    worst pinned cash sleeve, speak
+    ``clash · laya fresh|aging|stale · cash … · laya-only · US-only|…``
+    (xang1234 #549; soft matching scan ≠ live cash; soft-allow parity;
+    cash pin sleeve so the verb is not a nameless sleeve). When
     last-row age ≠ newest soft-allow clock, speak
-    ``clash · soft fresh|aging|stale · soft-only`` (soft≠scan
+    ``clash · soft fresh|aging|stale · laya-only · soft-only`` (soft≠scan
     speak-both-sides — LAYA matching scan/cash can still hide a staler
     fail-open print; soft last is a sole pin like scan-only, not soft
     ring membership). When last-row age ≠ newest gap cursor, speak
-    ``clash · gap fresh|aging|stale · ×N · P%`` (gap sleeve size; soft
-    matching memory can still hide a staler gap). When last-row
-    ticker/verb also disagrees with last-validate, append
+    ``clash · gap fresh|aging|stale · laya-only · gap-only`` (gap cursor
+    sole pin; soft matching memory can still hide a staler gap). When
+    last-row ticker/verb also disagrees with last-validate, append
     ``vs NVDA BUY`` / ``vs BUY``.
     Same ticker + same polarity (pass↔BUY / reject↔SELL) or same literal
     verb speaks ``agree`` (portfolio AI confirm; not silent). Same ticker
@@ -23661,6 +23663,21 @@ def build_laya_glance(
             or laya_peer_gap_clock_clash
         ):
             clash += peer_ring
+        elif peer_ring:
+            # Peer soft/gap/cash already name peer-only; keep scan-only
+            # on that peer bit (not the clash) so matching the archive
+            # is not silent and the 96-char clip still keeps the peer
+            # prefix (#647 / #531; xang1234 #660 batch-peer scope —
+            # peer speak ≠ drop the matched pin).
+            scan_only = scan_archive_pin_size(
+                scan_freshness=scan_freshness
+            )
+            if laya_peer_soft_clock_clash and scan_only:
+                laya_peer_soft_clock_clash += scan_only
+            elif laya_peer_gap_clock_clash and scan_only:
+                laya_peer_gap_clock_clash += scan_only
+            elif laya_peer_cash_clock_clash and scan_only:
+                laya_peer_cash_clock_clash += scan_only
         name_clash = _memory_name_clash(
             own_sym, own_verb, debate_sym, debate_action
         )
@@ -23949,11 +23966,13 @@ def build_ai_debate_glance(
     parity; matching scan ≠ live cash print; pinned cash sleeve ring so the
     verb is not a nameless sleeve). When LAYA last-row band also
     disagrees, append ``laya {tone}`` (JEV last-reject ≠ last BUY).
-    Peer-only (own matches scan) speaks ``clash · laya … · ×N · P%`` on
-    the LAYA advisory ring so the peer verb is not a nameless sleeve —
-    omitted when peer soft/gap/cash already speak size (those bits need
-    the 96-char clip); when scan is already on the clash, ``scan-only``
-    rides and peer stays short. When last-debate
+    Peer-only (own matches scan) speaks ``clash · laya … · scan-only ·
+    laya-only`` — peer soft/gap/cash keep peer-only on those bits and
+    append ``scan-only`` there so matching the archive is not silent
+    when the full peer_ring is crowded off the clash (xang1234 #660
+    batch-peer scope + #647 / #531; clip keeps the peer prefix); when
+    scan is already on the clash, own+scan pins ride and peer stays
+    short. When last-debate
     ticker/verb also disagrees
     with LAYA last-row, append ``vs MSFT hold`` / ``vs hold``. Same ticker
     + same polarity (BUY↔pass / SELL↔reject) or same literal verb speaks
@@ -23963,12 +23982,13 @@ def build_ai_debate_glance(
     pass`` (bare ``vs`` keeps bull↔bear).     Clash vs a staler scan/LAYA
     escalates glance tone (fresh last BUY ≠ live print). When last-debate
     age ≠ newest soft-allow clock, speak
-    ``clash · soft fresh|aging|stale · soft-only`` (soft≠scan
+    ``clash · soft fresh|aging|stale · debate-only · soft-only`` (soft≠scan
     speak-both-sides — debate matching scan/cash can still hide a staler
     fail-open print; soft last is a sole pin like scan-only, not soft
     ring membership).
     When last-debate age ≠ newest gap cursor, speak
-    ``clash · gap fresh|aging|stale · ×N · P%`` (gap sleeve size).
+    ``clash · gap fresh|aging|stale · debate-only · gap-only`` (gap cursor
+    sole pin).
     Bull↔bear verb oppose (BUY vs reject / SELL vs pass) also escalates
     to aging — name label ≠ polarity severity. Last-row ``conf hi|med|lo``
     speaks when typed confidence is present (BUY alone ≠ high conviction);
@@ -24263,6 +24283,21 @@ def build_ai_debate_glance(
                 or debate_peer_gap_clock_clash
             ):
                 clash += peer_ring
+            elif peer_ring:
+                # Peer soft/gap/cash already name peer-only; keep scan-only
+                # on that peer bit (not the clash) so matching the archive
+                # is not silent and the 96-char clip still keeps the peer
+                # prefix (#647 / #531; xang1234 #660 batch-peer scope —
+                # peer speak ≠ drop the matched pin).
+                scan_only = scan_archive_pin_size(
+                    scan_freshness=scan_freshness
+                )
+                if debate_peer_soft_clock_clash and scan_only:
+                    debate_peer_soft_clock_clash += scan_only
+                elif debate_peer_gap_clock_clash and scan_only:
+                    debate_peer_gap_clock_clash += scan_only
+                elif debate_peer_cash_clock_clash and scan_only:
+                    debate_peer_cash_clock_clash += scan_only
             name_clash = _memory_name_clash(sym, action, laya_sym, laya_verb)
             verb_oppose = bool(name_clash) and _memory_verb_oppose(
                 action, laya_verb

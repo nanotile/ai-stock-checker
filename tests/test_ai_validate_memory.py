@@ -617,6 +617,75 @@ def test_build_ai_debate_glance_peer_soft_clash_when_debate_matches_soft(
     assert g["tone"] in {"aging", "stale"}
 
 
+def test_build_ai_debate_glance_peer_soft_keeps_scan_only_when_own_matches_scan(
+    monkeypatch, tmp_path: Path
+) -> None:
+    """Peer soft crowding peer_ring must not drop scan-only (own≈archive)."""
+    monkeypatch.setenv("LAYA_BASE_URL", "http://laya.test")
+    monkeypatch.setenv("LAYA_ADVISORY", "1")
+    now = datetime(2026, 9, 8, 1, 30, tzinfo=timezone.utc)
+    fresh_at = (now - timedelta(minutes=10)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    stale_at = (now - timedelta(hours=30)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    record_ai_validate(
+        tmp_path,
+        {"action": "BUY", "confidence": "HIGH", "score": 40, "reasons": ["tape"]},
+        symbol="MSFT",
+        kept=True,
+    )
+    events = load_ai_validate_memory(tmp_path)
+    events[-1]["at"] = fresh_at
+    path = tmp_path / "ai_validate_memory.json"
+    path.write_text(json.dumps({"updated_at": fresh_at, "events": events}) + "\n")
+    (tmp_path / "gate_soft_allows.json").write_text(
+        json.dumps(
+            {
+                "events": [
+                    {
+                        "at": fresh_at,
+                        "gate": "rs",
+                        "reason": "AAPL RS unknown — allow",
+                    }
+                ]
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "laya_decisions.json").write_text(
+        json.dumps(
+            {
+                "events": [
+                    {
+                        "at": stale_at,
+                        "symbol": "NVDA",
+                        "ok": True,
+                        "fail_open": False,
+                        "reason": "ok",
+                        "entry": "hold",
+                    }
+                ]
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    g = build_ai_debate_glance(
+        tmp_path, now=now, scan_interval_sec=900, scan_time=fresh_at
+    )
+    assert g["freshness"] == "fresh"
+    assert g["scan_freshness"] == "fresh"
+    assert g["soft_freshness"] == "fresh"
+    peer = g["debate_peer_soft_clock_clash"]
+    assert peer.startswith("peer soft · laya ")
+    assert " · laya-only · " in peer
+    assert " · soft-only" in peer
+    # Peer soft crowded the full peer_ring off the clash; scan-only
+    # rides the peer bit so matching the archive is not silent.
+    assert peer.endswith("· soft-only · scan-only")
+    assert g["scan_vs_debate_clash"] == "clash · laya stale"
+    assert "scan-only" not in g["scan_vs_debate_clash"]
+
+
 def test_build_ai_debate_glance_peer_cash_clash_when_debate_matches_cash(
     monkeypatch, tmp_path: Path
 ) -> None:
@@ -665,7 +734,8 @@ def test_build_ai_debate_glance_peer_cash_clash_when_debate_matches_cash(
     assert peer.startswith("peer cash · laya ")
     assert "cash fresh" in peer
     assert " · laya-only · " in peer
-    assert peer.endswith("· ×2 · 100%")
+    # Peer cash crowded peer_ring off the clash; scan-only rides here.
+    assert peer.endswith("· ×2 · 100% · scan-only")
     assert g["debate_peer_cash_clock_clash_warn"] is True
     # 96-char clip may truncate the peer sleeve name; keep the prefix.
     assert "peer cash" in g["line"]
