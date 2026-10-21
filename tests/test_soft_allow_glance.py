@@ -456,6 +456,26 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
     )
     assert (
         soft_allow_lean_meta(
+            "clash · soft fresh · cash aging · soft-only · US-only · "
+            "scan-only · gap-only"
+        )
+        == "quiet · 1 fold · soft/cash soft-only US-only scan-only gap-only"
+    )
+    assert (
+        soft_allow_lean_meta(
+            "clash · scan fresh · soft-only · scan-only · US-only · gap-only"
+        )
+        == "quiet · 1 fold · scan soft-only scan-only US-only gap-only"
+    )
+    assert (
+        soft_allow_lean_meta(
+            "clash · debate stale · soft-only · debate-only · US-only · "
+            "gap-only"
+        )
+        == "quiet · 1 fold · memory soft-only debate-only US-only gap-only"
+    )
+    assert (
+        soft_allow_lean_meta(
             "clash · soft fresh · cash aging · US-only"
         )
         == "quiet · 1 fold · soft/cash US-only"
@@ -2271,13 +2291,15 @@ def test_soft_allow_glance_gap_vs_scan_when_last_matches_scan() -> None:
     assert same["anchor_gap_vs_scan_clash"] == ""
     assert same["anchor_gap_vs_scan_clash_warn"] is False
     # Soft↔gap + gap↔scan silent; soft≠cash / gap≠cash may still speak
-    # and keep scan-only when the archive match is silent (#660).
+    # and keep scan-only when the archive match is silent; soft≠cash also
+    # keeps gap-only when soft matches the gap cursor (#660).
     assert "clash · gap" not in same["anchor_gap_bit"] or "scan fresh" not in (
         same["anchor_gap_bit"]
     )
     if same["soft_vs_cash_clock_clash"]:
         assert same["soft_vs_cash_clock_clash"] in same["line"]
-        assert same["soft_vs_cash_clock_clash"].endswith(" · scan-only")
+        assert " · scan-only" in same["soft_vs_cash_clock_clash"]
+        assert same["soft_vs_cash_clock_clash"].endswith(" · gap-only")
     if same["anchor_gap_vs_cash_clock_clash"]:
         assert same["anchor_gap_vs_cash_clock_clash"] in same["anchor_gap_bit"]
         assert same["anchor_gap_vs_cash_clock_clash"].endswith(" · scan-only")
@@ -2582,6 +2604,44 @@ def test_soft_allow_glance_soft_vs_memory_keeps_cash_when_soft_matches_cash() ->
     )
     assert " · scan-only" not in mem
     assert mem in g["line"]
+    assert g["tone"] == "warn"
+
+
+def test_soft_allow_glance_soft_keeps_gap_when_soft_matches_gap() -> None:
+    """Soft matching gap keeps gap-only on soft≠scan / soft≠memory (#660)."""
+    # Saturday afternoon UTC — soft last is the gap cursor (same stamp)
+    # → soft≠gap silent; fresh scan ≠ soft → soft≠scan keeps gap-only;
+    # stale debate ≠ soft → soft≠memory keeps gap-only (and cash when
+    # soft also matches cash). LAYA keep gap-only + soft keep-cash mirror.
+    now = datetime(2026, 10, 10, 14, 0, tzinfo=timezone.utc)
+    aging_at = (now - timedelta(hours=16)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    fresh_scan = (now - timedelta(minutes=5)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    g = build_soft_allow_glance(
+        [
+            {
+                "at": aging_at,
+                "gate": "rs",
+                "reason": "AAPL RS unknown — anchor gap — allow",
+            }
+        ],
+        now=now,
+        scan_time=fresh_scan,
+        scan_interval_sec=900,
+        laya_freshness="",
+        debate_freshness="stale",
+    )
+    assert g["last_freshness"] == "aging"
+    assert g["anchor_gap_last_freshness"] == "aging"
+    assert g["soft_vs_gap_clock_clash"] == ""
+    soft_scan = g["scan_vs_soft_allow_clash"]
+    assert soft_scan.startswith("clash · scan fresh · soft-only · scan-only · ")
+    assert soft_scan.endswith(" · gap-only")
+    mem = g["soft_vs_memory_clock_clash"]
+    assert mem.startswith("clash · debate stale · soft-only · debate-only · ")
+    assert mem.endswith(" · gap-only")
+    assert " · scan-only" not in mem
+    assert soft_scan in g["line"] or soft_scan in (g.get("soft_lean") or "")
+    assert mem in g["line"] or mem in (g.get("soft_lean") or "")
     assert g["tone"] == "warn"
 
 

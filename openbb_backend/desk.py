@@ -1910,12 +1910,17 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
     ),
     # Soft last pin (``soft-only``) then scan archive (``scan-only``) so
     # soft≠scan names both sole pins (gap≠scan ``gap-only · scan-only``
-    # parity; #647 / #531).
+    # parity; #647 / #531); optional keep cash / gap-only when soft≠cash
+    # / soft≠gap are silent (#660 / #647).
     (
         re.compile(
             r"^clash · scan(?: \S+)?"
             r"(?: · (soft-only))?"
             r"(?: · (scan-only))?"
+            r"(?: · ((?:US|Xetra)-only)"
+            r"| · (US|Xetra) · (\d+(?:\.\d+)?%)"
+            r"| · (×\d+) · (\d+(?:\.\d+)?%))?"
+            r"(?: · (gap-only))?"
         ),
         "scan",
     ),
@@ -1933,7 +1938,8 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
     ),
     # Soft last pin then cash pin: sole ``US-only`` · dual half
     # ``US · 50%`` · both ``×2 · 100%``; optional keep ``scan-only`` when
-    # soft≠scan is silent (#647 / #531 / #660).
+    # soft≠scan is silent; optional keep ``gap-only`` when soft≠gap is
+    # silent (#647 / #531 / #660).
     (
         re.compile(
             r"^clash · soft \S+ · cash \S+"
@@ -1942,12 +1948,14 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
             r"| · (US|Xetra) · (\d+(?:\.\d+)?%)"
             r"| · (×\d+) · (\d+(?:\.\d+)?%))?"
             r"(?: · (scan-only))?"
+            r"(?: · (gap-only))?"
         ),
         "soft/cash",
     ),
     # Soft last pin then advisory pin (laya-only / venue · 50% / ×2) so
     # soft≠memory names both sole/half pins; optional keep ``scan-only``
-    # when soft≠scan is silent (#647 / #531 / #660). Tone words are
+    # when soft≠scan is silent; optional keep cash / gap-only when soft≠
+    # cash / soft≠gap are silent (#647 / #531 / #660). Tone words are
     # required so `` · debate-only`` is not eaten as a second advisory
     # side (pin capture would stay empty).
     (
@@ -1959,6 +1967,10 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
             r"| · (laya|debate) · (\d+(?:\.\d+)?%)"
             r"| · (×\d+) · (\d+(?:\.\d+)?%))?"
             r"(?: · (scan-only))?"
+            r"(?: · ((?:US|Xetra)-only)"
+            r"| · (US|Xetra) · (\d+(?:\.\d+)?%)"
+            r"| · (×\d+) · (\d+(?:\.\d+)?%))?"
+            r"(?: · (gap-only))?"
         ),
         "memory",
     ),
@@ -2593,6 +2605,23 @@ def build_soft_allow_glance(
             soft_vs_memory_clock_clash += cash_pin
         if soft_vs_gap_clock_clash:
             soft_vs_gap_clock_clash += cash_pin
+    # Soft≠gap silent (soft matches gap cursor) — keep gap-only on soft≠
+    # scan / soft≠cash / soft≠memory so those bits cannot hide the match
+    # (keep soft-cash / LAYA keep gap-only + #660 / #647 / #531). Soft≠gap
+    # already names soft-only · gap-only; a silent match must ride the
+    # other clashes.
+    if (
+        gap_pin
+        and not soft_vs_gap_clock_clash
+        and last_clock
+        and anchor_gap_last_freshness
+    ):
+        if scan_vs_soft_allow_clash:
+            scan_vs_soft_allow_clash += gap_pin
+        if soft_vs_cash_clock_clash:
+            soft_vs_cash_clock_clash += gap_pin
+        if soft_vs_memory_clock_clash:
+            soft_vs_memory_clock_clash += gap_pin
     (
         anchor_gap_symbol_lead,
         anchor_gap_symbol_lead_name,
