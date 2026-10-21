@@ -322,7 +322,9 @@ def test_build_ai_debate_glance_cash_clash_when_debate_matches_scan(
     cash = g["debate_vs_cash_clock_clash"]
     assert cash.startswith("clash · debate fresh · cash ")
     assert " · debate-only · " in cash
-    assert cash.endswith("· ×2 · 100%")
+    # Own matches scan → keep scan-only so cash alone cannot hide the
+    # archive match (soft≠cash / LAYA own keep-scan-only / #660).
+    assert cash.endswith("· ×2 · 100% · scan-only")
     assert g["debate_vs_cash_clock_clash_warn"] is True
     # 96-char clip may truncate ×N · P%; keep the cash clash prefix.
     assert "clash · debate fresh · cash" in g["line"]
@@ -376,8 +378,9 @@ def test_build_ai_debate_glance_vs_soft_clock_clash(tmp_path: Path) -> None:
     )
     assert g["freshness"] == "fresh"
     assert g["soft_freshness"] == "stale"
+    assert g["scan_freshness"] == "fresh"
     assert g["debate_vs_soft_clock_clash"] == (
-        "clash · soft stale · debate-only · soft-only"
+        "clash · soft stale · debate-only · soft-only · scan-only"
     )
     assert g["debate_vs_soft_clock_clash_warn"] is True
     # 96-char clip may truncate soft-only; keep clash + own pin.
@@ -450,9 +453,10 @@ def test_build_ai_debate_glance_vs_gap_clock_clash(tmp_path: Path) -> None:
     assert g["freshness"] == "fresh"
     assert g["soft_freshness"] == "fresh"
     assert g["gap_freshness"] == "stale"
+    assert g["scan_freshness"] == "fresh"
     assert g["debate_vs_soft_clock_clash"] == ""
     assert g["debate_vs_gap_clock_clash"] == (
-        "clash · gap stale · debate-only · gap-only"
+        "clash · gap stale · debate-only · gap-only · scan-only"
     )
     assert g["debate_vs_gap_clock_clash_warn"] is True
     # 96-char clip may truncate gap-only; keep clash + own pin.

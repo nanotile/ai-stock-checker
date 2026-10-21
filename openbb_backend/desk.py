@@ -23442,18 +23442,21 @@ def build_laya_glance(
     peer_ring is crowded off the clash (xang1234 #660 accept duplicate
     batch-peer refs + #647 / #531; clip keeps the peer prefix); when
     scan is already on the clash, own+scan pins ride and peer stays
-    short. When last-row age ≠
+    short.     When last-row age ≠
     worst pinned cash sleeve, speak
     ``clash · laya fresh|aging|stale · cash … · laya-only · US-only|…``
     (xang1234 #549; soft matching scan ≠ live cash; soft-allow parity;
-    cash pin sleeve so the verb is not a nameless sleeve). When
+    cash pin sleeve so the verb is not a nameless sleeve; when own
+    matches scan, append ``scan-only`` so cash alone cannot hide the
+    archive match — soft≠cash keep-scan-only parity). When
     last-row age ≠ newest soft-allow clock, speak
-    ``clash · soft fresh|aging|stale · laya-only · soft-only`` (soft≠scan
-    speak-both-sides — LAYA matching scan/cash can still hide a staler
-    fail-open print; soft last is a sole pin like scan-only, not soft
-    ring membership). When last-row age ≠ newest gap cursor, speak
-    ``clash · gap fresh|aging|stale · laya-only · gap-only`` (gap cursor
-    sole pin; soft matching memory can still hide a staler gap). When
+    ``clash · soft fresh|aging|stale · laya-only · soft-only`` (+ keep
+    ``scan-only`` when own≈archive; soft≠scan speak-both-sides — LAYA
+    matching scan/cash can still hide a staler fail-open print; soft
+    last is a sole pin like scan-only, not soft ring membership). When
+    last-row age ≠ newest gap cursor, speak
+    ``clash · gap fresh|aging|stale · laya-only · gap-only`` (+ keep
+    ``scan-only`` when own≈archive; gap cursor sole pin). When
     last-row ticker/verb also disagrees with last-validate, append
     ``vs NVDA BUY`` / ``vs BUY``.
     Same ticker + same polarity (pass↔BUY / reject↔SELL) or same literal
@@ -23599,6 +23602,13 @@ def build_laya_glance(
             peer_ring += memory_own_pin_size(
                 side="debate", freshness=debate_freshness
             )
+        # Capture before peer_ring may append ``scan-only`` onto clash
+        # (that would false-trigger ``"scan " in clash`` and skip keep).
+        own_matches_scan = bool(
+            scan_freshness
+            and freshness
+            and not (clash and "scan " in clash)
+        )
         laya_vs_cash_clock_clash, laya_vs_cash_clock_clash_warn = (
             memory_vs_cash_clock_clash(freshness, cash_band, side="laya")
         )
@@ -23718,6 +23728,21 @@ def build_laya_glance(
                 laya_peer_gap_clock_clash += scan_only
             if laya_peer_cash_clock_clash and scan_only:
                 laya_peer_cash_clock_clash += scan_only
+        # Own≠scan silent (own matches archive) — keep scan-only on
+        # ≠cash / ≠soft / ≠gap so those bits cannot hide the match
+        # (soft≠cash/gap/memory keep-scan-only + peer soft keep + #660 /
+        # #647 / #531). Own≠scan already names scan-only on the clash.
+        if own_matches_scan:
+            keep_scan = scan_archive_pin_size(
+                scan_freshness=scan_freshness
+            )
+            if keep_scan:
+                if laya_vs_cash_clock_clash:
+                    laya_vs_cash_clock_clash += keep_scan
+                if laya_vs_soft_clock_clash:
+                    laya_vs_soft_clock_clash += keep_scan
+                if laya_vs_gap_clock_clash:
+                    laya_vs_gap_clock_clash += keep_scan
         name_clash = _memory_name_clash(
             own_sym, own_verb, debate_sym, debate_action
         )
@@ -24000,11 +24025,14 @@ def build_ai_debate_glance(
     disagrees with last-debate age, speak
     ``clash · scan fresh|aging|stale · scan-only`` (soft≠scan
     ``scan-only`` pin — advisory ring ``×N`` lied advisory coverage was
-    the scan archive; #647 / #531). When last-debate clock ≠ worst pinned
+    the scan archive; #647 / #531).     When last-debate clock ≠ worst pinned
     cash sleeve, speak
-    ``clash · debate fresh|aging|stale · cash … · ×N · P%`` (LAYA soft≠cash
-    parity; matching scan ≠ live cash print; pinned cash sleeve ring so the
-    verb is not a nameless sleeve). When LAYA last-row band also
+    ``clash · debate fresh|aging|stale · cash … · debate-only · US-only|…``
+    (LAYA soft≠cash parity; matching scan ≠ live cash print; pinned cash
+    sleeve ring so the verb is not a nameless sleeve; when own matches
+    scan, append ``scan-only`` so cash alone cannot hide the archive
+    match — soft≠cash / LAYA own keep-scan-only parity). Soft/gap clashes
+    keep the same pin when own≈archive. When LAYA last-row band also
     disagrees, append ``laya {tone}`` (JEV last-reject ≠ last BUY).
     Peer-only (own matches scan) speaks ``clash · laya … · scan-only ·
     laya-only`` — peer soft/gap/cash keep peer-only on those bits and
@@ -24215,6 +24243,13 @@ def build_ai_debate_glance(
             peer_ring += memory_own_pin_size(
                 side="laya", freshness=laya_freshness
             )
+        # Capture before peer_ring may append ``scan-only`` onto clash
+        # (that would false-trigger ``"scan " in clash`` and skip keep).
+        own_matches_scan = bool(
+            scan_freshness
+            and freshness
+            and not (clash and "scan " in clash)
+        )
         # Debate matching scan ≠ live cash (xang1234 #549; LAYA soft≠cash parity).
         debate_vs_cash_clock_clash, debate_vs_cash_clock_clash_warn = (
             memory_vs_cash_clock_clash(freshness, cash_band, side="debate")
@@ -24263,6 +24298,21 @@ def build_ai_debate_glance(
             )
             debate_vs_gap_clock_clash += gap_pin
         debate_vs_gap_clock_clash_warn = bool(debate_vs_gap_clock_clash)
+        # Own≠scan silent (own matches archive) — keep scan-only on
+        # ≠cash / ≠soft / ≠gap so those bits cannot hide the match
+        # (soft≠cash/gap/memory keep-scan-only + LAYA own keep + #660 /
+        # #647 / #531). Own≠scan already names scan-only on the clash.
+        if own_matches_scan:
+            keep_scan = scan_archive_pin_size(
+                scan_freshness=scan_freshness
+            )
+            if keep_scan:
+                if debate_vs_cash_clock_clash:
+                    debate_vs_cash_clock_clash += keep_scan
+                if debate_vs_soft_clock_clash:
+                    debate_vs_soft_clock_clash += keep_scan
+                if debate_vs_gap_clock_clash:
+                    debate_vs_gap_clock_clash += keep_scan
         # Debate matching cash can still hide LAYA ≠ cash (peer speak).
         if laya_st.get("advisory"):
             (

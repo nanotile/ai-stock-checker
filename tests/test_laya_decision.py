@@ -355,7 +355,9 @@ def test_laya_glance_cash_clash_when_laya_matches_scan(
     cash = g["laya_vs_cash_clock_clash"]
     assert cash.startswith("clash · laya fresh · cash ")
     assert " · laya-only · " in cash
-    assert cash.endswith("· ×2 · 100%")
+    # Own matches scan → keep scan-only so cash alone cannot hide the
+    # archive match (soft≠cash keep-scan-only / #660 / #647 / #531).
+    assert cash.endswith("· ×2 · 100% · scan-only")
     assert g["laya_vs_cash_clock_clash_warn"] is True
     # 96-char clip may truncate ×N · P%; keep the cash clash + own pin.
     assert "clash · laya fresh · cash" in g["line"]
@@ -435,9 +437,10 @@ def test_laya_glance_vs_soft_clock_clash(monkeypatch, tmp_path: Path) -> None:
         tmp_path, now=now, scan_interval_sec=900, scan_time=fresh_at
     )
     assert g["freshness"] == "fresh"
+    assert g["scan_freshness"] == "fresh"
     assert g["soft_freshness"] == "stale"
     assert g["laya_vs_soft_clock_clash"] == (
-        "clash · soft stale · laya-only · soft-only"
+        "clash · soft stale · laya-only · soft-only · scan-only"
     )
     assert g["laya_vs_soft_clock_clash_warn"] is True
     assert "clash · soft stale · laya-only · soft-only" in g["line"]
@@ -744,9 +747,10 @@ def test_laya_glance_vs_gap_clock_clash(monkeypatch, tmp_path: Path) -> None:
     assert g["freshness"] == "fresh"
     assert g["soft_freshness"] == "fresh"
     assert g["gap_freshness"] == "stale"
+    assert g["scan_freshness"] == "fresh"
     assert g["laya_vs_soft_clock_clash"] == ""
     assert g["laya_vs_gap_clock_clash"] == (
-        "clash · gap stale · laya-only · gap-only"
+        "clash · gap stale · laya-only · gap-only · scan-only"
     )
     assert g["laya_vs_gap_clock_clash_warn"] is True
     assert "clash · gap stale · laya-only · gap-only" in g["line"]
