@@ -287,6 +287,94 @@ def test_laya_glance_fail_open_speaks_reason_class(
     assert "last AAPL" in calm["line"]
 
 
+def test_laya_glance_fail_open_sample_class_lead(
+    monkeypatch, tmp_path: Path
+) -> None:
+    """Absolute N fail-open hid which why owns the ring (#674 / junk lead)."""
+    monkeypatch.setenv("LAYA_BASE_URL", "http://laya.test")
+    monkeypatch.setenv("LAYA_ADVISORY", "1")
+    now = datetime(2026, 10, 21, 15, 0, tzinfo=timezone.utc)
+    at = (now - timedelta(minutes=5)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    at2 = (now - timedelta(minutes=10)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    at3 = (now - timedelta(minutes=15)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    (tmp_path / "laya_decisions.json").write_text(
+        json.dumps(
+            {
+                "events": [
+                    {
+                        "at": at3,
+                        "symbol": "AAA",
+                        "ok": False,
+                        "fail_open": True,
+                        "reason": "provider_error:TimeoutError",
+                        "entry": None,
+                    },
+                    {
+                        "at": at2,
+                        "symbol": "BBB",
+                        "ok": False,
+                        "fail_open": True,
+                        "reason": "parse_error:JSONDecodeError",
+                        "entry": None,
+                    },
+                    {
+                        "at": at,
+                        "symbol": "MSFT",
+                        "ok": False,
+                        "fail_open": True,
+                        "reason": "provider_error:TimeoutError",
+                        "entry": None,
+                    },
+                ]
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    g = build_laya_glance(tmp_path, now=now, scan_interval_sec=900)
+    assert g["fail_reason_class"] == "provider"
+    assert "3 fail-open" in g["line"] or g["line"].endswith("…")
+    assert g["fail_sample_lead_name"] == "provider"
+    assert g["fail_sample_lead_share"] == 67
+    # Compact when newest matches lead (class already on the why bit).
+    assert g["fail_sample_lead"] == "fail lead · 2 · 67%"
+    assert "fail lead · 2 · 67%" in g["line"]
+    assert g["last_vs_fail_sample_lead"] == "fail agree"
+    # Tied classes: no strict lead — speak fail tied (not a fake owner).
+    (tmp_path / "laya_decisions.json").write_text(
+        json.dumps(
+            {
+                "events": [
+                    {
+                        "at": at2,
+                        "symbol": "AAA",
+                        "ok": False,
+                        "fail_open": True,
+                        "reason": "provider_error:TimeoutError",
+                        "entry": None,
+                    },
+                    {
+                        "at": at,
+                        "symbol": "MSFT",
+                        "ok": False,
+                        "fail_open": True,
+                        "reason": "parse_error:JSONDecodeError",
+                        "entry": None,
+                    },
+                ]
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    tied = build_laya_glance(tmp_path, now=now, scan_interval_sec=900)
+    assert tied["fail_sample_gap"] == "fail tied"
+    assert "fail tied" in tied["line"]
+    assert tied["fail_sample_lead"] == ""
+    assert tied["last_vs_fail_sample_lead"] == ""
+    # Count may clip after fail tied; gap owns the early strip.
+
+
 def test_laya_glance_stale_last_row(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setenv("LAYA_BASE_URL", "http://laya.test")
     monkeypatch.setenv("LAYA_ADVISORY", "1")

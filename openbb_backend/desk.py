@@ -23315,6 +23315,63 @@ def laya_fail_reason_detail(reason: Any) -> str:
     return detail
 
 
+def laya_fail_sample_class_bits(
+    data_dir: Path | str,
+    *,
+    newest_class: str = "",
+) -> tuple[str, str, int | None, str, str]:
+    """Fail-open ring class lead (display only; xang1234 #674).
+
+    Absolute ``N fail-open`` hid *which* why owns the ring. Returns
+    ``(lead_bit, lead_name, share, gap_bit, last_vs)`` — compact
+    ``fail lead · N · P%`` when newest class matches the lead (class
+    already spoke on the why bit); ``fail lead parse · N · P%`` on
+    clash. ``fail tied`` when ≥2 classified with no strict lead.
+    Not a gate.
+    """
+    from stock_checker.laya_decision import load_laya_decisions
+
+    class_counts: dict[str, int] = {}
+    for e in load_laya_decisions(data_dir):
+        if not isinstance(e, dict):
+            continue
+        if e.get("fail_open") or not e.get("ok"):
+            cls = laya_fail_reason_class(e.get("reason"))
+            if cls:
+                class_counts[cls] = class_counts.get(cls, 0) + 1
+    (
+        fo_lead_bit,
+        lead_name,
+        share,
+        _m,
+        _mg,
+        _s,
+        _sn,
+        _snn,
+        _ss,
+    ) = _decision_sample_lead(list(class_counts.items()))
+    classified = sum(class_counts.values())
+    fo_gap = _decision_sample_gap(classified, lead_name)
+    gap_bit = f"fail {fo_gap}" if fo_gap else ""
+    lead_bit = ""
+    if fo_lead_bit and lead_name:
+        # Clip budget: drop repeated class when newest already named it.
+        if newest_class and lead_name.casefold() == newest_class.casefold():
+            # ``lead provider · 2 · 67%`` → ``fail lead · 2 · 67%``
+            rest = fo_lead_bit[len(f"lead {lead_name}") :].lstrip(" ·")
+            lead_bit = f"fail lead · {rest}" if rest else "fail lead"
+        else:
+            lead_bit = f"fail {fo_lead_bit}"
+    last_vs = ""
+    if lead_name and newest_class:
+        lv = _last_vs_sample_lead(lead_name, newest_class)
+        if lv == "agree":
+            last_vs = "fail agree"
+        elif lv:
+            last_vs = lv.replace("last vs lead", "last vs fail lead", 1)
+    return lead_bit, lead_name, share, gap_bit, last_vs
+
+
 # Laya edge score criteria: none / thin / ok / strong (PAPER_ENTRY_QUESTIONS).
 _LAYA_EDGE_THIN = 1.5
 _LAYA_EDGE_STRONG = 2.5
@@ -23750,9 +23807,14 @@ def build_laya_glance(
     clear (ownership % ≠ margin ≠ who is #2; absolute count ≠ runner
     share). When sample lead already spoke, newest verb speaks
     ``agree`` (match) or ``last vs lead · pass`` (clash) — silent confirm
-    hid match. Thin (1 decided) speaks ``n=1`` after counts; ≥2 with no
+    hid match.     Thin (1 decided) speaks ``n=1`` after counts; ≥2 with no
     lead speaks ``tied`` (silent gap hid that last-row is not a tilt).
-    See docs/LAYA.md.
+    When ``N fail-open`` ≥2, also speak early compact
+    ``fail lead · N · P%`` / ``fail lead parse · N · P%`` / ``fail tied``
+    (absolute fail-open count hid *which* why owns the ring — Yahoo
+    last-error / Screener junk-list lead + xang1234 #674); all-FO skips
+    empty ``0p/0h/0r``; age yields the clip to the lead (freshness in
+    fields); ``fail agree`` stays in fields. See docs/LAYA.md.
     """
     from stock_checker.laya_decision import laya_status
 
@@ -23841,6 +23903,11 @@ def build_laya_glance(
     sample_lead_sides_share: int | None = None
     last_vs_sample_lead = ""
     sample_gap = ""
+    fail_sample_lead = ""
+    fail_sample_lead_name = ""
+    fail_sample_lead_share: int | None = None
+    fail_sample_gap = ""
+    last_vs_fail_sample_lead = ""
     own_sym = str((newest or {}).get("symbol") or "").strip()
     own_verb = _laya_row_verb(newest)
     if st.get("advisory") and age_bit:
@@ -24160,7 +24227,15 @@ def build_laya_glance(
         n_rej = int(stats.get("reject") or 0)
         n_fo = int(stats.get("fail_open") or 0)
         bits = ["advisory on", model]
-        if age_bit:
+        # When fail-open sample lead will speak, skip age on the clip so
+        # ``fail lead · N · P%`` fits (freshness stays in fields; Yahoo
+        # last-error class + #674 owner > age-before-last this tick).
+        fail_open_sample_tight = bool(
+            newest
+            and (newest.get("fail_open") or not newest.get("ok"))
+            and n_fo >= 2
+        )
+        if age_bit and not fail_open_sample_tight:
             bits.append(age_bit)
         # Fail-why + last early so the 96-char clip keeps both (Yahoo
         # last-error class + age-before-last parity; bare fail-open hid
@@ -24194,6 +24269,30 @@ def build_laya_glance(
                 f"last {sym or '?'} fail-open" if sym else "last fail-open"
             )
             fail_open_last_spoke = True
+            # Fail-class sample lead early so the 96-char clip keeps it
+            # (empty 0p/0h/0r + late N fail-open hid the owner).
+            if n_fo >= 2:
+                (
+                    fail_sample_lead,
+                    fail_sample_lead_name,
+                    fail_sample_lead_share,
+                    fail_sample_gap,
+                    last_vs_fail_sample_lead,
+                ) = laya_fail_sample_class_bits(
+                    root, newest_class=fail_reason_class
+                )
+                if fail_sample_gap:
+                    bits.append(fail_sample_gap)
+                if fail_sample_lead:
+                    bits.append(fail_sample_lead)
+                # Clash last-vs on the line; agree stays in fields so the
+                # compact lead % keeps the 96-char clip (speak-both-sides
+                # via fields + lead bit already confirms match).
+                if (
+                    last_vs_fail_sample_lead
+                    and last_vs_fail_sample_lead != "fail agree"
+                ):
+                    bits.append(last_vs_fail_sample_lead)
         if clash:
             bits.append(clash)
         # Soft matching scan ≠ live cash (xang1234 #549; soft-allow parity).
@@ -24237,6 +24336,11 @@ def build_laya_glance(
         n_decided = n_pass + n_hold + n_rej
         if n_decided == 0 and n_fo == 0:
             bits.append("no sample")
+        elif n_decided == 0 and n_fo > 0:
+            # All fail-open — skip empty 0p/0h/0r (clip budget for lead).
+            bits.append(f"{n_fo} fail-open")
+            # Lead already early when newest is fail-open; when newest
+            # is decided but ring is all-FO is impossible — n_decided=0.
         else:
             (
                 sample_lead,
@@ -24270,6 +24374,22 @@ def build_laya_glance(
                 bits.append(sample_lead_sides)
             if n_fo:
                 bits.append(f"{n_fo} fail-open")
+                # Mixed sample: lead early only when newest is fail-open;
+                # when newest decided, speak fail-class lead after count.
+                if n_fo >= 2 and not fail_sample_lead and not fail_sample_gap:
+                    (
+                        fail_sample_lead,
+                        fail_sample_lead_name,
+                        fail_sample_lead_share,
+                        fail_sample_gap,
+                        last_vs_fail_sample_lead,
+                    ) = laya_fail_sample_class_bits(
+                        root, newest_class=fail_reason_class
+                    )
+                    if fail_sample_gap:
+                        bits.append(fail_sample_gap)
+                    if fail_sample_lead:
+                        bits.append(fail_sample_lead)
         if newest and not fail_open_last_spoke:
             sym = str(newest.get("symbol") or "").strip()
             entry = str(newest.get("entry") or "").strip().lower()
@@ -24354,6 +24474,11 @@ def build_laya_glance(
         "fail_reason_class": fail_reason_class,
         "fail_reason_detail": fail_reason_detail,
         "fail_reason_warn": fail_reason_warn,
+        "fail_sample_lead": fail_sample_lead,
+        "fail_sample_lead_name": fail_sample_lead_name,
+        "fail_sample_lead_share": fail_sample_lead_share,
+        "fail_sample_gap": fail_sample_gap,
+        "last_vs_fail_sample_lead": last_vs_fail_sample_lead,
         "scan_vs_laya_clash": clash,
         "laya_vs_cash_clock_clash": laya_vs_cash_clock_clash,
         "laya_vs_cash_clock_clash_warn": laya_vs_cash_clock_clash_warn,
