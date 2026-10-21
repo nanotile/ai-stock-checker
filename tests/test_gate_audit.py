@@ -352,6 +352,19 @@ def test_soft_allow_anchor_gap_last_freshness() -> None:
         True,
     )
     assert soft_allow_anchor_gap_vs_scan_clash(
+        [expired_row, other],
+        scan_freshness="fresh",
+        now=now,
+        gap_pin_size=" · gap-only",
+        scan_pin_size=" · scan-only",
+        keep_soft_pin_size=" · soft-only",
+        keep_memory_pin_size=" · ×2 · 100%",
+    ) == (
+        "clash · gap expired · scan fresh · gap-only · scan-only · "
+        "soft-only · ×2 · 100%",
+        True,
+    )
+    assert soft_allow_anchor_gap_vs_scan_clash(
         [fresh_row, other], scan_freshness="fresh", now=now
     ) == ("", False)
     assert soft_allow_anchor_gap_vs_scan_clash(

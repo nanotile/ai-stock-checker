@@ -510,6 +510,7 @@ def memory_advisory_pin_size(
     own_clock: str,
     laya_freshness: str = "",
     debate_freshness: str = "",
+    matched: bool = False,
 ) -> str:
     """Advisory pin size with sleeve pointer (display only).
 
@@ -517,11 +518,19 @@ def memory_advisory_pin_size(
     ``×N`` lied soft coverage was the advisory print; this is the
     LAYA/debate sleeve ring on the clash (cash pin #647 / #531 parity).
 
+    Default (clash): sleeves that *disagree* with ``own_clock``.
+
     - Sole configured sleeve that clashes → `` · laya-only|debate-only``
     - Dual configured, one clashes → `` · laya|debate · 50%``
     - Dual configured, both clash → `` · ×2 · 100%``
 
-    Missing / same-band stays silent. Not a gate.
+    ``matched=True`` (keep-memory): sleeves that *agree* with
+    ``own_clock`` — ride soft≠scan/cash/gap or gap≠scan/cash when
+    soft≠memory / gap≠memory is silent so those bits cannot hide the
+    advisory match (soft/gap keep-cash · keep-gap · keep-soft speak-
+    both-sides + #660 / #647 / #531). Same grammar as clash pins.
+
+    Missing / empty selected stays silent. Not a gate.
     """
     own = str(own_clock or "").strip().casefold()
     if own == "expired":
@@ -540,22 +549,25 @@ def memory_advisory_pin_size(
         return t if t in _CASH_PRINT_RANK else ""
 
     sleeves: list[str] = []
-    clashed: list[str] = []
+    selected: list[str] = []
     for name, raw in (("laya", laya_freshness), ("debate", debate_freshness)):
         t = _norm(raw)
         if not t:
             continue
         sleeves.append(name)
-        if t != own:
-            clashed.append(name)
-    if not clashed:
+        if matched:
+            if t == own:
+                selected.append(name)
+        elif t != own:
+            selected.append(name)
+    if not selected:
         return ""
     if len(sleeves) == 1:
-        return f" · {clashed[0]}-only"
-    share = int(round(100.0 * len(clashed) / len(sleeves)))
-    if len(clashed) == 1:
-        return f" · {clashed[0]} · {share}%"
-    return f" · ×{len(clashed)} · {share}%"
+        return f" · {selected[0]}-only"
+    share = int(round(100.0 * len(selected) / len(sleeves)))
+    if len(selected) == 1:
+        return f" · {selected[0]} · {share}%"
+    return f" · ×{len(selected)} · {share}%"
 
 
 def memory_vs_cash_clock_clash(
@@ -2627,6 +2639,32 @@ def build_soft_allow_glance(
             soft_vs_cash_clock_clash += gap_pin
         if soft_vs_memory_clock_clash:
             soft_vs_memory_clock_clash += gap_pin
+    # Soft≠memory silent (soft matches advisory) — keep memory pin on
+    # soft≠scan / soft≠cash / soft≠gap so those bits cannot hide the
+    # match (soft keep-cash / keep-gap speak-both-sides + #660 / #647 /
+    # #531). Soft≠memory already names soft-only · laya|debate pin; a
+    # silent match must ride the other clashes.
+    soft_keep_memory = (
+        memory_advisory_pin_size(
+            own_clock=last_clock,
+            laya_freshness=laya_tone,
+            debate_freshness=debate_tone,
+            matched=True,
+        )
+        if (
+            last_clock
+            and not soft_vs_memory_clock_clash
+            and (laya_tone or debate_tone)
+        )
+        else ""
+    )
+    if soft_keep_memory:
+        if scan_vs_soft_allow_clash:
+            scan_vs_soft_allow_clash += soft_keep_memory
+        if soft_vs_cash_clock_clash:
+            soft_vs_cash_clock_clash += soft_keep_memory
+        if soft_vs_gap_clock_clash:
+            soft_vs_gap_clock_clash += soft_keep_memory
     # Soft≠gap silent (gap matches soft) — keep soft-only on gap≠scan /
     # gap≠cash / gap≠memory so those bits cannot hide the match (soft≠*
     # keep gap-only speak-both-sides + #660 / #647 / #531). Soft≠gap
@@ -2786,6 +2824,51 @@ def build_soft_allow_glance(
         keep_cash_pin_size=gap_keep_cash,
         keep_soft_pin_size=gap_keep_soft,
     )
+    # Gap≠memory silent (gap matches advisory) — keep memory pin on
+    # gap≠scan / gap≠cash so those bits cannot hide the match (soft≠*
+    # keep-memory speak-both-sides + #660 / #647 / #531). Gap≠memory
+    # already names gap-only · laya|debate pin; a silent match must ride
+    # the other clashes.
+    gap_keep_memory = (
+        memory_advisory_pin_size(
+            own_clock=anchor_gap_last_freshness,
+            laya_freshness=laya_tone,
+            debate_freshness=debate_tone,
+            matched=True,
+        )
+        if (
+            anchor_gap_last_freshness
+            and not anchor_gap_vs_memory_clock_clash
+            and (laya_tone or debate_tone)
+        )
+        else ""
+    )
+    if gap_keep_memory and anchor_gap_vs_scan_clash:
+        anchor_gap_vs_scan_clash, anchor_gap_vs_scan_clash_warn = (
+            soft_allow_anchor_gap_vs_scan_clash(
+                rows,
+                scan_freshness=scan_freshness,
+                now=now,
+                gap_pin_size=gap_pin,
+                scan_pin_size=scan_pin,
+                keep_cash_pin_size=gap_keep_cash,
+                keep_soft_pin_size=gap_keep_soft,
+                keep_memory_pin_size=gap_keep_memory,
+            )
+        )
+    if gap_keep_memory and anchor_gap_vs_cash_clock_clash:
+        anchor_gap_vs_cash_clock_clash, anchor_gap_vs_cash_clock_clash_warn = (
+            soft_allow_anchor_gap_vs_cash_clock_clash(
+                rows,
+                cash_band=cash_band,
+                now=now,
+                gap_pin_size=gap_pin,
+                cash_pin_size=cash_pin,
+                keep_scan_pin_size=gap_keep_scan,
+                keep_soft_pin_size=gap_keep_soft,
+                keep_memory_pin_size=gap_keep_memory,
+            )
+        )
     anchor_gap_bit = format_soft_allow_anchor_gap_bit(
         rows,
         now=now,
@@ -2800,6 +2883,7 @@ def build_soft_allow_glance(
         keep_scan_pin_size=gap_keep_scan,
         keep_cash_pin_size=gap_keep_cash,
         keep_soft_pin_size=gap_keep_soft,
+        keep_memory_pin_size=gap_keep_memory,
     )
     expired_n = sum(1 for r in rows if r.get("freshness") == "expired")
     aging_n = sum(1 for r in rows if r.get("freshness") == "aging")

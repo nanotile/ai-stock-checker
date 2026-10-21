@@ -2745,6 +2745,137 @@ def test_soft_allow_glance_gap_keeps_cash_when_gap_matches_cash() -> None:
     assert g["tone"] == "warn"
 
 
+def test_soft_allow_glance_soft_keeps_memory_when_soft_matches_memory() -> None:
+    """Soft matching advisory keeps memory pin on soft≠scan / soft≠gap (#660)."""
+    # Soft aging matches dual fresh→aging advisories → soft≠memory silent;
+    # fresh scan ≠ soft → soft≠scan keeps ×2 · 100%; soft≠gap silent when
+    # gap cursor is the same stamp (gap keep-memory speak-both-sides below).
+    now = datetime(2026, 10, 10, 14, 0, tzinfo=timezone.utc)
+    aging_at = (now - timedelta(hours=16)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    fresh_scan = (now - timedelta(minutes=5)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    g = build_soft_allow_glance(
+        [
+            {
+                "at": aging_at,
+                "gate": "rs",
+                "reason": "AAPL RS unknown — anchor gap — allow",
+            }
+        ],
+        now=now,
+        scan_time=fresh_scan,
+        scan_interval_sec=900,
+        laya_freshness="aging",
+        debate_freshness="aging",
+    )
+    assert g["last_freshness"] == "aging"
+    assert g["soft_vs_memory_clock_clash"] == ""
+    soft_scan = g["scan_vs_soft_allow_clash"]
+    assert soft_scan.startswith("clash · scan fresh · soft-only · scan-only · ")
+    assert soft_scan.endswith(" · ×2 · 100%")
+    assert " · debate-only" not in soft_scan
+    assert soft_scan in g["line"] or soft_scan in (g.get("soft_lean") or "")
+    # Sole advisory match → debate-only on soft≠scan.
+    sole = build_soft_allow_glance(
+        [
+            {
+                "at": aging_at,
+                "gate": "breadth",
+                "reason": "unknown breadth — allow",
+            }
+        ],
+        now=now,
+        scan_time=fresh_scan,
+        scan_interval_sec=900,
+        laya_freshness="",
+        debate_freshness="aging",
+    )
+    assert sole["soft_vs_memory_clock_clash"] == ""
+    assert sole["scan_vs_soft_allow_clash"].endswith(" · debate-only")
+    assert g["tone"] == "warn"
+
+
+def test_soft_allow_glance_gap_keeps_memory_when_gap_matches_memory() -> None:
+    """Gap matching advisory keeps memory pin on gap≠scan (#660)."""
+    # Soft/gap aging matches dual aging advisories → gap≠memory silent;
+    # fresh scan ≠ gap → gap≠scan keeps ×2 · 100% after soft-only / cash.
+    now = datetime(2026, 10, 10, 14, 0, tzinfo=timezone.utc)
+    aging_at = (now - timedelta(hours=16)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    fresh_scan = (now - timedelta(minutes=5)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    g = build_soft_allow_glance(
+        [
+            {
+                "at": aging_at,
+                "gate": "rs",
+                "reason": "AAPL RS unknown — anchor gap — allow",
+            }
+        ],
+        now=now,
+        scan_time=fresh_scan,
+        scan_interval_sec=900,
+        laya_freshness="aging",
+        debate_freshness="aging",
+    )
+    assert g["anchor_gap_last_freshness"] == "aging"
+    assert g["anchor_gap_vs_memory_clock_clash"] == ""
+    gap_scan = g["anchor_gap_vs_scan_clash"]
+    assert gap_scan.startswith(
+        "clash · gap aging · scan fresh · gap-only · scan-only · "
+    )
+    assert gap_scan.endswith(" · ×2 · 100%")
+    assert gap_scan in g["anchor_gap_bit"]
+    assert g["tone"] == "warn"
+
+
+def test_memory_advisory_pin_size_matched() -> None:
+    """Keep-memory pins matching sleeves; clash mode still disagrees only."""
+    from openbb_backend.desk import memory_advisory_pin_size
+
+    assert (
+        memory_advisory_pin_size(
+            own_clock="fresh",
+            laya_freshness="fresh",
+            debate_freshness="fresh",
+            matched=True,
+        )
+        == " · ×2 · 100%"
+    )
+    assert (
+        memory_advisory_pin_size(
+            own_clock="aging",
+            laya_freshness="",
+            debate_freshness="aging",
+            matched=True,
+        )
+        == " · debate-only"
+    )
+    assert (
+        memory_advisory_pin_size(
+            own_clock="fresh",
+            laya_freshness="fresh",
+            debate_freshness="stale",
+            matched=True,
+        )
+        == " · laya · 50%"
+    )
+    assert (
+        memory_advisory_pin_size(
+            own_clock="fresh",
+            laya_freshness="stale",
+            debate_freshness="stale",
+            matched=True,
+        )
+        == ""
+    )
+    assert (
+        memory_advisory_pin_size(
+            own_clock="fresh",
+            laya_freshness="stale",
+            debate_freshness="",
+        )
+        == " · laya-only"
+    )
+
+
 def test_soft_allow_glance_gap_vs_memory_when_soft_matches_memory() -> None:
     """xang1234 #549: soft≠memory can still hide gap≠memory on the gap bit."""
     now = datetime(2026, 10, 9, 12, 0, tzinfo=timezone.utc)
