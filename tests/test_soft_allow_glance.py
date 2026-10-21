@@ -750,20 +750,25 @@ def test_soft_allow_glance_short_history_count() -> None:
     )
     assert g["ready"] is True
     assert g["short_history_count"] == 2
-    assert g["short_history_bit"] == "2 short"
-    assert "2 short" in g["line"]
+    assert g["short_history_last"] == "IPO"
+    assert g["short_history_bit"] == "2 short · last IPO"
+    assert "2 short · last IPO" in g["line"]
     assert g["anchor_gap_count"] == 1
     # Short before gap so the young-listing count is not clipped by gap lean.
     assert g["line"].index("2 short") < g["line"].index("1 gap")
     # Lean fold chip must name short (and gap) — ``2 short · …`` used to
     # leave soft_lean_meta bare ``quiet`` because only ``N gap`` had a stage.
-    assert "2 short" in g["soft_lean"]
-    assert "short" in g["soft_lean_meta"]
+    # Cursor ticker rides on the short stage (#546 after #668).
+    assert "2 short · last IPO" in g["soft_lean"]
+    assert "short IPO" in g["soft_lean_meta"]
     assert "gap" in g["soft_lean_meta"]
     assert soft_allow_lean_meta("2 short") == "quiet · 1 fold · short"
-    assert soft_allow_lean_meta("2 short · 1 gap · last AAPL · fresh") == (
-        "quiet · 2 folds · short · gap AAPL fresh"
+    assert soft_allow_lean_meta("2 short · last IPO") == (
+        "quiet · 1 fold · short IPO"
     )
+    assert soft_allow_lean_meta(
+        "2 short · last IPO · 1 gap · last AAPL · fresh"
+    ) == ("quiet · 2 folds · short IPO · gap AAPL fresh")
 
 
 def test_soft_allow_glance_anchor_gap_count() -> None:

@@ -92,6 +92,39 @@ def soft_allow_short_history_count(
     return n
 
 
+def _short_history_symbol(reason: str) -> str:
+    """First token of a short-history reason (asset / bench label)."""
+    text = str(reason or "").strip()
+    if "short history" not in text.casefold():
+        return ""
+    tok = text.split(None, 1)[0] if text else ""
+    if tok and tok.lower() not in {"rs", "unknown", "—", "-"}:
+        return tok
+    return ""
+
+
+def soft_allow_short_history_last_symbol(
+    events: list[dict[str, Any]] | None,
+) -> str:
+    """Newest short-history row's ticker/label (display only).
+
+    Absolute ``N short`` hid which name last failed open on a young /
+    short series. Reasons look like ``IPO RS unknown — short history
+    — allow`` / ``SPY RS unknown — short history — allow`` — first
+    token is the asset or bench label. Ring order is newest-first.
+    xang1234 #546 resume-cursor after #668 short count + FinRobot
+    last-row; zero / unparseable silent. Share/lean cascade still
+    deferred. Not a gate.
+    """
+    for row in events or []:
+        if not isinstance(row, dict):
+            continue
+        sym = _short_history_symbol(str(row.get("reason") or ""))
+        if sym:
+            return sym
+    return ""
+
+
 def _anchor_gap_symbol(reason: str) -> str:
     """First token of an anchor-gap reason (asset / bench label)."""
     text = str(reason or "").strip()

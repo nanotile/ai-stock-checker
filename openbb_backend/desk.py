@@ -2050,9 +2050,16 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
     ),
     # Young / short-series fail-opens (xang1234 #668) sit before gap so
     # ``N short · N gap`` does not leave the lean chip bare ``quiet`` —
-    # absolute short count already spoke; the fold must name it (gap
-    # stage parity; share/last/lean cascade still deferred).
-    (re.compile(r"^\d+ short\b"), "short"),
+    # absolute short count already spoke; the fold must name it. Cursor
+    # ticker rides with the count (#546 after #668) so ``N short`` does
+    # not hide who last failed open (gap last-SYM parity; share/lean
+    # still deferred).
+    (
+        re.compile(
+            r"^\d+ short(?: · last ([A-Za-z0-9][A-Za-z0-9.\-]{0,14}))?"
+        ),
+        "short",
+    ),
     # Cursor ticker + age ride with the count so ``N gap`` does not hide
     # who last failed open or whether that print is still live (#546).
     (
@@ -2397,6 +2404,7 @@ def build_soft_allow_glance(
         soft_allow_anchor_gap_vs_memory_clock_clash,
         soft_allow_anchor_gap_vs_scan_clash,
         soft_allow_short_history_count,
+        soft_allow_short_history_last_symbol,
         soft_allow_vs_gap_clock_clash,
         soft_allow_last_vs_lead,
         soft_allow_last_vs_lead_freshness,
@@ -2456,6 +2464,7 @@ def build_soft_allow_glance(
         "last_lead_vs_config_warn": False,
         "sample_gap": "",
         "short_history_count": 0,
+        "short_history_last": "",
         "short_history_bit": "",
         "anchor_gap_count": 0,
         "anchor_gap_last": "",
@@ -2730,10 +2739,16 @@ def build_soft_allow_glance(
     )
     # xang1234 #668: young / short-series fail-opens ≠ gappy anchors —
     # absolute ``rs×N`` hid which why owns the ring beside ``N gap``.
+    # #546: ``last SYM`` right after the count so lean cannot clip the
+    # young-listing cursor (gap last-symbol parity; share/lean deferred).
     short_history_n = soft_allow_short_history_count(rows)
-    short_history_bit = (
-        f"{short_history_n} short" if short_history_n > 0 else ""
-    )
+    short_history_last = soft_allow_short_history_last_symbol(rows)
+    if short_history_n > 0:
+        short_history_bit = f"{short_history_n} short"
+        if short_history_last:
+            short_history_bit = f"{short_history_bit} · last {short_history_last}"
+    else:
+        short_history_bit = ""
     anchor_gap_n, anchor_gap_share_pct, anchor_gap_share_severity = (
         soft_allow_anchor_gap_share(rows)
     )
@@ -3220,6 +3235,7 @@ def build_soft_allow_glance(
         "last_lead_vs_config_warn": last_lead_vs_config_warn,
         "sample_gap": sample_gap,
         "short_history_count": short_history_n,
+        "short_history_last": short_history_last,
         "short_history_bit": short_history_bit,
         "anchor_gap_count": anchor_gap_n,
         "anchor_gap_last": anchor_gap_last,

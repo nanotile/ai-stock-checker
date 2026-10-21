@@ -44,10 +44,15 @@ def test_is_soft_allow_reason_markers() -> None:
 
 def test_soft_allow_short_history_count() -> None:
     """xang1234 #668: short history ≠ anchor gap ≠ bare RS unknown."""
-    from stock_checker.gate_audit import soft_allow_short_history_count
+    from stock_checker.gate_audit import (
+        soft_allow_short_history_count,
+        soft_allow_short_history_last_symbol,
+    )
 
     assert soft_allow_short_history_count(None) == 0
     assert soft_allow_short_history_count([]) == 0
+    assert soft_allow_short_history_last_symbol(None) == ""
+    assert soft_allow_short_history_last_symbol([]) == ""
     assert (
         soft_allow_short_history_count(
             [{"gate": "rs", "reason": "AAPL RS unknown — allow"}]
@@ -55,10 +60,22 @@ def test_soft_allow_short_history_count() -> None:
         == 0
     )
     assert (
+        soft_allow_short_history_last_symbol(
+            [{"gate": "rs", "reason": "AAPL RS unknown — allow"}]
+        )
+        == ""
+    )
+    assert (
         soft_allow_short_history_count(
             [{"gate": "rs", "reason": "AAPL RS unknown — anchor gap — allow"}]
         )
         == 0
+    )
+    assert (
+        soft_allow_short_history_last_symbol(
+            [{"gate": "rs", "reason": "AAPL RS unknown — anchor gap — allow"}]
+        )
+        == ""
     )
     mixed = [
         {"gate": "rs", "reason": "IPO RS unknown — short history — allow"},
@@ -67,6 +84,8 @@ def test_soft_allow_short_history_count() -> None:
         "junk",
     ]
     assert soft_allow_short_history_count(mixed) == 2
+    # Newest-first ring — IPO is the cursor (#546 after #668).
+    assert soft_allow_short_history_last_symbol(mixed) == "IPO"
 
 
 def test_soft_allow_anchor_gap_count() -> None:
