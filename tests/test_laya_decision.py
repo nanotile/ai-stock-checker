@@ -193,6 +193,82 @@ def test_laya_glance_advisory(monkeypatch, tmp_path: Path) -> None:
     assert "reject" in g["line"]
     assert "fresh" in g["line"]
     assert g["line"].index("fresh") < g["line"].index("NVDA")
+    assert g["fail_reason_class"] == ""
+    assert g["fail_reason_warn"] is False
+
+
+def test_laya_fail_reason_class_maps_provider_parse() -> None:
+    """xang1234 #674 — typed System-1 fail reasons → compact why class."""
+    from openbb_backend.desk import laya_fail_reason_class
+
+    assert laya_fail_reason_class("provider_error:TimeoutError") == "provider"
+    assert laya_fail_reason_class("parse_error:JSONDecodeError") == "parse"
+    assert laya_fail_reason_class("invalid_choice") == "invalid"
+    assert laya_fail_reason_class("not_configured") == "config"
+    assert laya_fail_reason_class("advisory_off") == "off"
+    assert laya_fail_reason_class("unexpected_error") == "error"
+    assert laya_fail_reason_class("ok") == ""
+    assert laya_fail_reason_class("") == ""
+
+
+def test_laya_glance_fail_open_speaks_reason_class(
+    monkeypatch, tmp_path: Path
+) -> None:
+    """Bare fail-open hid provider vs parse (#674 / Yahoo last-error parity)."""
+    monkeypatch.setenv("LAYA_BASE_URL", "http://laya.test")
+    monkeypatch.setenv("LAYA_ADVISORY", "1")
+    now = datetime(2026, 10, 21, 15, 0, tzinfo=timezone.utc)
+    at = (now - timedelta(minutes=5)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    (tmp_path / "laya_decisions.json").write_text(
+        json.dumps(
+            {
+                "events": [
+                    {
+                        "at": at,
+                        "symbol": "MSFT",
+                        "ok": False,
+                        "fail_open": True,
+                        "reason": "provider_error:TimeoutError",
+                        "entry": None,
+                    }
+                ]
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    g = build_laya_glance(tmp_path, now=now, scan_interval_sec=900)
+    assert g["fail_reason_class"] == "provider"
+    assert g["fail_reason_warn"] is True
+    assert "fail · provider" in g["line"]
+    assert "last MSFT" in g["line"]
+    # Why sits before last so the 96-char clip keeps it.
+    assert g["line"].index("fail · provider") < g["line"].index("last MSFT")
+    assert g["tone"] == "aging"
+    # Config/off stay calm (no warn escalate) but still speak the class.
+    (tmp_path / "laya_decisions.json").write_text(
+        json.dumps(
+            {
+                "events": [
+                    {
+                        "at": at,
+                        "symbol": "AAPL",
+                        "ok": False,
+                        "fail_open": True,
+                        "reason": "not_configured",
+                        "entry": None,
+                    }
+                ]
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    calm = build_laya_glance(tmp_path, now=now, scan_interval_sec=900)
+    assert calm["fail_reason_class"] == "config"
+    assert calm["fail_reason_warn"] is False
+    assert "fail · config" in calm["line"]
+    assert "last AAPL" in calm["line"]
 
 
 def test_laya_glance_stale_last_row(monkeypatch, tmp_path: Path) -> None:

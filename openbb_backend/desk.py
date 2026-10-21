@@ -23245,6 +23245,37 @@ def _laya_row_verb(newest: dict[str, Any] | None) -> str:
     return str(newest.get("entry") or "").strip().lower()
 
 
+def laya_fail_reason_class(reason: Any) -> str:
+    """Compact fail-open why (xang1234 #674; display only).
+
+    Stored ``reason`` is ``provider_error:…`` / ``parse_error:…`` /
+    ``invalid_choice`` / ``not_configured`` / ``advisory_off`` /
+    ``unexpected_error``. Bare ``last SYM fail-open`` hid *why* the
+    System-1 call failed (Yahoo last-error class parity). Returns
+    ``provider|parse|invalid|config|off|error``; empty/ok silent.
+    Not a gate.
+    """
+    raw = str(reason or "").strip().casefold()
+    if not raw or raw == "ok":
+        return ""
+    if raw.startswith("provider_error"):
+        return "provider"
+    if raw.startswith("parse_error"):
+        return "parse"
+    if raw == "invalid_choice":
+        return "invalid"
+    if raw == "not_configured":
+        return "config"
+    if raw == "advisory_off":
+        return "off"
+    if raw == "unexpected_error":
+        return "error"
+    head = raw.split(":", 1)[0].replace("_", "-")
+    if 0 < len(head) <= 12 and head.replace("-", "").isalnum():
+        return head
+    return "error"
+
+
 # Laya edge score criteria: none / thin / ok / strong (PAPER_ENTRY_QUESTIONS).
 _LAYA_EDGE_THIN = 1.5
 _LAYA_EDGE_STRONG = 2.5
@@ -23741,6 +23772,8 @@ def build_laya_glance(
     laya_vs_gap_clock_clash_warn = False
     laya_peer_gap_clock_clash = ""
     laya_peer_gap_clock_clash_warn = False
+    fail_reason_class = ""
+    fail_reason_warn = False
     soft_freshness = soft_allow_last_clock_tone(root, now=now)
     gap_freshness = soft_allow_gap_last_clock_tone(root, now=now)
     name_clash = ""
@@ -24089,6 +24122,23 @@ def build_laya_glance(
         bits = ["advisory on", model]
         if age_bit:
             bits.append(age_bit)
+        # Fail-why early so the 96-char clip keeps it (Yahoo last-error
+        # class + age-before-last parity; bare fail-open hid provider vs
+        # parse — xang1234 #674).
+        if newest and (newest.get("fail_open") or not newest.get("ok")):
+            fail_reason_class = laya_fail_reason_class(newest.get("reason"))
+            if fail_reason_class:
+                bits.append(f"fail · {fail_reason_class}")
+                # Only typed adverse classes escalate (provider/parse/…
+                # error). Unknown short tags (legacy ``timeout``) still
+                # speak but stay calm so mixed fail-open vs BUY stays
+                # advisory — polarity label ≠ transport death.
+                fail_reason_warn = fail_reason_class in {
+                    "provider",
+                    "parse",
+                    "invalid",
+                    "error",
+                }
         if clash:
             bits.append(clash)
         # Soft matching scan ≠ live cash (xang1234 #549; soft-allow parity).
@@ -24169,6 +24219,8 @@ def build_laya_glance(
             sym = str(newest.get("symbol") or "").strip()
             entry = str(newest.get("entry") or "").strip().lower()
             if newest.get("fail_open") or not newest.get("ok"):
+                # Why class already spoke early as ``fail · provider``;
+                # last keeps the cursor name without re-pinning the class.
                 last = f"last {sym or '?'} fail-open" if sym else "last fail-open"
             elif entry:
                 last = f"last {sym or '?'} {entry}" if sym else f"last {entry}"
@@ -24227,6 +24279,7 @@ def build_laya_glance(
             or edge_vs_fee_warn
             or decision_vs_edge_warn
             or decision_vs_conf_warn
+            or fail_reason_warn
         ):
             tone = "aging"
         else:
@@ -24247,6 +24300,8 @@ def build_laya_glance(
         "debate_freshness": debate_freshness,
         "soft_freshness": soft_freshness,
         "gap_freshness": gap_freshness,
+        "fail_reason_class": fail_reason_class,
+        "fail_reason_warn": fail_reason_warn,
         "scan_vs_laya_clash": clash,
         "laya_vs_cash_clock_clash": laya_vs_cash_clock_clash,
         "laya_vs_cash_clock_clash_warn": laya_vs_cash_clock_clash_warn,
