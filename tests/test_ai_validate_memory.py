@@ -455,8 +455,10 @@ def test_build_ai_debate_glance_vs_gap_clock_clash(tmp_path: Path) -> None:
     assert g["gap_freshness"] == "stale"
     assert g["scan_freshness"] == "fresh"
     assert g["debate_vs_soft_clock_clash"] == ""
+    # Own matches soft → keep soft-only so gap alone cannot hide the
+    # soft match (LAYA keep soft-only / #660 / #647 / #531).
     assert g["debate_vs_gap_clock_clash"] == (
-        "clash · gap stale · debate-only · gap-only · scan-only"
+        "clash · gap stale · debate-only · gap-only · scan-only · soft-only"
     )
     assert g["debate_vs_gap_clock_clash_warn"] is True
     # 96-char clip may truncate gap-only; keep clash + own pin.

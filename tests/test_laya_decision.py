@@ -346,18 +346,35 @@ def test_laya_glance_cash_clash_when_laya_matches_scan(
         + "\n",
         encoding="utf-8",
     )
+    (tmp_path / "gate_soft_allows.json").write_text(
+        json.dumps(
+            {
+                "events": [
+                    {
+                        "at": fresh_at,
+                        "gate": "rs",
+                        "reason": "AAPL RS unknown — allow",
+                    }
+                ]
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     g = build_laya_glance(
         tmp_path, now=now, scan_interval_sec=900, scan_time=fresh_at
     )
     assert g["freshness"] == "fresh"
     assert g["scan_freshness"] == "fresh"
+    assert g["soft_freshness"] == "fresh"
     assert g["scan_vs_laya_clash"] == ""
+    assert g["laya_vs_soft_clock_clash"] == ""
     cash = g["laya_vs_cash_clock_clash"]
     assert cash.startswith("clash · laya fresh · cash ")
     assert " · laya-only · " in cash
-    # Own matches scan → keep scan-only so cash alone cannot hide the
-    # archive match (soft≠cash keep-scan-only / #660 / #647 / #531).
-    assert cash.endswith("· ×2 · 100% · scan-only")
+    # Own matches scan + soft → keep both pins so cash alone cannot hide
+    # either match (keep-scan-only + keep soft-only / #660 / #647 / #531).
+    assert cash.endswith("· ×2 · 100% · scan-only · soft-only")
     assert g["laya_vs_cash_clock_clash_warn"] is True
     # 96-char clip may truncate ×N · P%; keep the cash clash + own pin.
     assert "clash · laya fresh · cash" in g["line"]
@@ -377,6 +394,21 @@ def test_laya_glance_cash_clash_when_laya_matches_scan(
                         "fail_open": False,
                         "reason": "ok",
                         "entry": "hold",
+                    }
+                ]
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "gate_soft_allows.json").write_text(
+        json.dumps(
+            {
+                "events": [
+                    {
+                        "at": even_at,
+                        "gate": "rs",
+                        "reason": "AAPL RS unknown — allow",
                     }
                 ]
             }
@@ -749,8 +781,10 @@ def test_laya_glance_vs_gap_clock_clash(monkeypatch, tmp_path: Path) -> None:
     assert g["gap_freshness"] == "stale"
     assert g["scan_freshness"] == "fresh"
     assert g["laya_vs_soft_clock_clash"] == ""
+    # Own matches soft → keep soft-only so gap alone cannot hide the
+    # soft match (gap≠scan keep-cash / #660 / #647 / #531).
     assert g["laya_vs_gap_clock_clash"] == (
-        "clash · gap stale · laya-only · gap-only · scan-only"
+        "clash · gap stale · laya-only · gap-only · scan-only · soft-only"
     )
     assert g["laya_vs_gap_clock_clash_warn"] is True
     assert "clash · gap stale · laya-only · gap-only" in g["line"]
