@@ -227,6 +227,29 @@ def test_empty_and_non_mapping():
     assert empty["weight_lean"] == ""
     assert build_screener_opportunity_counts("bad")["n_total"] == 0
     assert build_screener_opportunity_counts("bad")["n_junk"] == 0
+    assert build_screener_opportunity_counts("bad")["weight"] == "row slots"
+    assert build_screener_opportunity_counts("bad")["tone"] == "flat"
+
+
+def test_published_empty_speaks_nothing_current():
+    """xang1234 #676: empty published lists ≠ quiet row slots."""
+    c = build_screener_opportunity_counts(
+        {
+            "recommendations": [],
+            "crypto_leaders": [],
+            "stock_breakouts": [],
+        }
+    )
+    assert c["n_total"] == 0
+    assert c["n_junk"] == 0
+    assert c["lists_populated"] == 0
+    assert c["weight"] == "nothing current · 0"
+    assert c["weight_core"] == "nothing current · 0"
+    assert c["weight_lean"] == ""
+    assert c["tone"] == "warn"
+    bare = build_screener_opportunity_counts({})
+    assert bare["weight"] == "nothing current · 0"
+    assert bare["tone"] == "warn"
 
 
 def test_junk_appends_on_overlap_weight():

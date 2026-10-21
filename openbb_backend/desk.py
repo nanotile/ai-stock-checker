@@ -1162,7 +1162,10 @@ def build_screener_opportunity_counts(
     ratio ≠ the two role-labeled %. Strip shows ``weight_core``
     (unique/dup/junk shares); lean cascade sits in ``weight_lean`` under a
     MonsterDeveloper fold. ``weight`` stays the full joined string for
-    tests. Display only.
+    tests. A published Mapping with zero object rows and zero junk speaks
+    ``nothing current · 0`` (warn) — quiet ``row slots`` hid an empty
+    publish (xang1234 #676 fail-publish-with-nothing-current adapted;
+    missing/non-Mapping artifact stays silent ``row slots``). Display only.
     """
     empty = {
         "n_rec": 0,
@@ -1403,6 +1406,12 @@ def build_screener_opportunity_counts(
         weight = (
             f"{weight_core} · {weight_lean}" if weight_lean else weight_core
         )
+    elif n_total == 0 and n_junk == 0:
+        # Published empty opportunity set — not a missing artifact.
+        weight = "nothing current · 0"
+        weight_core = "nothing current · 0"
+        weight_lean = ""
+        tone = "warn"
     else:
         weight = "row slots"
         weight_core = "row slots"
