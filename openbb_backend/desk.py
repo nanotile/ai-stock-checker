@@ -2569,6 +2569,22 @@ def build_soft_allow_glance(
             soft_vs_memory_clock_clash += scan_pin
         if soft_vs_gap_clock_clash:
             soft_vs_gap_clock_clash += scan_pin
+    # Soft≠cash silent (soft matches cash) — keep cash pin on soft≠
+    # scan / soft≠gap / soft≠memory so those bits cannot hide the match
+    # (keep-scan-only parity + #660 / #647 / #531). Soft≠cash already
+    # names soft-only · cash; a silent match must ride the other clashes.
+    if (
+        cash_pin
+        and not soft_vs_cash_clock_clash
+        and last_clock
+        and cash_band
+    ):
+        if scan_vs_soft_allow_clash:
+            scan_vs_soft_allow_clash += cash_pin
+        if soft_vs_memory_clock_clash:
+            soft_vs_memory_clock_clash += cash_pin
+        if soft_vs_gap_clock_clash:
+            soft_vs_gap_clock_clash += cash_pin
     (
         anchor_gap_symbol_lead,
         anchor_gap_symbol_lead_name,

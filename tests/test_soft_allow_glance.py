@@ -2383,6 +2383,29 @@ def test_soft_allow_glance_gap_vs_cash_when_soft_matches_cash() -> None:
     assert g["last_freshness"] == "aging"
     assert g["anchor_gap_last_freshness"] == "expired"
     assert g["soft_vs_cash_clock_clash"] == ""
+    # Soft matches cash → keep cash pin on soft≠scan / soft≠gap so those
+    # bits cannot hide the match (keep-scan-only parity + #660 / #647).
+    soft_scan = g["scan_vs_soft_allow_clash"]
+    # _clock_clash names the other sleeve only (scan …); soft pin follows.
+    assert soft_scan.startswith("clash · scan fresh · soft-only · scan-only · ")
+    assert (
+        soft_scan.endswith("US-only")
+        or soft_scan.endswith("Xetra-only")
+        or soft_scan.endswith("US · 50%")
+        or soft_scan.endswith("Xetra · 50%")
+        or soft_scan.endswith("×2 · 100%")
+    )
+    soft_gap = g["soft_vs_gap_clock_clash"]
+    assert soft_gap.startswith(
+        "clash · soft aging · gap expired · soft-only · gap-only · "
+    )
+    assert (
+        soft_gap.endswith("US-only")
+        or soft_gap.endswith("Xetra-only")
+        or soft_gap.endswith("US · 50%")
+        or soft_gap.endswith("Xetra · 50%")
+        or soft_gap.endswith("×2 · 100%")
+    )
     gap_cash = g["anchor_gap_vs_cash_clock_clash"]
     assert gap_cash.startswith("clash · gap expired · cash ")
     # Gap-only sole cursor pin; cash pin names coverage (#647 / #531).
@@ -2506,6 +2529,47 @@ def test_soft_allow_glance_vs_memory_clock_clash() -> None:
     assert sole["soft_vs_memory_clock_clash"] == (
         "clash · debate stale · soft-only · debate-only"
     )
+
+
+def test_soft_allow_glance_soft_vs_memory_keeps_cash_when_soft_matches_cash() -> None:
+    """Soft matching cash keeps cash pin on soft≠memory (#660 / #647)."""
+    # Saturday afternoon UTC — soft aging matches cash aging; fresh scan
+    # ≠ soft so keep-scan does not ride soft≠memory; stale debate ≠ soft
+    # → soft≠memory speaks and must keep the cash pin.
+    now = datetime(2026, 10, 10, 14, 0, tzinfo=timezone.utc)
+    aging_at = (now - timedelta(hours=16)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    fresh_scan = (now - timedelta(minutes=5)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    g = build_soft_allow_glance(
+        [
+            {
+                "at": aging_at,
+                "gate": "regime",
+                "reason": "no SPY bars — allow",
+            }
+        ],
+        now=now,
+        scan_time=fresh_scan,
+        scan_interval_sec=900,
+        laya_freshness="",
+        debate_freshness="stale",
+    )
+    assert g["last_freshness"] == "aging"
+    assert g["soft_vs_cash_clock_clash"] == ""
+    assert g["scan_vs_soft_allow_clash"].startswith(
+        "clash · scan fresh · soft-only · scan-only · "
+    )
+    mem = g["soft_vs_memory_clock_clash"]
+    assert mem.startswith("clash · debate stale · soft-only · debate-only · ")
+    assert (
+        mem.endswith("US-only")
+        or mem.endswith("Xetra-only")
+        or mem.endswith("US · 50%")
+        or mem.endswith("Xetra · 50%")
+        or mem.endswith("×2 · 100%")
+    )
+    assert " · scan-only" not in mem
+    assert mem in g["line"]
+    assert g["tone"] == "warn"
 
 
 def test_soft_allow_glance_gap_vs_memory_when_soft_matches_memory() -> None:
