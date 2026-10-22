@@ -2178,6 +2178,19 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
         ),
         "short lead/lean",
     ),
+    # Short last/share vs last/lean meta (gap share/lean parity). Distinct
+    # ``short share/lean`` prefix so gap ``share/lean`` is not treated as
+    # the young/short relationship. Verb + both/crossed ride so
+    # ``align · both clash`` is not a silent confirm.
+    (
+        re.compile(
+            r"^short share/lean (align|clash)"
+            r"(?: · (both (?:align|clash))"
+            r"| · (share (?:align|clash))"
+            r" · (lean (?:align|clash)))?"
+        ),
+        "short share/lean",
+    ),
     # Verb + payload ride on one stage so ``align`` is not a silent
     # confirm of a live hot print, and ``align · both clash`` / a crossed
     # lead-vs-share pair are not clipped as a calm align (RyanJHamby
@@ -2496,6 +2509,7 @@ def build_soft_allow_glance(
         soft_allow_short_history_last_vs_share,
         soft_allow_short_history_last_vs_lean,
         soft_allow_short_history_last_lead_vs_lean,
+        soft_allow_short_history_last_share_vs_lean,
         format_soft_allow_short_history_bit,
         soft_allow_vs_gap_clock_clash,
         soft_allow_last_vs_lead,
@@ -2587,6 +2601,8 @@ def build_soft_allow_glance(
         "short_history_last_vs_lean_warn": False,
         "short_history_last_lead_vs_lean": "",
         "short_history_last_lead_vs_lean_warn": False,
+        "short_history_last_share_vs_lean": "",
+        "short_history_last_share_vs_lean_warn": False,
         "short_history_bit": "",
         "anchor_gap_count": 0,
         "anchor_gap_last": "",
@@ -2941,6 +2957,10 @@ def build_soft_allow_glance(
         short_history_last_lead_vs_lean,
         short_history_last_lead_vs_lean_warn,
     ) = soft_allow_short_history_last_lead_vs_lean(rows, now=now)
+    (
+        short_history_last_share_vs_lean,
+        short_history_last_share_vs_lean_warn,
+    ) = soft_allow_short_history_last_share_vs_lean(rows, now=now)
     short_history_bit = format_soft_allow_short_history_bit(rows, now=now)
     anchor_gap_n, anchor_gap_share_pct, anchor_gap_share_severity = (
         soft_allow_anchor_gap_share(rows)
@@ -3201,6 +3221,7 @@ def build_soft_allow_glance(
         or short_history_last_vs_share_warn
         or short_history_last_vs_lean_warn
         or short_history_last_lead_vs_lean_warn
+        or short_history_last_share_vs_lean_warn
     ):
         tone = "warn"
     lead_bit = format_soft_allow_lead_bit(rows, band=lead_band)
@@ -3384,6 +3405,7 @@ def build_soft_allow_glance(
         or short_history_last_vs_share_warn
         or short_history_last_vs_lean_warn
         or short_history_last_lead_vs_lean_warn
+        or short_history_last_share_vs_lean_warn
         or short_history_bench_n > 0
         or short_history_last_freshness == "expired"
     )
@@ -3487,6 +3509,10 @@ def build_soft_allow_glance(
         "short_history_last_lead_vs_lean": short_history_last_lead_vs_lean,
         "short_history_last_lead_vs_lean_warn": (
             short_history_last_lead_vs_lean_warn
+        ),
+        "short_history_last_share_vs_lean": short_history_last_share_vs_lean,
+        "short_history_last_share_vs_lean_warn": (
+            short_history_last_share_vs_lean_warn
         ),
         "short_history_bit": short_history_bit,
         "anchor_gap_count": anchor_gap_n,

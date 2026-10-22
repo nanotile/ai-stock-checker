@@ -564,6 +564,45 @@ def soft_allow_short_history_last_lead_vs_lean(
     return f"clash · lead {lead_verb} · lean {lean_verb}", True
 
 
+def soft_allow_short_history_last_share_vs_lean(
+    events: list[dict[str, Any]] | None,
+    *,
+    now: datetime | None = None,
+) -> tuple[str, bool]:
+    """Last/share vs last/lean relationship agreement (display only).
+
+    Returns ``(bit, warn)``. Age↔share ≠ age↔lean. When both already
+    spoke: same verb speaks ``align · both align|clash`` — ``both
+    align`` stays calm; ``both clash`` warns (dual-clash agreement ≠
+    quiet confirm). Crossed verbs speak
+    ``clash · share align|clash · lean align|clash`` (warn). Missing
+    either stays silent — gap share/lean parity + FinRobot last-row age +
+    portfolio AI speak-both-sides + RyanJHamby severity after short
+    last/share + last/lean alone hid whether the two relationships agree
+    *and* whether dual-clash agreement is adverse. Lead/share +
+    short÷ring still deferred. Not a gate.
+    """
+    share_bit, _ = soft_allow_short_history_last_vs_share(events, now=now)
+    lean_bit, _ = soft_allow_short_history_last_vs_lean(events, now=now)
+    if not share_bit or not lean_bit:
+        return "", False
+
+    def _verb(bit: str) -> str | None:
+        if bit.startswith("align · "):
+            return "align"
+        if bit.startswith("clash · "):
+            return "clash"
+        return None
+
+    share_verb = _verb(share_bit)
+    lean_verb = _verb(lean_bit)
+    if share_verb is None or lean_verb is None:
+        return "", False
+    if share_verb == lean_verb:
+        return f"align · both {share_verb}", share_verb == "clash"
+    return f"clash · share {share_verb} · lean {lean_verb}", True
+
+
 def format_soft_allow_short_history_bit(
     events: list[dict[str, Any]] | None,
     *,
@@ -599,9 +638,11 @@ def format_soft_allow_short_history_bit(
     (gap last/lean parity); when last/lead + last/lean already spoke,
     ``short lead/lean align|clash`` follows so side-by-side age↔owner
     and age↔lean cannot hide non-transitive disagreement or dual-clash
-    agreement (gap lead/lean parity). Short÷ring share / short-vs-other
-    lean / share/lean / lead/share still deferred. Display only; not a
-    gate.
+    agreement (gap lead/lean parity); when last/share + last/lean
+    already spoke, ``short share/lean align|clash`` follows so the two
+    age relationships cannot hide non-agreement or dual-clash (gap
+    share/lean parity). Short÷ring share / short-vs-other lean /
+    lead/share still deferred. Display only; not a gate.
     """
     n = soft_allow_short_history_count(events)
     if n <= 0:
@@ -664,6 +705,11 @@ def format_soft_allow_short_history_bit(
                 )
                 if lead_vs_lean:
                     head = f"{head} · short lead/lean {lead_vs_lean}"
+                share_vs_lean, _ = soft_allow_short_history_last_share_vs_lean(
+                    events, now=now
+                )
+                if share_vs_lean:
+                    head = f"{head} · short share/lean {share_vs_lean}"
     return head
 
 
