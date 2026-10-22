@@ -264,16 +264,17 @@ def soft_allow_short_history_symbol_lead_sides(
 
 def soft_allow_short_vs_gap(
     events: list[dict[str, Any]] | None,
-) -> tuple[str, int, int] | None:
+) -> tuple[str, int, int, str] | None:
     """Gap side when short already spoke (display only).
 
-    Returns ``(bit, gap_n, gap_share_pct)`` or None. Absolute ``N short``
-    · ``N gap`` alone hid ownership of the RS fail-open pair (young /
-    short vs gappy-anchor). Speaks only when both counts > 0:
-    ``vs gap · N · P%`` (gap÷(short+gap)). Screener junk vs ok / soft
-    gap vs other sides parity after #668 short count + #539 gap count;
-    portfolio AI count≠share. Short÷ring share / freshness / lean still
-    deferred. Not a gate.
+    Returns ``(bit, gap_n, gap_share_pct, gap_severity)`` or None.
+    Absolute ``N short`` · ``N gap`` alone hid ownership of the RS
+    fail-open pair (young / short vs gappy-anchor). Speaks only when
+    both counts > 0: ``vs gap · [strong|thin ·] N · P%``
+    (gap÷(short+gap); strong ≥75 · thin <50 · mid omits severity).
+    Screener junk vs ok / soft gap vs other sides parity after #668
+    short count + #539 gap count; portfolio AI count≠share. Short÷ring
+    share / freshness / short-vs-other lean still deferred. Not a gate.
     """
     short_n = soft_allow_short_history_count(events)
     gap_n = soft_allow_anchor_gap_count(events)
@@ -281,13 +282,89 @@ def soft_allow_short_vs_gap(
         return None
     pair = short_n + gap_n
     gap_share = int(round(100.0 * gap_n / pair))
-    return f"vs gap · {gap_n} · {gap_share}%", gap_n, gap_share
+    if gap_share >= SOFT_ALLOW_OTHER_SHARE_STRONG:
+        sev = "strong"
+    elif gap_share < SOFT_ALLOW_OTHER_SHARE_THIN:
+        sev = "thin"
+    else:
+        sev = "ok"
+    if sev in {"strong", "thin"}:
+        bit = f"vs gap · {sev} · {gap_n} · {gap_share}%"
+    else:
+        bit = f"vs gap · {gap_n} · {gap_share}%"
+    return bit, gap_n, gap_share, sev
+
+
+def soft_allow_short_pair_share(
+    events: list[dict[str, Any]] | None,
+) -> tuple[int, int, str] | None:
+    """Short ownership of the short+gap pair (display only).
+
+    Returns ``(short_n, short_share_pct, severity)`` or None when either
+    side is silent. ``short÷(short+gap)``; hot ≥50 · quiet ≤25 · mid
+    ``ok`` — Screener junk-share / soft gap-share floors so ``vs gap``
+    alone does not hide which sleeve owns the RS fail-open pair
+    (portfolio AI count≠share). Not a gate.
+    """
+    short_n = soft_allow_short_history_count(events)
+    gap_n = soft_allow_anchor_gap_count(events)
+    if short_n <= 0 or gap_n <= 0:
+        return None
+    pair = short_n + gap_n
+    short_share = int(round(100.0 * short_n / pair))
+    if short_share >= SOFT_ALLOW_ANCHOR_GAP_SHARE_HOT:
+        sev = "hot"
+    elif short_share <= SOFT_ALLOW_ANCHOR_GAP_SHARE_QUIET:
+        sev = "quiet"
+    else:
+        sev = "ok"
+    return short_n, short_share, sev
+
+
+def soft_allow_short_vs_gap_lean(
+    events: list[dict[str, Any]] | None,
+) -> tuple[str, bool]:
+    """Short vs gap lean when both pair sides already spoke (display only).
+
+    Returns ``(lean_bit, warn)``. Silent when ``vs gap`` did not speak or
+    both severities are mid. Screener junk vs ok / soft gap vs other lean
+    parity: matched extremes speak ``align · hot|thin`` /
+    ``quiet|strong``; mismatch or one-lean speaks
+    ``clash · short … · gap …`` (warn when short hot or gap thin). Sides
+    alone hid lean agreement (portfolio AI speak-both-sides). Short÷ring
+    share / freshness / short-vs-other lean still deferred. Not a gate.
+    """
+    vs = soft_allow_short_vs_gap(events)
+    pair = soft_allow_short_pair_share(events)
+    if vs is None or pair is None:
+        return "", False
+    _bit, _gap_n, _gap_share, gap_sev = vs
+    _short_n, _short_share, short_sev = pair
+    short_lean = short_sev in {"hot", "quiet"}
+    gap_lean = gap_sev in {"strong", "thin"}
+    if short_lean and gap_lean:
+        matched = (short_sev == "hot" and gap_sev == "thin") or (
+            short_sev == "quiet" and gap_sev == "strong"
+        )
+        if matched:
+            return f"align · {short_sev}|{gap_sev}", False
+        return (
+            f"clash · short {short_sev} · gap {gap_sev}",
+            True,
+        )
+    if short_lean != gap_lean:
+        warn = short_sev == "hot" or gap_sev == "thin"
+        return (
+            f"clash · short {short_sev} · gap {gap_sev}",
+            warn,
+        )
+    return "", False
 
 
 def format_soft_allow_short_history_bit(
     events: list[dict[str, Any]] | None,
 ) -> str:
-    """Compact ``N short · last SYM · lead|n=1|tied · agree|last vs lead · ahead · vs · vs gap``.
+    """Compact ``N short · last SYM · lead|n=1|tied · … · vs gap · short vs gap``.
 
     Zero silent. ``last SYM`` sits right after the count so lean cannot
     clip the young-listing cursor (#546 after #668). Symbol lead /
@@ -296,10 +373,12 @@ def format_soft_allow_short_history_bit(
     right after so cursor≠owner is not clipped; when a runner exists,
     ``ahead wide|thin · +K`` then ``vs SYM · N · P%`` follow so ownership
     % ≠ how far ahead ≠ who is #2 (gap margin/sides parity; sole 100%
-    omits). When ``N gap`` also spoke, ``vs gap · N · P%`` follows so
-    absolute short+gap counts ≠ ownership of the RS fail-open pair
-    (junk vs ok / gap vs other sides parity). Short÷ring share /
-    freshness / lean still deferred. Display only; not a gate.
+    omits). When ``N gap`` also spoke, ``vs gap · [strong|thin ·] N · P%``
+    follows so absolute short+gap counts ≠ ownership of the RS fail-open
+    pair; when both pair severities lean, ``short vs gap align|clash``
+    follows so sides alone cannot hide lean agreement (junk vs ok /
+    gap vs other lean parity). Short÷ring share / freshness /
+    short-vs-other lean still deferred. Display only; not a gate.
     """
     n = soft_allow_short_history_count(events)
     if n <= 0:
@@ -329,6 +408,9 @@ def format_soft_allow_short_history_bit(
     vs_gap = soft_allow_short_vs_gap(events)
     if vs_gap is not None:
         head = f"{head} · {vs_gap[0]}"
+        lean, _ = soft_allow_short_vs_gap_lean(events)
+        if lean:
+            head = f"{head} · short vs gap {lean}"
     return head
 
 

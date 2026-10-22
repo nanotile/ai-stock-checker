@@ -755,14 +755,22 @@ def test_soft_allow_glance_short_history_count() -> None:
     assert g["short_history_symbol_lead"] == ""
     assert g["short_history_symbol_sample_gap"] == "tied"
     assert g["short_history_symbol_last_vs_lead"] == ""
-    # Absolute N short · N gap ≠ pair ownership (1÷3 = 33%).
-    assert g["short_history_vs_gap"] == "vs gap · 1 · 33%"
+    # Absolute N short · N gap ≠ pair ownership (1÷3 = 33% thin).
+    # Short owns 67% (hot) → short vs gap align · hot|thin.
+    assert g["short_history_vs_gap"] == "vs gap · thin · 1 · 33%"
     assert g["short_history_vs_gap_count"] == 1
     assert g["short_history_vs_gap_share"] == 33
+    assert g["short_history_vs_gap_severity"] == "thin"
+    assert g["short_history_pair_share"] == 67
+    assert g["short_history_pair_severity"] == "hot"
+    assert g["short_history_vs_gap_lean"] == "align · hot|thin"
+    assert g["short_history_vs_gap_lean_warn"] is False
     assert g["short_history_bit"] == (
-        "2 short · last IPO · tied · vs gap · 1 · 33%"
+        "2 short · last IPO · tied · vs gap · thin · 1 · 33% · "
+        "short vs gap align · hot|thin"
     )
-    assert "2 short · last IPO · tied · vs gap · 1 · 33%" in g["line"]
+    assert "vs gap · thin · 1 · 33%" in g["line"]
+    assert "short vs gap align · hot|thin" in g["line"]
     assert g["anchor_gap_count"] == 1
     # Short before gap so the young-listing count is not clipped by gap lean.
     assert g["line"].index("2 short") < g["line"].index("1 gap")
@@ -770,12 +778,13 @@ def test_soft_allow_glance_short_history_count() -> None:
     # soft_lean_meta bare ``quiet`` because only ``N gap`` had a stage.
     # Cursor ticker rides on the short stage (#546 after #668); tied is
     # its own stage so last ≠ ring ownership is visible on the chip.
-    # ``vs gap`` must match or the inventory stalls before ``1 gap``.
+    # ``vs gap`` + ``short/gap`` must match or the inventory stalls.
     # Gap still owns soft_lean; the 4-name meta clip may spill it to +N
-    # when short + tied + vs gap already fill the inventory.
+    # when short + tied + vs gap + short/gap already fill the inventory.
     assert "2 short · last IPO" in g["soft_lean"]
     assert "tied" in g["soft_lean"]
-    assert "vs gap · 1 · 33%" in g["soft_lean"]
+    assert "vs gap · thin · 1 · 33%" in g["soft_lean"]
+    assert "short vs gap align · hot|thin" in g["soft_lean"]
     assert "1 gap" in g["soft_lean"]
     assert "short IPO" in g["soft_lean_meta"]
     assert "tied" in g["soft_lean_meta"]
@@ -790,10 +799,11 @@ def test_soft_allow_glance_short_history_count() -> None:
         "2 short · last IPO · tied · 1 gap · last AAPL · fresh"
     ) == ("quiet · 3 folds · short IPO · tied · gap AAPL fresh")
     assert soft_allow_lean_meta(
-        "2 short · last IPO · tied · vs gap · 1 · 33% · "
-        "1 gap · last AAPL · fresh"
+        "2 short · last IPO · tied · vs gap · thin · 1 · 33% · "
+        "short vs gap align · hot|thin · 1 gap · last AAPL · fresh"
     ) == (
-        "quiet · 4 folds · short IPO · tied · vs gap 1 33% · gap AAPL fresh"
+        "quiet · 5 folds · short IPO · tied · vs gap thin 1 33% · "
+        "short/gap align hot|thin · +1"
     )
 
 
@@ -840,19 +850,26 @@ def test_soft_allow_glance_short_history_symbol_lead() -> None:
     assert g["short_history_symbol_lead_runner_count"] == 1
     assert g["short_history_symbol_lead_runner_share"] == 33
     assert g["short_history_symbol_lead_sides"] == "vs NEW · 1 · 33%"
-    # 3 short + 1 gap → gap owns 25% of the RS fail-open pair.
-    assert g["short_history_vs_gap"] == "vs gap · 1 · 25%"
+    # 3 short + 1 gap → gap owns 25% thin; short 75% hot → align.
+    assert g["short_history_vs_gap"] == "vs gap · thin · 1 · 25%"
     assert g["short_history_vs_gap_count"] == 1
     assert g["short_history_vs_gap_share"] == 25
+    assert g["short_history_vs_gap_severity"] == "thin"
+    assert g["short_history_pair_share"] == 75
+    assert g["short_history_pair_severity"] == "hot"
+    assert g["short_history_vs_gap_lean"] == "align · hot|thin"
+    assert g["short_history_vs_gap_lean_warn"] is False
     assert g["short_history_bit"] == (
         "3 short · last NEW · lead IPO · 2 · 67% · last vs lead · NEW · "
-        "ahead thin · +1 · vs NEW · 1 · 33% · vs gap · 1 · 25%"
+        "ahead thin · +1 · vs NEW · 1 · 33% · vs gap · thin · 1 · 25% · "
+        "short vs gap align · hot|thin"
     )
     assert "lead IPO · 2 · 67%" in g["line"]
     assert "last vs lead · NEW" in g["line"]
     assert "ahead thin · +1" in g["line"]
     assert "vs NEW · 1 · 33%" in g["line"]
-    assert "vs gap · 1 · 25%" in g["line"]
+    assert "vs gap · thin · 1 · 25%" in g["line"]
+    assert "short vs gap align · hot|thin" in g["line"]
     assert "short NEW" in g["soft_lean_meta"]
     assert "lead IPO" in g["soft_lean_meta"]
 

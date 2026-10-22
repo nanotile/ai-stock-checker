@@ -54,6 +54,8 @@ def test_soft_allow_short_history_count() -> None:
         soft_allow_short_history_symbol_lead_sides,
         soft_allow_short_history_symbol_sample_gap,
         soft_allow_short_vs_gap,
+        soft_allow_short_pair_share,
+        soft_allow_short_vs_gap_lean,
     )
 
     assert soft_allow_short_history_count(None) == 0
@@ -66,6 +68,8 @@ def test_soft_allow_short_history_count() -> None:
     assert soft_allow_short_history_symbol_sample_gap(None) == ""
     assert soft_allow_short_history_symbol_last_vs_lead(None) == ""
     assert soft_allow_short_vs_gap(None) is None
+    assert soft_allow_short_pair_share(None) is None
+    assert soft_allow_short_vs_gap_lean(None) == ("", False)
     assert format_soft_allow_short_history_bit(None) == ""
     assert (
         soft_allow_short_history_count(
@@ -106,10 +110,22 @@ def test_soft_allow_short_history_count() -> None:
     assert soft_allow_short_history_symbol_lead_sides(mixed) is None
     assert soft_allow_short_history_symbol_sample_gap(mixed) == "tied"
     assert soft_allow_short_history_symbol_last_vs_lead(mixed) == ""
-    # Absolute N short · N gap ≠ pair ownership (1 gap ÷ 3 = 33%).
-    assert soft_allow_short_vs_gap(mixed) == ("vs gap · 1 · 33%", 1, 33)
+    # Absolute N short · N gap ≠ pair ownership (1 gap ÷ 3 = 33% thin).
+    # Short owns 67% (hot) → align · hot|thin (junk vs ok / gap vs other).
+    assert soft_allow_short_vs_gap(mixed) == (
+        "vs gap · thin · 1 · 33%",
+        1,
+        33,
+        "thin",
+    )
+    assert soft_allow_short_pair_share(mixed) == (2, 67, "hot")
+    assert soft_allow_short_vs_gap_lean(mixed) == (
+        "align · hot|thin",
+        False,
+    )
     assert format_soft_allow_short_history_bit(mixed) == (
-        "2 short · last IPO · tied · vs gap · 1 · 33%"
+        "2 short · last IPO · tied · vs gap · thin · 1 · 33% · "
+        "short vs gap align · hot|thin"
     )
     lead_rows = [
         {"gate": "rs", "reason": "NEW RS unknown — short history — allow"},
