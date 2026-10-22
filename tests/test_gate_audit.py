@@ -381,6 +381,52 @@ def test_soft_allow_short_history_count() -> None:
         "clash · short expired · scan fresh · US-only · laya-only",
         True,
     )
+    # Keep-gap when short matches gap cursor (soft≠scan keep-gap +
+    # #660 / #647 / #531).
+    assert soft_allow_short_history_vs_scan_clash(
+        expired,
+        scan_freshness="fresh",
+        now=now,
+        keep_cash_pin_size="US-only",
+        keep_memory_pin_size="laya-only",
+        keep_gap_pin_size="gap-only",
+    ) == (
+        "clash · short expired · scan fresh · US-only · laya-only"
+        " · gap-only",
+        True,
+    )
+    assert soft_allow_short_history_vs_cash_clock_clash(
+        expired,
+        cash_band="aging",
+        now=now,
+        keep_scan_pin_size="scan-only",
+        keep_gap_pin_size="gap-only",
+    ) == (
+        "clash · short expired · cash aging · scan-only · gap-only",
+        True,
+    )
+    assert soft_allow_short_history_vs_memory_clock_clash(
+        expired,
+        laya_freshness="fresh",
+        debate_freshness="aging",
+        now=now,
+        keep_scan_pin_size="scan-only",
+        keep_cash_pin_size="US-only",
+        keep_gap_pin_size="gap-only",
+    ) == (
+        "clash · short expired · laya fresh · debate aging"
+        " · scan-only · US-only · gap-only",
+        True,
+    )
+    assert format_soft_allow_short_history_bit(
+        expired,
+        now=now,
+        scan_freshness="fresh",
+        keep_gap_pin_size="gap-only",
+    ) == (
+        "1 short · last IPO · expired · clash · short expired · scan fresh"
+        " · gap-only · n=1"
+    )
     assert soft_allow_short_history_vs_memory_clock_clash(
         expired,
         laya_freshness="stale",

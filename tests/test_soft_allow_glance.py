@@ -995,6 +995,50 @@ def test_soft_allow_glance_short_vs_gap_clock_when_short_matches_scan() -> None:
     assert same["short_history_vs_gap_clock_clash_warn"] is False
 
 
+def test_soft_allow_glance_short_keep_gap_when_short_matches_gap() -> None:
+    """xang1234 #660/#647: short≠scan keeps gap-only when short≡gap."""
+    now = datetime(2026, 10, 22, 12, 0, tzinfo=timezone.utc)
+    fresh_at = (now - timedelta(minutes=5)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    expired_at = (now - timedelta(hours=30)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    scan_at = (now - timedelta(minutes=5)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    g = build_soft_allow_glance(
+        [
+            {
+                "at": fresh_at,
+                "gate": "regime",
+                "reason": "no SPY bars — allow",
+            },
+            {
+                "at": expired_at,
+                "gate": "rs",
+                "reason": "IPO RS unknown — short history — allow",
+            },
+            {
+                "at": expired_at,
+                "gate": "rs",
+                "reason": "AAPL RS unknown — anchor gap — allow",
+            },
+        ],
+        now=now,
+        scan_time=scan_at,
+        scan_interval_sec=900,
+    )
+    assert g["short_history_last_freshness"] == "expired"
+    assert g["anchor_gap_last_freshness"] == "expired"
+    # Short matches gap — no short≠gap clock clash.
+    assert g["short_history_vs_gap_clock_clash"] == ""
+    assert g["short_history_vs_gap_clock_clash_warn"] is False
+    # Short≠scan still speaks and keeps gap-only so scan alone cannot
+    # hide the matched gap cursor (soft≠scan keep-gap parity).
+    scan_clash = g["short_history_vs_scan_clash"]
+    assert scan_clash.startswith("clash · short expired · scan fresh")
+    assert scan_clash.endswith(" · gap-only")
+    assert g["short_history_vs_scan_clash_warn"] is True
+    assert scan_clash in g["short_history_bit"]
+    assert "gap-only" in g["soft_lean_meta"] or "gap-only" in g["soft_lean"]
+    assert g["tone"] == "warn"
+
+
 def test_soft_allow_glance_short_vs_scan_when_last_matches_scan() -> None:
     """xang1234 #549/e3c84e1: soft last matching scan ≠ live short cursor."""
     now = datetime(2026, 10, 22, 12, 0, tzinfo=timezone.utc)
