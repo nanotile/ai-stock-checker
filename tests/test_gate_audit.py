@@ -44,10 +44,13 @@ def test_is_soft_allow_reason_markers() -> None:
 
 def test_soft_allow_short_history_count() -> None:
     """xang1234 #668: short history ≠ anchor gap ≠ bare RS unknown."""
+    from datetime import datetime, timezone
+
     from stock_checker.gate_audit import (
         format_soft_allow_short_history_bit,
         soft_allow_short_history_bench_count,
         soft_allow_short_history_count,
+        soft_allow_short_history_last_freshness,
         soft_allow_short_history_last_symbol,
         soft_allow_short_history_symbol_last_vs_lead,
         soft_allow_short_history_symbol_lead,
@@ -65,6 +68,8 @@ def test_soft_allow_short_history_count() -> None:
     assert soft_allow_short_history_bench_count([]) == 0
     assert soft_allow_short_history_last_symbol(None) == ""
     assert soft_allow_short_history_last_symbol([]) == ""
+    assert soft_allow_short_history_last_freshness(None) == ""
+    assert soft_allow_short_history_last_freshness([]) == ""
     assert soft_allow_short_history_symbol_lead(None) == ("", "", None)
     assert soft_allow_short_history_symbol_lead_margin(None) is None
     assert soft_allow_short_history_symbol_lead_sides(None) is None
@@ -108,6 +113,8 @@ def test_soft_allow_short_history_count() -> None:
     assert soft_allow_short_history_bench_count(mixed) == 0
     # Newest-first ring — IPO is the cursor (#546 after #668).
     assert soft_allow_short_history_last_symbol(mixed) == "IPO"
+    # No at stamp → unknown silent (cursor name still speaks).
+    assert soft_allow_short_history_last_freshness(mixed) == ""
     # Two distinct short names → tied (no strict lead).
     assert soft_allow_short_history_symbol_lead(mixed) == ("", "", None)
     assert soft_allow_short_history_symbol_lead_margin(mixed) is None
@@ -235,6 +242,50 @@ def test_soft_allow_short_history_count() -> None:
     assert soft_allow_short_history_bench_count(
         [{"gate": "rs", "reason": "SPY RS unknown — allow"}]
     ) == 0
+    # Gap last-freshness parity: last SYM ≠ live fail-open.
+    # Aging is >12h and ≤24h; expired is >24h.
+    now = datetime(2026, 10, 22, 12, 0, tzinfo=timezone.utc)
+    aged = [
+        {
+            "at": "2026-10-21T18:00:00Z",
+            "gate": "rs",
+            "reason": "IPO RS unknown — short history — allow",
+        },
+        {
+            "at": "2026-10-22T11:00:00Z",
+            "gate": "rs",
+            "reason": "AAPL RS unknown — anchor gap — allow",
+        },
+    ]
+    assert soft_allow_short_history_last_freshness(aged, now=now) == "aging"
+    assert format_soft_allow_short_history_bit(aged, now=now) == (
+        "1 short · last IPO · aging · n=1 · vs gap · 1 · 50% · "
+        "short vs gap clash · short hot · gap ok"
+    )
+    expired = [
+        {
+            "at": "2026-10-20T11:00:00Z",
+            "gate": "rs",
+            "reason": "IPO RS unknown — short history — allow",
+        },
+    ]
+    assert soft_allow_short_history_last_freshness(expired, now=now) == (
+        "expired"
+    )
+    assert format_soft_allow_short_history_bit(expired, now=now) == (
+        "1 short · last IPO · expired · n=1"
+    )
+    fresh = [
+        {
+            "at": "2026-10-22T11:30:00Z",
+            "gate": "rs",
+            "reason": "IPO RS unknown — short history — allow",
+        },
+    ]
+    assert soft_allow_short_history_last_freshness(fresh, now=now) == "fresh"
+    assert format_soft_allow_short_history_bit(fresh, now=now) == (
+        "1 short · last IPO · fresh · n=1"
+    )
 
 
 def test_soft_allow_anchor_gap_count() -> None:

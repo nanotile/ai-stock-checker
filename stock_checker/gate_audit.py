@@ -123,8 +123,8 @@ def soft_allow_short_history_last_symbol(
     — allow`` / ``SPY RS unknown — short history — allow`` — first
     token is the asset or bench label. Ring order is newest-first.
     xang1234 #546 resume-cursor after #668 short count + FinRobot
-    last-row; zero / unparseable silent. Share/lean / freshness still
-    deferred. Not a gate.
+    last-row; zero / unparseable silent. Cursor age follows via
+    ``soft_allow_short_history_last_freshness``. Not a gate.
     """
     for row in events or []:
         if not isinstance(row, dict):
@@ -132,6 +132,37 @@ def soft_allow_short_history_last_symbol(
         sym = _short_history_symbol(str(row.get("reason") or ""))
         if sym:
             return sym
+    return ""
+
+
+def soft_allow_short_history_last_freshness(
+    events: list[dict[str, Any]] | None,
+    *,
+    now: datetime | None = None,
+) -> str:
+    """Freshness band of the newest parseable short-history row.
+
+    ``last SYM`` alone ≠ whether that young/short fail-open is still
+    live. Speaks ``fresh`` / ``aging`` / ``expired`` from enriched
+    ``freshness`` or ``at`` (gap last-freshness + RyanJHamby +
+    xang1234 soft-allow triad + FinRobot last-row age). Missing /
+    unknown stamp stays silent — cursor name still speaks. Display
+    only; not a gate.
+    """
+    for row in events or []:
+        if not isinstance(row, dict):
+            continue
+        if not _short_history_symbol(str(row.get("reason") or "")):
+            continue
+        band = str(row.get("freshness") or "").strip().casefold()
+        if band in {"fresh", "aging", "expired"}:
+            return band
+        if band == "unknown":
+            return ""
+        computed = soft_allow_freshness(row.get("at"), now=now)
+        if computed in {"fresh", "aging", "expired"}:
+            return computed
+        return ""
     return ""
 
 
@@ -394,13 +425,18 @@ def soft_allow_short_vs_gap_lean(
 
 def format_soft_allow_short_history_bit(
     events: list[dict[str, Any]] | None,
+    *,
+    now: datetime | None = None,
 ) -> str:
-    """Compact ``N short · N bench · last SYM · lead|… · vs gap · short vs gap``.
+    """Compact ``N short · N bench · last SYM · fresh|… · lead|… · vs gap``.
 
     Zero silent. When any short row names a primary RS benchmark
     (SPY/BTC), ``N bench`` sits right after the count so young-listing
     short ≠ a stale/thin primary (xang1234 #679 after #668). ``last SYM``
-    follows so lean cannot clip the cursor (#546). Symbol lead /
+    follows so lean cannot clip the cursor (#546). Cursor age
+    (``fresh`` / ``aging`` / ``expired``) follows the name so a live
+    ticker ≠ a live fail-open (gap last-freshness parity + RyanJHamby +
+    FinRobot last-row age; unknown stamp silent). Symbol lead /
     n=1 / tied follows the cursor (last ≠ ring ownership; gap symbol
     lead parity); when lead spoke, ``last vs lead`` / ``agree`` sits
     right after so cursor≠owner is not clipped; when a runner exists,
@@ -410,8 +446,8 @@ def format_soft_allow_short_history_bit(
     follows so absolute short+gap counts ≠ ownership of the RS fail-open
     pair; when both pair severities lean, ``short vs gap align|clash``
     follows so sides alone cannot hide lean agreement (junk vs ok /
-    gap vs other lean parity). Short÷ring share / freshness /
-    short-vs-other lean still deferred. Display only; not a gate.
+    gap vs other lean parity). Short÷ring share / short-vs-other lean
+    still deferred. Display only; not a gate.
     """
     n = soft_allow_short_history_count(events)
     if n <= 0:
@@ -423,6 +459,11 @@ def format_soft_allow_short_history_bit(
     last = soft_allow_short_history_last_symbol(events)
     if last:
         head = f"{head} · last {last}"
+        last_fresh = soft_allow_short_history_last_freshness(
+            events, now=now
+        )
+        if last_fresh:
+            head = f"{head} · {last_fresh}"
     lead_bit, _lead_name, _lead_share = soft_allow_short_history_symbol_lead(
         events
     )

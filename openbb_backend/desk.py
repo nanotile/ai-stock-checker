@@ -2053,13 +2053,15 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
     # absolute short count already spoke; the fold must name it. Primary
     # bench short (``N bench``) rides before the cursor so SPY/BTC thin
     # history is not clipped as a young listing (xang1234 #679). Cursor
-    # ticker rides with the count (#546 after #668) so ``N short`` does
-    # not hide who last failed open (gap last-SYM parity; share/lean
-    # still deferred).
+    # ticker + age ride with the count (#546 after #668 + gap
+    # last-freshness parity) so ``N short`` does not hide who last
+    # failed open or whether that print is still live (share /
+    # short-vs-other lean still deferred).
     (
         re.compile(
             r"^\d+ short(?: · (\d+ bench))?"
             r"(?: · last ([A-Za-z0-9][A-Za-z0-9.\-]{0,14}))?"
+            r"(?: · (fresh|aging|expired))?"
         ),
         "short",
     ),
@@ -2428,6 +2430,7 @@ def build_soft_allow_glance(
         soft_allow_anchor_gap_vs_scan_clash,
         soft_allow_short_history_bench_count,
         soft_allow_short_history_count,
+        soft_allow_short_history_last_freshness,
         soft_allow_short_history_last_symbol,
         soft_allow_short_history_symbol_lead,
         soft_allow_short_history_symbol_lead_margin,
@@ -2499,6 +2502,7 @@ def build_soft_allow_glance(
         "short_history_count": 0,
         "short_history_bench_count": 0,
         "short_history_last": "",
+        "short_history_last_freshness": "",
         "short_history_symbol_lead": "",
         "short_history_symbol_lead_name": "",
         "short_history_symbol_lead_share": None,
@@ -2793,17 +2797,21 @@ def build_soft_allow_glance(
     )
     # xang1234 #668: young / short-series fail-opens ≠ gappy anchors —
     # absolute ``rs×N`` hid which why owns the ring beside ``N gap``.
-    # #546: ``last SYM`` right after the count; symbol lead / n=1 /
-    # tied / last-vs-lead / ahead / vs follow so the cursor ≠ ring owner
-    # and ownership % ≠ how far ahead ≠ who is #2 (gap symbol-lead
-    # margin/sides parity). When gap also spoke, ``vs gap · [strong|thin ·]
-    # N · P%`` follows so short+gap counts ≠ pair ownership; when both
-    # pair severities lean, ``short vs gap align|clash`` follows (junk vs
-    # ok / gap vs other lean parity). Short÷ring share / freshness /
-    # short-vs-other lean still deferred.
+    # #546: ``last SYM`` right after the count; cursor age follows so a
+    # live ticker ≠ a live fail-open (gap last-freshness parity); symbol
+    # lead / n=1 / tied / last-vs-lead / ahead / vs follow so the cursor
+    # ≠ ring owner and ownership % ≠ how far ahead ≠ who is #2 (gap
+    # symbol-lead margin/sides parity). When gap also spoke, ``vs gap ·
+    # [strong|thin ·] N · P%`` follows so short+gap counts ≠ pair
+    # ownership; when both pair severities lean, ``short vs gap
+    # align|clash`` follows (junk vs ok / gap vs other lean parity).
+    # Short÷ring share / short-vs-other lean still deferred.
     short_history_n = soft_allow_short_history_count(rows)
     short_history_bench_n = soft_allow_short_history_bench_count(rows)
     short_history_last = soft_allow_short_history_last_symbol(rows)
+    short_history_last_freshness = soft_allow_short_history_last_freshness(
+        rows, now=now
+    )
     (
         short_history_symbol_lead,
         short_history_symbol_lead_name,
@@ -2853,7 +2861,7 @@ def build_soft_allow_glance(
     short_history_vs_gap_lean, short_history_vs_gap_lean_warn = (
         soft_allow_short_vs_gap_lean(rows)
     )
-    short_history_bit = format_soft_allow_short_history_bit(rows)
+    short_history_bit = format_soft_allow_short_history_bit(rows, now=now)
     anchor_gap_n, anchor_gap_share_pct, anchor_gap_share_severity = (
         soft_allow_anchor_gap_share(rows)
     )
@@ -3108,6 +3116,7 @@ def build_soft_allow_glance(
         or anchor_gap_vs_cash_clock_clash_warn
         or anchor_gap_vs_memory_clock_clash_warn
         or short_history_bench_n > 0
+        or short_history_last_freshness == "expired"
     ):
         tone = "warn"
     lead_bit = format_soft_allow_lead_bit(rows, band=lead_band)
@@ -3288,6 +3297,7 @@ def build_soft_allow_glance(
         or anchor_gap_vs_memory_clock_clash_warn
         or short_history_vs_gap_lean_warn
         or short_history_bench_n > 0
+        or short_history_last_freshness == "expired"
     )
     soft_lean_meta = soft_allow_lean_meta(soft_lean, warn=soft_lean_warn)
     if gen_clash_bits and line.startswith(f"{severity} · "):
@@ -3345,6 +3355,7 @@ def build_soft_allow_glance(
         "short_history_count": short_history_n,
         "short_history_bench_count": short_history_bench_n,
         "short_history_last": short_history_last,
+        "short_history_last_freshness": short_history_last_freshness,
         "short_history_symbol_lead": short_history_symbol_lead,
         "short_history_symbol_lead_name": short_history_symbol_lead_name,
         "short_history_symbol_lead_share": short_history_symbol_lead_share,
