@@ -70,6 +70,7 @@ def test_soft_allow_short_history_count() -> None:
         soft_allow_short_history_vs_cash_clock_clash,
         soft_allow_short_history_vs_memory_clock_clash,
         soft_allow_short_history_vs_gap_clock_clash,
+        soft_allow_vs_short_history_clock_clash,
     )
 
     assert soft_allow_short_history_count(None) == 0
@@ -99,6 +100,7 @@ def test_soft_allow_short_history_count() -> None:
     assert soft_allow_short_history_last_vs_lean(None) == ("", False)
     assert soft_allow_short_history_vs_scan_clash(None) == ("", False)
     assert soft_allow_short_history_vs_gap_clock_clash(None) == ("", False)
+    assert soft_allow_vs_short_history_clock_clash(None) == ("", False)
     assert soft_allow_short_history_vs_scan_clash(
         None, scan_freshness="fresh"
     ) == ("", False)
@@ -873,6 +875,7 @@ def test_soft_allow_anchor_gap_last_freshness() -> None:
         soft_allow_anchor_gap_vs_memory_clock_clash,
         soft_allow_anchor_gap_vs_scan_clash,
         soft_allow_vs_gap_clock_clash,
+        soft_allow_vs_short_history_clock_clash,
     )
 
     now = datetime(2026, 10, 8, 12, 0, tzinfo=timezone.utc)
@@ -1235,6 +1238,36 @@ def test_soft_allow_anchor_gap_last_freshness() -> None:
     ) == ("", False)
     assert soft_allow_vs_gap_clock_clash(
         [fresh_row, other], soft_last_freshness="fresh", now=now
+    ) == ("", False)
+    # Soft last ≠ short cursor closes soft↔short↔scan (soft≠gap parity).
+    short_expired = {
+        "at": expired_at,
+        "gate": "rs",
+        "reason": "IPO RS unknown — short history — allow",
+    }
+    short_fresh = {
+        "at": fresh_at,
+        "gate": "rs",
+        "reason": "IPO RS unknown — short history — allow",
+    }
+    assert soft_allow_vs_short_history_clock_clash(
+        [other, short_expired], soft_last_freshness="fresh", now=now
+    ) == ("clash · soft fresh · short expired", True)
+    assert soft_allow_vs_short_history_clock_clash(
+        [other, short_expired],
+        soft_last_freshness="fresh",
+        now=now,
+        soft_pin_size=" · soft-only",
+        short_pin_size=" · short-only",
+    ) == (
+        "clash · soft fresh · short expired · soft-only · short-only",
+        True,
+    )
+    assert soft_allow_vs_short_history_clock_clash(
+        [short_expired, other], soft_last_freshness="stale", now=now
+    ) == ("", False)
+    assert soft_allow_vs_short_history_clock_clash(
+        [other, short_fresh], soft_last_freshness="fresh", now=now
     ) == ("", False)
     # Gap ≠ cash: expired≡stale vs aging speaks; same band silent.
     assert soft_allow_anchor_gap_vs_cash_clock_clash(

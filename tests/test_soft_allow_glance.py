@@ -482,6 +482,19 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
     )
     assert (
         soft_allow_lean_meta(
+            "clash · soft fresh · short expired · soft-only · short-only"
+        )
+        == "quiet · 1 fold · soft/short soft-only short-only"
+    )
+    assert (
+        soft_allow_lean_meta(
+            "clash · soft fresh · short expired · soft-only · short-only · "
+            "scan-only"
+        )
+        == "quiet · 1 fold · soft/short soft-only short-only scan-only"
+    )
+    assert (
+        soft_allow_lean_meta(
             "clash · soft fresh · cash aging · soft-only · US-only"
         )
         == "quiet · 1 fold · soft/cash soft-only US-only"
@@ -1080,6 +1093,21 @@ def test_soft_allow_glance_short_vs_scan_when_last_matches_scan() -> None:
     assert g["scan_freshness"] == "fresh"
     # Soft-allow last matches scan — no ring-level clash.
     assert g["scan_vs_soft_allow_clash"] == ""
+    # Soft last ≠ short cursor — soft↔short↔scan triangle (soft≠gap
+    # parity + #668); soft matches scan so keep scan-only.
+    assert g["soft_vs_short_clock_clash"] == (
+        "clash · soft fresh · short expired · soft-only · short-only · "
+        "scan-only"
+    )
+    assert g["soft_vs_short_clock_clash_warn"] is True
+    assert (
+        "clash · soft fresh · short expired · soft-only · short-only · "
+        "scan-only"
+        in g["line"]
+    )
+    assert "soft/short" in g["soft_lean_meta"] or "short-only" in (
+        g["soft_lean_meta"]
+    )
     # Short cursor is a different generation — speak both sides.
     assert g["short_history_vs_scan_clash"] == (
         "clash · short expired · scan fresh"
@@ -1113,6 +1141,9 @@ def test_soft_allow_glance_short_vs_scan_when_last_matches_scan() -> None:
     )
     assert same["short_history_vs_scan_clash"] == ""
     assert same["short_history_vs_scan_clash_warn"] is False
+    assert same["soft_vs_short_clock_clash"] == ""
+    assert same["soft_vs_short_clock_clash_warn"] is False
+    assert "clash · soft fresh · short" not in same["line"]
     # Same short↔scan band silent on the bit (short≠cash may still speak).
     assert "clash · short" not in same["short_history_bit"] or (
         same["short_history_vs_cash_clock_clash"]

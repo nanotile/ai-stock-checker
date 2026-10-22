@@ -1416,6 +1416,73 @@ def soft_allow_vs_gap_clock_clash(
     return f"clash · soft {soft} · gap {gap_speak}{soft_pin}{pin}", True
 
 
+def soft_allow_vs_short_history_clock_clash(
+    events: list[dict[str, Any]] | None,
+    *,
+    soft_last_freshness: str = "",
+    now: datetime | None = None,
+    soft_pin_size: str = "",
+    short_pin_size: str = "",
+) -> tuple[str, bool]:
+    """Soft-allow last vs short-history cursor generation (display only).
+
+    Returns ``(bit, warn)``. When newest soft-allow clock ≠ newest
+    short-history cursor clock (``expired``≡``stale``), speak
+    ``clash · soft fresh|aging|stale · short expired|aging|fresh`` then
+    optional soft pin (``soft-only`` via ``soft_pin_size``) then optional
+    short pin (``short-only`` via ``short_pin_size``). Same band /
+    missing either silent. Soft last matching the scan (and soft≠gap /
+    short≠scan alone) can still hide a staler young/short cursor —
+    naming soft≠short closes the generation triangle with soft-vs-scan
+    and short-vs-scan (soft≠gap / short≠gap parity + xang1234 #549 /
+    e3c84e1 + #668 + FinRobot last-row + portfolio AI speak-both-sides).
+    Keep soft/short pins deferred to a later tick. Not a gate.
+    """
+    soft = str(soft_last_freshness or "").strip().casefold()
+    if soft == "expired":
+        soft = "stale"
+    elif soft == "unknown":
+        soft = "fresh"
+    if soft not in {"fresh", "aging", "stale"}:
+        first = next(
+            (r for r in (events or []) if isinstance(r, dict)), None
+        )
+        if first is None:
+            return "", False
+        band = str(first.get("freshness") or "").strip().casefold()
+        if band == "unknown":
+            soft = "fresh"
+        elif band == "expired":
+            soft = "stale"
+        elif band in {"fresh", "aging"}:
+            soft = band
+        else:
+            computed = soft_allow_freshness(first.get("at"), now=now)
+            if computed == "expired":
+                soft = "stale"
+            elif computed in {"fresh", "aging"}:
+                soft = computed
+            else:
+                return "", False
+    short_band = soft_allow_short_history_last_freshness(events, now=now)
+    short_clock = _soft_allow_gap_clock_tone(short_band)
+    if not short_clock or soft == short_clock:
+        return "", False
+    short_speak = (
+        short_band
+        if short_band in {"fresh", "aging", "expired"}
+        else short_clock
+    )
+    raw_soft = str(soft_pin_size or "").strip().lstrip("·").strip()
+    soft_pin = f" · {raw_soft}" if raw_soft else ""
+    raw_pin = str(short_pin_size or "").strip().lstrip("·").strip()
+    pin = f" · {raw_pin}" if raw_pin else ""
+    return (
+        f"clash · soft {soft} · short {short_speak}{soft_pin}{pin}",
+        True,
+    )
+
+
 def _anchor_gap_symbol_counts(
     events: list[dict[str, Any]] | None,
 ) -> dict[str, int]:

@@ -1977,6 +1977,26 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
         ),
         "soft/gap",
     ),
+    # Soft last pin (``soft-only``) then short cursor (``short-only``);
+    # when soft matches scan / cash / gap / memory, keep those pins so
+    # soft≠short does not hide a silent match (soft≠gap / #660 / #647 /
+    # #531 / #668). Soft keep short-only speak-both-sides deferred.
+    (
+        re.compile(
+            r"^clash · soft \S+ · short \S+"
+            r"(?: · (soft-only))?"
+            r"(?: · (short-only))?"
+            r"(?: · (scan-only))?"
+            r"(?: · ((?:US|Xetra)-only)"
+            r"| · (US|Xetra) · (\d+(?:\.\d+)?%)"
+            r"| · (×\d+) · (\d+(?:\.\d+)?%))?"
+            r"(?: · (gap-only))?"
+            r"(?: · ((?:laya|debate)-only)"
+            r"| · (laya|debate) · (\d+(?:\.\d+)?%)"
+            r"| · (×\d+) · (\d+(?:\.\d+)?%))?"
+        ),
+        "soft/short",
+    ),
     # Soft last pin then cash pin: sole ``US-only`` · dual half
     # ``US · 50%`` · both ``×2 · 100%``; optional keep ``scan-only`` when
     # soft≠scan is silent; optional keep ``gap-only`` when soft≠gap is
@@ -2627,6 +2647,7 @@ def build_soft_allow_glance(
         soft_allow_short_history_vs_gap_clock_clash,
         format_soft_allow_short_history_bit,
         soft_allow_vs_gap_clock_clash,
+        soft_allow_vs_short_history_clock_clash,
         soft_allow_last_vs_lead,
         soft_allow_last_vs_lead_freshness,
         soft_allow_last_lead_vs_config,
@@ -2769,6 +2790,8 @@ def build_soft_allow_glance(
         "scan_vs_soft_allow_clash": "",
         "soft_vs_gap_clock_clash": "",
         "soft_vs_gap_clock_clash_warn": False,
+        "soft_vs_short_clock_clash": "",
+        "soft_vs_short_clock_clash_warn": False,
         "soft_vs_cash_clock_clash": "",
         "soft_vs_cash_clock_clash_warn": False,
         "soft_vs_memory_clock_clash": "",
@@ -3019,6 +3042,50 @@ def build_soft_allow_glance(
     short_history_last_freshness = soft_allow_short_history_last_freshness(
         rows, now=now
     )
+    # Soft≠short — soft last matching scan/gap/cash/memory can still hide
+    # a staler young/short cursor (soft≠gap / short≠scan parity + #549 /
+    # e3c84e1 / #668). Keep soft/short pins deferred to a later tick.
+    short_pin_for_soft = short_history_pin_size(
+        short_freshness=short_history_last_freshness
+    )
+    soft_vs_short_clock_clash, soft_vs_short_clock_clash_warn = (
+        soft_allow_vs_short_history_clock_clash(
+            rows,
+            soft_last_freshness=last_clock,
+            now=now,
+            soft_pin_size=soft_pin,
+            short_pin_size=short_pin_for_soft,
+        )
+    )
+    # Soft≠scan / soft≠cash / soft≠gap / soft≠memory silent — keep those
+    # pins on soft≠short so the clash cannot hide a silent match
+    # (soft≠gap keep-scan|/cash|/memory parity + #660 / #647 / #531).
+    if (
+        scan_pin
+        and not scan_vs_soft_allow_clash
+        and last_clock
+        and scan_freshness
+        and soft_vs_short_clock_clash
+    ):
+        soft_vs_short_clock_clash += scan_pin
+    if (
+        cash_pin
+        and not soft_vs_cash_clock_clash
+        and last_clock
+        and cash_band
+        and soft_vs_short_clock_clash
+    ):
+        soft_vs_short_clock_clash += cash_pin
+    if (
+        gap_pin
+        and not soft_vs_gap_clock_clash
+        and last_clock
+        and anchor_gap_last_freshness
+        and soft_vs_short_clock_clash
+    ):
+        soft_vs_short_clock_clash += gap_pin
+    if soft_keep_memory and soft_vs_short_clock_clash:
+        soft_vs_short_clock_clash += soft_keep_memory
     (
         short_history_symbol_lead,
         short_history_symbol_lead_name,
@@ -3548,6 +3615,7 @@ def build_soft_allow_glance(
         or anchor_gap_last_share_vs_lean_warn
         or scan_vs_soft_allow_clash
         or soft_vs_gap_clock_clash_warn
+        or soft_vs_short_clock_clash_warn
         or soft_vs_cash_clock_clash_warn
         or soft_vs_memory_clock_clash_warn
         or anchor_gap_vs_scan_clash_warn
@@ -3678,11 +3746,13 @@ def build_soft_allow_glance(
     # Clash right after severity so the clip keeps mixed-generation honesty
     # (LAYA age-before-clash; xang1234 #549 coherent generations). Soft≠gap
     # sits after soft-vs-scan so a fresh soft last cannot hide a staler
-    # gap cursor when scan itself matches soft (e3c84e1 triangle). Soft≠cash
-    # follows so soft matching the scan archive cannot hide a staler
-    # pinned cash print (soft↔cash↔scan after soft↔gap↔scan). Soft≠memory
-    # follows so soft matching scan/cash cannot hide a staler LAYA or
-    # debate print (soft↔laya↔debate after soft↔cash↔scan).
+    # gap cursor when scan itself matches soft (e3c84e1 triangle). Soft≠short
+    # follows so soft matching the scan/gap cannot hide a staler young/short
+    # cursor (soft≠gap / short≠scan parity + #668). Soft≠cash follows so
+    # soft matching the scan archive cannot hide a staler pinned cash print
+    # (soft↔cash↔scan after soft↔gap↔short↔scan). Soft≠memory follows so
+    # soft matching scan/cash cannot hide a staler LAYA or debate print
+    # (soft↔laya↔debate after soft↔cash↔scan).
     # Gen-clash + RS-gap lean sit in soft_lean; line_core keeps severity ·
     # lead · counts · last reason (Yahoo mix/streak lean fold parity). Full
     # line join kept for tests (severity · gen · lead · counts · gap · reason).
@@ -3692,6 +3762,7 @@ def build_soft_allow_glance(
         for b in (
             scan_vs_soft_allow_clash,
             soft_vs_gap_clock_clash,
+            soft_vs_short_clock_clash,
             soft_vs_cash_clock_clash,
             soft_vs_memory_clock_clash,
         )
@@ -3729,6 +3800,7 @@ def build_soft_allow_glance(
         or last_lead_vs_config_freshness_warn
         or scan_vs_soft_allow_clash
         or soft_vs_gap_clock_clash_warn
+        or soft_vs_short_clock_clash_warn
         or soft_vs_cash_clock_clash_warn
         or soft_vs_memory_clock_clash_warn
         or anchor_gap_last_freshness == "expired"
@@ -3953,6 +4025,8 @@ def build_soft_allow_glance(
         "scan_vs_soft_allow_clash": scan_vs_soft_allow_clash,
         "soft_vs_gap_clock_clash": soft_vs_gap_clock_clash,
         "soft_vs_gap_clock_clash_warn": soft_vs_gap_clock_clash_warn,
+        "soft_vs_short_clock_clash": soft_vs_short_clock_clash,
+        "soft_vs_short_clock_clash_warn": soft_vs_short_clock_clash_warn,
         "soft_vs_cash_clock_clash": soft_vs_cash_clock_clash,
         "soft_vs_cash_clock_clash_warn": soft_vs_cash_clock_clash_warn,
         "soft_vs_memory_clock_clash": soft_vs_memory_clock_clash,
