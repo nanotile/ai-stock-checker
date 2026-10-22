@@ -349,6 +349,18 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
         )
         == "quiet · 1 fold · gap/scan gap-only scan-only soft-only short-only"
     )
+    # Keep-memory after keep-short on gap≠scan (gap≡memory; pin order
+    # soft·short·memory).
+    assert (
+        soft_allow_lean_meta(
+            "clash · gap expired · scan fresh · gap-only · scan-only · "
+            "soft-only · short-only · debate-only"
+        )
+        == (
+            "quiet · 1 fold · gap/scan gap-only scan-only soft-only "
+            "short-only debate-only"
+        )
+    )
     assert (
         soft_allow_lean_meta(
             "clash · gap expired · scan fresh · gap-only"
@@ -376,6 +388,17 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
             "clash · gap expired · cash aging · gap-only · US-only · scan-only"
         )
         == "quiet · 1 fold · gap/cash gap-only US-only scan-only"
+    )
+    # Keep-memory after keep-short on gap≠cash (gap≡memory).
+    assert (
+        soft_allow_lean_meta(
+            "clash · gap expired · cash aging · gap-only · US-only · "
+            "scan-only · soft-only · short-only · debate-only"
+        )
+        == (
+            "quiet · 1 fold · gap/cash gap-only US-only scan-only "
+            "soft-only short-only debate-only"
+        )
     )
     # Short≠gap generation clock (soft≠gap parity; count lean ≠ clock).
     assert (
@@ -477,6 +500,18 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
         )
         == "quiet · 1 fold · soft/gap soft-only gap-only scan-only"
     )
+    # Keep-cash + keep-memory + keep-short on soft≠gap (soft≡cash +
+    # soft≡memory + soft≡short) — cash/memory pins after scan-only.
+    assert (
+        soft_allow_lean_meta(
+            "clash · soft fresh · gap expired · soft-only · gap-only · "
+            "scan-only · US-only · debate-only · short-only"
+        )
+        == (
+            "quiet · 1 fold · soft/gap soft-only gap-only scan-only "
+            "US-only debate-only short-only"
+        )
+    )
     assert (
         soft_allow_lean_meta(
             "clash · soft fresh · gap expired · gap-only"
@@ -515,11 +550,44 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
         )
         == "quiet · 1 fold · soft/cash soft-only US-only scan-only gap-only"
     )
+    # Keep-memory + keep-short on soft≠cash (soft≡memory + soft≡short).
+    assert (
+        soft_allow_lean_meta(
+            "clash · soft fresh · cash aging · soft-only · US-only · "
+            "gap-only · debate-only · short-only"
+        )
+        == (
+            "quiet · 1 fold · soft/cash soft-only US-only gap-only "
+            "debate-only short-only"
+        )
+    )
     assert (
         soft_allow_lean_meta(
             "clash · scan fresh · soft-only · scan-only · US-only · gap-only"
         )
         == "quiet · 1 fold · scan soft-only scan-only US-only gap-only"
+    )
+    # Keep-memory + keep-short on soft≠scan must fold (soft≡memory +
+    # soft≡short; debate-only is not cash/gap grammar).
+    assert (
+        soft_allow_lean_meta(
+            "clash · scan fresh · soft-only · scan-only · debate-only · "
+            "short-only"
+        )
+        == (
+            "quiet · 1 fold · scan soft-only scan-only debate-only "
+            "short-only"
+        )
+    )
+    assert (
+        soft_allow_lean_meta(
+            "clash · scan fresh · soft-only · scan-only · gap-only · "
+            "laya · 50% · short-only"
+        )
+        == (
+            "quiet · 1 fold · scan soft-only scan-only gap-only laya 50% "
+            "short-only"
+        )
     )
     assert (
         soft_allow_lean_meta(

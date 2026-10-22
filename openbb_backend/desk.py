@@ -2026,8 +2026,9 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
     # Soft last pin (``soft-only``) then scan archive (``scan-only``) so
     # soft≠scan names both sole pins (gap≠scan ``gap-only · scan-only``
     # parity; #647 / #531); optional keep cash / gap-only when soft≠cash
-    # / soft≠gap are silent; optional keep short-only when soft≠short is
-    # silent (#660 / #647 / #668).
+    # / soft≠gap are silent; optional keep memory when soft≠memory is
+    # silent; optional keep short-only when soft≠short is silent
+    # (#660 / #647 / #668). Pin order: soft·scan·cash·gap·memory·short.
     (
         re.compile(
             r"^clash · scan(?: \S+)?"
@@ -2037,6 +2038,9 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
             r"| · (US|Xetra) · (\d+(?:\.\d+)?%)"
             r"| · (×\d+) · (\d+(?:\.\d+)?%))?"
             r"(?: · (gap-only))?"
+            r"(?: · ((?:laya|debate)-only)"
+            r"| · (laya|debate) · (\d+(?:\.\d+)?%)"
+            r"| · (×\d+) · (\d+(?:\.\d+)?%))?"
             r"(?: · (short-only))?"
         ),
         "scan",
@@ -2044,13 +2048,21 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
     # Soft last pin (``soft-only``) then gap cursor (``gap-only``); when
     # soft matches scan, keep ``scan-only`` so soft≠gap does not hide
     # the archive match (peer soft keep-scan-only / #660 / #647 / #531);
-    # optional keep short-only when soft≠short is silent (#668).
+    # optional keep cash / memory when soft≠cash / soft≠memory are
+    # silent; optional keep short-only when soft≠short is silent (#668).
+    # Pin order: soft·gap·scan·cash·memory·short.
     (
         re.compile(
             r"^clash · soft \S+ · gap \S+"
             r"(?: · (soft-only))?"
             r"(?: · (gap-only))?"
             r"(?: · (scan-only))?"
+            r"(?: · ((?:US|Xetra)-only)"
+            r"| · (US|Xetra) · (\d+(?:\.\d+)?%)"
+            r"| · (×\d+) · (\d+(?:\.\d+)?%))?"
+            r"(?: · ((?:laya|debate)-only)"
+            r"| · (laya|debate) · (\d+(?:\.\d+)?%)"
+            r"| · (×\d+) · (\d+(?:\.\d+)?%))?"
             r"(?: · (short-only))?"
         ),
         "soft/gap",
@@ -2078,8 +2090,9 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
     # Soft last pin then cash pin: sole ``US-only`` · dual half
     # ``US · 50%`` · both ``×2 · 100%``; optional keep ``scan-only`` when
     # soft≠scan is silent; optional keep ``gap-only`` when soft≠gap is
-    # silent; optional keep short-only when soft≠short is silent
-    # (#647 / #531 / #660 / #668).
+    # silent; optional keep memory when soft≠memory is silent; optional
+    # keep short-only when soft≠short is silent (#647 / #531 / #660 /
+    # #668). Pin order: soft·cash·scan·gap·memory·short.
     (
         re.compile(
             r"^clash · soft \S+ · cash \S+"
@@ -2089,6 +2102,9 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
             r"| · (×\d+) · (\d+(?:\.\d+)?%))?"
             r"(?: · (scan-only))?"
             r"(?: · (gap-only))?"
+            r"(?: · ((?:laya|debate)-only)"
+            r"| · (laya|debate) · (\d+(?:\.\d+)?%)"
+            r"| · (×\d+) · (\d+(?:\.\d+)?%))?"
             r"(?: · (short-only))?"
         ),
         "soft/cash",
@@ -2121,7 +2137,8 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
     # sleeve membership ≠ cursor print ≠ archive coverage (#647 / #531);
     # optional keep cash pin when gap≠cash is silent; optional keep
     # soft-only when soft≠gap is silent; optional keep short-only when
-    # short≠gap is silent (#660 / #647 / #668).
+    # short≠gap is silent; optional keep memory when gap≠memory is silent
+    # (#660 / #647 / #668). Pin order: gap·scan·cash·soft·short·memory.
     (
         re.compile(
             r"^clash · gap \S+ · scan(?: \S+)?"
@@ -2132,13 +2149,18 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
             r"| · (×\d+) · (\d+(?:\.\d+)?%))?"
             r"(?: · (soft-only))?"
             r"(?: · (short-only))?"
+            r"(?: · ((?:laya|debate)-only)"
+            r"| · (laya|debate) · (\d+(?:\.\d+)?%)"
+            r"| · (×\d+) · (\d+(?:\.\d+)?%))?"
         ),
         "gap/scan",
     ),
     # Gap cursor pin (``gap-only``) then cash pin (US-only / venue · 50% /
     # ×2 · 100%); optional keep ``scan-only`` when gap≠scan is silent;
     # optional keep soft-only when soft≠gap is silent; optional keep
-    # short-only when short≠gap is silent (#647 / #531 / #660 / #668).
+    # short-only when short≠gap is silent; optional keep memory when
+    # gap≠memory is silent (#647 / #531 / #660 / #668). Pin order:
+    # gap·cash·scan·soft·short·memory.
     (
         re.compile(
             r"^clash · gap \S+ · cash(?: \S+)?"
@@ -2149,6 +2171,9 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
             r"(?: · (scan-only))?"
             r"(?: · (soft-only))?"
             r"(?: · (short-only))?"
+            r"(?: · ((?:laya|debate)-only)"
+            r"| · (laya|debate) · (\d+(?:\.\d+)?%)"
+            r"| · (×\d+) · (\d+(?:\.\d+)?%))?"
         ),
         "gap/cash",
     ),
