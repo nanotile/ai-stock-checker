@@ -711,6 +711,8 @@ def test_soft_allow_glance_one() -> None:
     assert g["short_history_vs_scan_clash_warn"] is False
     assert g["short_history_vs_cash_clock_clash"] == ""
     assert g["short_history_vs_cash_clock_clash_warn"] is False
+    assert g["short_history_vs_memory_clock_clash"] == ""
+    assert g["short_history_vs_memory_clock_clash_warn"] is False
     assert g["laya_freshness"] == ""
     assert g["debate_freshness"] == ""
     assert g["anchor_gap_bit"] == ""
@@ -1022,6 +1024,88 @@ def test_soft_allow_glance_short_vs_cash_when_short_matches_scan() -> None:
     assert same["short_history_vs_cash_clock_clash"] == ""
     assert same["short_history_vs_cash_clock_clash_warn"] is False
     assert "clash · short" not in same["short_history_bit"]
+
+
+def test_soft_allow_glance_short_vs_memory_when_short_matches_scan() -> None:
+    """xang1234 #549: short matching scan ≠ live LAYA/debate print."""
+    # Same-evening last-published: soft + short fresh match scan + cash →
+    # short≠scan / short≠cash silent; short≠memory still speaks
+    # (gap≠memory / soft≠memory parity; quieter lean chip).
+    now = datetime(2026, 9, 8, 1, 30, tzinfo=timezone.utc)
+    fresh_at = (now - timedelta(minutes=10)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    g = build_soft_allow_glance(
+        [
+            {
+                "at": fresh_at,
+                "gate": "regime",
+                "reason": "no SPY bars — allow",
+            },
+            {
+                "at": fresh_at,
+                "gate": "rs",
+                "reason": "IPO RS unknown — short history — allow",
+            },
+        ],
+        now=now,
+        scan_time=fresh_at,
+        scan_interval_sec=900,
+        laya_freshness="stale",
+        debate_freshness="aging",
+    )
+    assert g["last_freshness"] == "fresh"
+    assert g["scan_freshness"] == "fresh"
+    assert g["short_history_last_freshness"] == "fresh"
+    assert g["short_history_vs_scan_clash"] == ""
+    assert g["short_history_vs_scan_clash_warn"] is False
+    assert g["short_history_vs_cash_clock_clash"] == ""
+    mem = g["short_history_vs_memory_clock_clash"]
+    assert mem == "clash · short fresh · laya stale · debate aging"
+    assert g["short_history_vs_memory_clock_clash_warn"] is True
+    assert mem in g["short_history_bit"]
+    assert mem in g["line"]
+    assert g["tone"] == "warn"
+    assert "short/memory" in g["soft_lean_meta"] or mem in g["soft_lean"]
+    # Same band as short — silent (no false mixed-generation warn).
+    same = build_soft_allow_glance(
+        [
+            {
+                "at": fresh_at,
+                "gate": "rs",
+                "reason": "IPO RS unknown — short history — allow",
+            },
+        ],
+        now=now,
+        scan_time=fresh_at,
+        scan_interval_sec=900,
+        laya_freshness="fresh",
+        debate_freshness="fresh",
+    )
+    assert same["short_history_vs_memory_clock_clash"] == ""
+    assert same["short_history_vs_memory_clock_clash_warn"] is False
+    assert "clash · short" not in same["short_history_bit"] or (
+        " · laya " not in same["short_history_bit"]
+        and " · debate " not in same["short_history_bit"]
+    )
+    # Only debate disagrees — sole advisory side on the bit.
+    one = build_soft_allow_glance(
+        [
+            {
+                "at": fresh_at,
+                "gate": "rs",
+                "reason": "IPO RS unknown — short history — allow",
+            },
+        ],
+        now=now,
+        scan_time=fresh_at,
+        scan_interval_sec=900,
+        laya_freshness="fresh",
+        debate_freshness="stale",
+    )
+    assert one["short_history_vs_memory_clock_clash"] == (
+        "clash · short fresh · debate stale"
+    )
+    assert one["short_history_vs_memory_clock_clash_warn"] is True
+    assert "laya" not in one["short_history_vs_memory_clock_clash"]
 
 
 def test_soft_allow_glance_short_history_last_freshness_expired() -> None:

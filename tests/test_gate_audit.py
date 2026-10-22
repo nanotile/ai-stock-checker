@@ -68,6 +68,7 @@ def test_soft_allow_short_history_count() -> None:
         soft_allow_short_history_last_vs_lean,
         soft_allow_short_history_vs_scan_clash,
         soft_allow_short_history_vs_cash_clock_clash,
+        soft_allow_short_history_vs_memory_clock_clash,
     )
 
     assert soft_allow_short_history_count(None) == 0
@@ -102,6 +103,10 @@ def test_soft_allow_short_history_count() -> None:
     assert soft_allow_short_history_vs_cash_clock_clash(None) == ("", False)
     assert soft_allow_short_history_vs_cash_clock_clash(
         None, cash_band="aging"
+    ) == ("", False)
+    assert soft_allow_short_history_vs_memory_clock_clash(None) == ("", False)
+    assert soft_allow_short_history_vs_memory_clock_clash(
+        None, laya_freshness="stale", debate_freshness="aging"
     ) == ("", False)
     assert format_soft_allow_short_history_bit(None) == ""
     assert (
@@ -335,6 +340,29 @@ def test_soft_allow_short_history_count() -> None:
     assert soft_allow_short_history_vs_cash_clock_clash(
         expired, cash_band="stale", now=now
     ) == ("", False)
+    # Short≠memory: expired≡stale vs fresh laya speaks; same band silent
+    # (gap≠memory / soft≠memory / short≠scan parity).
+    assert soft_allow_short_history_vs_memory_clock_clash(
+        expired,
+        laya_freshness="fresh",
+        debate_freshness="aging",
+        now=now,
+    ) == ("clash · short expired · laya fresh · debate aging", True)
+    assert soft_allow_short_history_vs_memory_clock_clash(
+        expired,
+        laya_freshness="stale",
+        debate_freshness="stale",
+        now=now,
+    ) == ("", False)
+    assert format_soft_allow_short_history_bit(
+        expired,
+        now=now,
+        laya_freshness="fresh",
+        debate_freshness="",
+    ) == (
+        "1 short · last IPO · expired · clash · short expired · laya fresh"
+        " · n=1"
+    )
     # Short matching scan + cash aging — both clash bits on one line.
     assert format_soft_allow_short_history_bit(
         expired,
@@ -344,6 +372,19 @@ def test_soft_allow_short_history_count() -> None:
     ) == (
         "1 short · last IPO · expired · clash · short expired · scan fresh"
         " · clash · short expired · cash aging · n=1"
+    )
+    # Short↔scan↔cash↔memory: all three generation clashes on one line.
+    assert format_soft_allow_short_history_bit(
+        expired,
+        now=now,
+        scan_freshness="fresh",
+        cash_band="aging",
+        laya_freshness="fresh",
+        debate_freshness="",
+    ) == (
+        "1 short · last IPO · expired · clash · short expired · scan fresh"
+        " · clash · short expired · cash aging"
+        " · clash · short expired · laya fresh · n=1"
     )
     fresh = [
         {

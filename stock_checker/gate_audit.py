@@ -712,19 +712,64 @@ def soft_allow_short_history_vs_cash_clock_clash(
     return f"clash · short {short_speak} · cash {cash}", True
 
 
+def soft_allow_short_history_vs_memory_clock_clash(
+    events: list[dict[str, Any]] | None,
+    *,
+    laya_freshness: str = "",
+    debate_freshness: str = "",
+    now: datetime | None = None,
+) -> tuple[str, bool]:
+    """Short cursor vs LAYA/debate memory generation (display only).
+
+    Returns ``(bit, warn)``. When newest short-history clock ≠ LAYA
+    and/or AI-debate clocks (``expired``≡``stale``), speak
+    ``clash · short expired|aging|fresh · laya … · debate …``.
+    Same band / missing either side silent. Soft-allow *last* matching
+    the scan (and short≠scan / short≠cash alone) can still hide a
+    young/short cursor that matches the archive or cash print but not
+    the advisory print — closes short↔memory beside short≠scan +
+    short≠cash + soft↔memory + gap≠memory (xang1234 #549 / e3c84e1 +
+    FinRobot last-row + portfolio AI speak-both-sides). Not a gate.
+    """
+    short_band = soft_allow_short_history_last_freshness(events, now=now)
+    short_clock = _soft_allow_gap_clock_tone(short_band)
+    if not short_clock:
+        return "", False
+    short_speak = (
+        short_band
+        if short_band in {"fresh", "aging", "expired"}
+        else short_clock
+    )
+    bits: list[str] = []
+    for name, tone in (("laya", laya_freshness), ("debate", debate_freshness)):
+        t = str(tone or "").strip().casefold()
+        if t == "expired":
+            t = "stale"
+        elif t == "unknown":
+            t = "fresh"
+        if t not in {"fresh", "aging", "stale"} or t == short_clock:
+            continue
+        bits.append(f"{name} {t}")
+    if not bits:
+        return "", False
+    return f"clash · short {short_speak} · {' · '.join(bits)}", True
+
+
 def format_soft_allow_short_history_bit(
     events: list[dict[str, Any]] | None,
     *,
     now: datetime | None = None,
     scan_freshness: str = "",
     cash_band: str = "",
+    laya_freshness: str = "",
+    debate_freshness: str = "",
 ) -> str:
     """Compact ``N short · N bench · last SYM · fresh|… · clash · short… · lead|… · vs gap``.
 
     Zero silent. When any short row names a primary RS benchmark
     (SPY/BTC), ``N bench`` sits right after the count so young-listing
     short ≠ a stale/thin primary (xang1234 #679 after #668). ``last SYM``
-    follows so lean cannot clip the cursor (#546). Cursor age
+    follows so lean cannot clip the cursor (#546).     Cursor age
     (``fresh`` / ``aging`` / ``expired``) follows the name so a live
     ticker ≠ a live fail-open (gap last-freshness parity + RyanJHamby +
     FinRobot last-row age; unknown stamp silent). When short clock ≠
@@ -733,7 +778,10 @@ def format_soft_allow_short_history_bit(
     cursor (xang1234 #549 / e3c84e1 + gap≠scan parity). When short clock
     ≠ pinned cash band, ``clash · short … · cash …`` follows so short
     matching the scan cannot hide a staler cash print (gap≠cash /
-    short≠scan parity). Symbol lead /
+    short≠scan parity). When short clock ≠ LAYA and/or AI-debate,
+    ``clash · short … · laya … · debate …`` follows so short matching
+    the scan or cash cannot hide a staler advisory print (gap≠memory /
+    soft≠memory / short≠scan / short≠cash parity). Symbol lead /
     n=1 / tied follows the cursor (last ≠ ring ownership; gap symbol
     lead parity); when lead spoke, ``last vs lead`` / ``agree`` sits
     right after so cursor≠owner is not clipped; when last freshness
@@ -762,7 +810,7 @@ def format_soft_allow_short_history_bit(
     already spoke, ``short share/lean align|clash`` follows so the two
     age relationships cannot hide non-agreement or dual-clash (gap
     share/lean parity). Short÷ring share / short-vs-other lean /
-    short≠memory still deferred. Display only; not a gate.
+    short≠cash cash-pin nest still deferred. Display only; not a gate.
     """
     n = soft_allow_short_history_count(events)
     if n <= 0:
@@ -793,6 +841,14 @@ def format_soft_allow_short_history_bit(
             )
             if short_vs_cash:
                 head = f"{head} · {short_vs_cash}"
+            short_vs_mem, _ = soft_allow_short_history_vs_memory_clock_clash(
+                events,
+                laya_freshness=laya_freshness,
+                debate_freshness=debate_freshness,
+                now=now,
+            )
+            if short_vs_mem:
+                head = f"{head} · {short_vs_mem}"
     lead_bit, _lead_name, _lead_share = soft_allow_short_history_symbol_lead(
         events
     )

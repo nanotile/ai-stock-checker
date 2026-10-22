@@ -2082,6 +2082,15 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
         ),
         "short/cash",
     ),
+    # Short cursor vs LAYA/debate (gap/memory + short/scan|/cash parity).
+    # Short matching scan or cash can still hide a staler advisory print.
+    (
+        re.compile(
+            r"^clash · short \S+ · (?:laya|debate) (?:fresh|aging|stale|expired)"
+            r"(?: · (?:laya|debate) (?:fresh|aging|stale|expired))*"
+        ),
+        "short/memory",
+    ),
     # Cursor ticker + age ride with the count so ``N gap`` does not hide
     # who last failed open or whether that print is still live (#546).
     (
@@ -2543,6 +2552,7 @@ def build_soft_allow_glance(
         soft_allow_short_history_last_share_vs_lean,
         soft_allow_short_history_vs_scan_clash,
         soft_allow_short_history_vs_cash_clock_clash,
+        soft_allow_short_history_vs_memory_clock_clash,
         format_soft_allow_short_history_bit,
         soft_allow_vs_gap_clock_clash,
         soft_allow_last_vs_lead,
@@ -2642,6 +2652,8 @@ def build_soft_allow_glance(
         "short_history_vs_scan_clash_warn": False,
         "short_history_vs_cash_clock_clash": "",
         "short_history_vs_cash_clock_clash_warn": False,
+        "short_history_vs_memory_clock_clash": "",
+        "short_history_vs_memory_clock_clash_warn": False,
         "short_history_bit": "",
         "anchor_gap_count": 0,
         "anchor_gap_last": "",
@@ -3024,11 +3036,25 @@ def build_soft_allow_glance(
         cash_band=cash_band,
         now=now,
     )
+    # Short≠memory — short matching scan/cash can still hide a staler
+    # LAYA/debate print (gap≠memory / soft≠memory / short≠scan|/cash
+    # parity + xang1234 #549 / e3c84e1 + FinRobot last-row).
+    (
+        short_history_vs_memory_clock_clash,
+        short_history_vs_memory_clock_clash_warn,
+    ) = soft_allow_short_history_vs_memory_clock_clash(
+        rows,
+        laya_freshness=laya_tone,
+        debate_freshness=debate_tone,
+        now=now,
+    )
     short_history_bit = format_soft_allow_short_history_bit(
         rows,
         now=now,
         scan_freshness=scan_freshness,
         cash_band=cash_band,
+        laya_freshness=laya_tone,
+        debate_freshness=debate_tone,
     )
     anchor_gap_n, anchor_gap_share_pct, anchor_gap_share_severity = (
         soft_allow_anchor_gap_share(rows)
@@ -3287,6 +3313,7 @@ def build_soft_allow_glance(
         or short_history_last_freshness == "expired"
         or short_history_vs_scan_clash_warn
         or short_history_vs_cash_clock_clash_warn
+        or short_history_vs_memory_clock_clash_warn
         or short_history_last_vs_lead_freshness_warn
         or short_history_last_vs_share_warn
         or short_history_last_vs_lean_warn
@@ -3474,6 +3501,7 @@ def build_soft_allow_glance(
         or short_history_vs_gap_lean_warn
         or short_history_vs_scan_clash_warn
         or short_history_vs_cash_clock_clash_warn
+        or short_history_vs_memory_clock_clash_warn
         or short_history_last_vs_lead_freshness_warn
         or short_history_last_vs_share_warn
         or short_history_last_vs_lean_warn
@@ -3597,6 +3625,12 @@ def build_soft_allow_glance(
         "short_history_vs_cash_clock_clash": short_history_vs_cash_clock_clash,
         "short_history_vs_cash_clock_clash_warn": (
             short_history_vs_cash_clock_clash_warn
+        ),
+        "short_history_vs_memory_clock_clash": (
+            short_history_vs_memory_clock_clash
+        ),
+        "short_history_vs_memory_clock_clash_warn": (
+            short_history_vs_memory_clock_clash_warn
         ),
         "short_history_bit": short_history_bit,
         "anchor_gap_count": anchor_gap_n,
