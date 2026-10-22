@@ -767,12 +767,17 @@ def test_soft_allow_glance_short_history_count() -> None:
     assert g["short_history_pair_severity"] == "hot"
     assert g["short_history_vs_gap_lean"] == "align · hot|thin"
     assert g["short_history_vs_gap_lean_warn"] is False
+    # Fresh + short/gap align → last/lean align (gap last/lean parity).
+    assert g["short_history_last_vs_lean"] == "align · fresh · hot|thin"
+    assert g["short_history_last_vs_lean_warn"] is False
     assert g["short_history_bit"] == (
         "2 short · last IPO · fresh · tied · vs gap · thin · 1 · 33% · "
-        "short vs gap align · hot|thin"
+        "short vs gap align · hot|thin · "
+        "short last/lean align · fresh · hot|thin"
     )
     assert "vs gap · thin · 1 · 33%" in g["line"]
     assert "short vs gap align · hot|thin" in g["line"]
+    assert "short last/lean align · fresh · hot|thin" in g["line"]
     assert g["anchor_gap_count"] == 1
     # Short before gap so the young-listing count is not clipped by gap lean.
     assert g["line"].index("2 short") < g["line"].index("1 gap")
@@ -780,13 +785,15 @@ def test_soft_allow_glance_short_history_count() -> None:
     # soft_lean_meta bare ``quiet`` because only ``N gap`` had a stage.
     # Cursor ticker + age ride on the short stage (#546 + gap freshness
     # parity); tied is its own stage so last ≠ ring ownership is visible
-    # on the chip. ``vs gap`` + ``short/gap`` must match or the inventory
-    # stalls. Gap still owns soft_lean; the 4-name meta clip may spill it
-    # to +N when short + tied + vs gap + short/gap already fill it.
+    # on the chip. ``vs gap`` + ``short/gap`` + ``short last/lean`` must
+    # match or the inventory stalls. Gap still owns soft_lean; the
+    # 4-name meta clip may spill it to +N when short + tied + vs gap +
+    # short/gap + short last/lean already fill it.
     assert "2 short · last IPO · fresh" in g["soft_lean"]
     assert "tied" in g["soft_lean"]
     assert "vs gap · thin · 1 · 33%" in g["soft_lean"]
     assert "short vs gap align · hot|thin" in g["soft_lean"]
+    assert "short last/lean align · fresh · hot|thin" in g["soft_lean"]
     assert "1 gap" in g["soft_lean"]
     assert "short IPO fresh" in g["soft_lean_meta"]
     assert "tied" in g["soft_lean_meta"]
@@ -809,6 +816,15 @@ def test_soft_allow_glance_short_history_count() -> None:
     ) == (
         "quiet · 5 folds · short IPO fresh · tied · vs gap thin 1 33% · "
         "short/gap align hot|thin · +1"
+    )
+    assert soft_allow_lean_meta(
+        "2 short · last IPO · fresh · tied · vs gap · thin · 1 · 33% · "
+        "short vs gap align · hot|thin · "
+        "short last/lean align · fresh · hot|thin · "
+        "1 gap · last AAPL · fresh"
+    ) == (
+        "quiet · 6 folds · short IPO fresh · tied · vs gap thin 1 33% · "
+        "short/gap align hot|thin · +2"
     )
     assert soft_allow_lean_meta("3 short · 2 bench · last SPY · fresh") == (
         "quiet · 1 fold · short 2 bench SPY fresh"
@@ -843,9 +859,12 @@ def test_soft_allow_glance_short_history_bench_count() -> None:
     assert g["short_history_bench_count"] == 1
     assert g["short_history_last"] == "SPY"
     assert g["short_history_last_freshness"] == "fresh"
+    assert g["short_history_last_vs_lean"] == "align · fresh · hot|thin"
+    assert g["short_history_last_vs_lean_warn"] is False
     assert g["short_history_bit"] == (
         "2 short · 1 bench · last SPY · fresh · tied · vs gap · thin · "
-        "1 · 33% · short vs gap align · hot|thin"
+        "1 · 33% · short vs gap align · hot|thin · "
+        "short last/lean align · fresh · hot|thin"
     )
     assert "1 bench" in g["line"]
     assert g["tone"] == "warn"
@@ -870,11 +889,49 @@ def test_soft_allow_glance_short_history_last_freshness_expired() -> None:
     assert g["short_history_count"] == 1
     assert g["short_history_last"] == "IPO"
     assert g["short_history_last_freshness"] == "expired"
+    assert g["short_history_last_vs_lean"] == ""
+    assert g["short_history_last_vs_lean_warn"] is False
     assert g["short_history_bit"] == "1 short · last IPO · expired · n=1"
     assert "last IPO · expired" in g["line"]
     assert g["tone"] == "warn"
     assert g["soft_lean_warn"] is True
     assert "short IPO expired" in g["soft_lean_meta"]
+
+
+def test_soft_allow_glance_short_history_last_vs_lean_clash() -> None:
+    """last freshness + short/gap lean alone ≠ age↔lean (gap last/lean)."""
+    now = datetime(2026, 10, 22, 12, 0, tzinfo=timezone.utc)
+    g = build_soft_allow_glance(
+        [
+            {
+                "at": "2026-10-20T11:00:00Z",
+                "gate": "rs",
+                "reason": "IPO RS unknown — short history — allow",
+            },
+            {
+                "at": "2026-10-20T10:30:00Z",
+                "gate": "rs",
+                "reason": "NEW RS unknown — short history — allow",
+            },
+            {
+                "at": "2026-10-20T10:00:00Z",
+                "gate": "rs",
+                "reason": "AAPL RS unknown — anchor gap — allow",
+            },
+        ],
+        now=now,
+    )
+    assert g["ready"] is True
+    assert g["short_history_count"] == 2
+    assert g["short_history_last_freshness"] == "expired"
+    assert g["short_history_vs_gap_lean"] == "align · hot|thin"
+    # Expired ↔ lean align → clash warn (gap last/lean parity).
+    assert g["short_history_last_vs_lean"] == "clash · expired · hot|thin"
+    assert g["short_history_last_vs_lean_warn"] is True
+    assert "short last/lean clash · expired · hot|thin" in g["short_history_bit"]
+    assert "short last/lean clash · expired · hot|thin" in g["line"]
+    assert g["tone"] == "warn"
+    assert g["soft_lean_warn"] is True
 
 
 def test_soft_allow_glance_short_history_symbol_lead() -> None:
@@ -930,10 +987,13 @@ def test_soft_allow_glance_short_history_symbol_lead() -> None:
     assert g["short_history_pair_severity"] == "hot"
     assert g["short_history_vs_gap_lean"] == "align · hot|thin"
     assert g["short_history_vs_gap_lean_warn"] is False
+    assert g["short_history_last_vs_lean"] == "align · fresh · hot|thin"
+    assert g["short_history_last_vs_lean_warn"] is False
     assert g["short_history_bit"] == (
         "3 short · last NEW · fresh · lead IPO · 2 · 67% · "
         "last vs lead · NEW · ahead thin · +1 · vs NEW · 1 · 33% · "
-        "vs gap · thin · 1 · 25% · short vs gap align · hot|thin"
+        "vs gap · thin · 1 · 25% · short vs gap align · hot|thin · "
+        "short last/lean align · fresh · hot|thin"
     )
     assert "lead IPO · 2 · 67%" in g["line"]
     assert "last vs lead · NEW" in g["line"]

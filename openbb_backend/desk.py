@@ -2126,6 +2126,21 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
         ),
         "short/gap",
     ),
+    # Short cursor age vs short/gap lean (gap last/lean parity). Distinct
+    # ``short last/lean`` prefix so gap ``last/lean`` is not treated as
+    # the young/short relationship. Verb + age + lean tail ride so
+    # ``align`` is not a silent confirm of a live hot print.
+    (
+        re.compile(
+            r"^short last/lean (align|clash)"
+            r"(?: · (fresh|expired)"
+            r"(?: · ("
+            r"hot\|thin|quiet\|strong"
+            r"|short (?:hot|quiet|ok) · gap (?:strong|thin|ok)"
+            r"))?)?"
+        ),
+        "short last/lean",
+    ),
     # Verb + payload ride on one stage so ``align`` is not a silent
     # confirm of a live hot print, and ``align · both clash`` / a crossed
     # lead-vs-share pair are not clipped as a calm align (RyanJHamby
@@ -2440,6 +2455,7 @@ def build_soft_allow_glance(
         soft_allow_short_vs_gap,
         soft_allow_short_pair_share,
         soft_allow_short_vs_gap_lean,
+        soft_allow_short_history_last_vs_lean,
         format_soft_allow_short_history_bit,
         soft_allow_vs_gap_clock_clash,
         soft_allow_last_vs_lead,
@@ -2523,6 +2539,8 @@ def build_soft_allow_glance(
         "short_history_pair_severity": "",
         "short_history_vs_gap_lean": "",
         "short_history_vs_gap_lean_warn": False,
+        "short_history_last_vs_lean": "",
+        "short_history_last_vs_lean_warn": False,
         "short_history_bit": "",
         "anchor_gap_count": 0,
         "anchor_gap_last": "",
@@ -2804,7 +2822,9 @@ def build_soft_allow_glance(
     # symbol-lead margin/sides parity). When gap also spoke, ``vs gap ·
     # [strong|thin ·] N · P%`` follows so short+gap counts ≠ pair
     # ownership; when both pair severities lean, ``short vs gap
-    # align|clash`` follows (junk vs ok / gap vs other lean parity).
+    # align|clash`` follows (junk vs ok / gap vs other lean parity);
+    # when last freshness extremes + lean already spoke, ``short
+    # last/lean align|clash`` follows (gap last/lean parity).
     # Short÷ring share / short-vs-other lean still deferred.
     short_history_n = soft_allow_short_history_count(rows)
     short_history_bench_n = soft_allow_short_history_bench_count(rows)
@@ -2860,6 +2880,9 @@ def build_soft_allow_glance(
     short_history_pair_severity = _short_pair[2] if _short_pair else ""
     short_history_vs_gap_lean, short_history_vs_gap_lean_warn = (
         soft_allow_short_vs_gap_lean(rows)
+    )
+    short_history_last_vs_lean, short_history_last_vs_lean_warn = (
+        soft_allow_short_history_last_vs_lean(rows, now=now)
     )
     short_history_bit = format_soft_allow_short_history_bit(rows, now=now)
     anchor_gap_n, anchor_gap_share_pct, anchor_gap_share_severity = (
@@ -3117,6 +3140,7 @@ def build_soft_allow_glance(
         or anchor_gap_vs_memory_clock_clash_warn
         or short_history_bench_n > 0
         or short_history_last_freshness == "expired"
+        or short_history_last_vs_lean_warn
     ):
         tone = "warn"
     lead_bit = format_soft_allow_lead_bit(rows, band=lead_band)
@@ -3296,6 +3320,7 @@ def build_soft_allow_glance(
         or anchor_gap_vs_cash_clock_clash_warn
         or anchor_gap_vs_memory_clock_clash_warn
         or short_history_vs_gap_lean_warn
+        or short_history_last_vs_lean_warn
         or short_history_bench_n > 0
         or short_history_last_freshness == "expired"
     )
@@ -3386,6 +3411,8 @@ def build_soft_allow_glance(
         "short_history_pair_severity": short_history_pair_severity,
         "short_history_vs_gap_lean": short_history_vs_gap_lean,
         "short_history_vs_gap_lean_warn": short_history_vs_gap_lean_warn,
+        "short_history_last_vs_lean": short_history_last_vs_lean,
+        "short_history_last_vs_lean_warn": short_history_last_vs_lean_warn,
         "short_history_bit": short_history_bit,
         "anchor_gap_count": anchor_gap_n,
         "anchor_gap_last": anchor_gap_last,

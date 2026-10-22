@@ -394,7 +394,7 @@ def soft_allow_short_vs_gap_lean(
     ``quiet|strong``; mismatch or one-lean speaks
     ``clash · short … · gap …`` (warn when short hot or gap thin). Sides
     alone hid lean agreement (portfolio AI speak-both-sides). Short÷ring
-    share / freshness / short-vs-other lean still deferred. Not a gate.
+    share / short-vs-other lean still deferred. Not a gate.
     """
     vs = soft_allow_short_vs_gap(events)
     pair = soft_allow_short_pair_share(events)
@@ -423,6 +423,39 @@ def soft_allow_short_vs_gap_lean(
     return "", False
 
 
+def soft_allow_short_history_last_vs_lean(
+    events: list[dict[str, Any]] | None,
+    *,
+    now: datetime | None = None,
+) -> tuple[str, bool]:
+    """Last short freshness vs short/gap lean (display only).
+
+    Returns ``(bit, warn)``. Cursor age ≠ lean agreement. Extremes only:
+    ``fresh``↔ lean ``align`` and ``expired``↔ lean ``clash`` speak
+    ``align``; crossed pairs speak ``clash`` (warn). ``aging`` / silent
+    lean stay silent — gap last/lean parity + RyanJHamby triad +
+    FinRobot last-row age + portfolio AI speak-both-sides after last
+    freshness + short vs gap lean alone hid the relationship. Short÷ring
+    share / short-vs-other lean still deferred. Not a gate.
+    """
+    last_fresh = soft_allow_short_history_last_freshness(events, now=now)
+    lean, _lean_warn = soft_allow_short_vs_gap_lean(events)
+    if last_fresh not in {"fresh", "expired"} or not lean:
+        return "", False
+    if lean.startswith("align · "):
+        lean_align = True
+        lean_tail = lean[len("align · ") :]
+    elif lean.startswith("clash · "):
+        lean_align = False
+        lean_tail = lean[len("clash · ") :]
+    else:
+        return "", False
+    live_age = last_fresh == "fresh"
+    if live_age == lean_align:
+        return f"align · {last_fresh} · {lean_tail}", False
+    return f"clash · {last_fresh} · {lean_tail}", True
+
+
 def format_soft_allow_short_history_bit(
     events: list[dict[str, Any]] | None,
     *,
@@ -442,12 +475,15 @@ def format_soft_allow_short_history_bit(
     right after so cursor≠owner is not clipped; when a runner exists,
     ``ahead wide|thin · +K`` then ``vs SYM · N · P%`` follow so ownership
     % ≠ how far ahead ≠ who is #2 (gap margin/sides parity; sole 100%
-    omits). When ``N gap`` also spoke, ``vs gap · [strong|thin ·] N · P%``
+    omits).     When ``N gap`` also spoke, ``vs gap · [strong|thin ·] N · P%``
     follows so absolute short+gap counts ≠ ownership of the RS fail-open
     pair; when both pair severities lean, ``short vs gap align|clash``
     follows so sides alone cannot hide lean agreement (junk vs ok /
-    gap vs other lean parity). Short÷ring share / short-vs-other lean
-    still deferred. Display only; not a gate.
+    gap vs other lean parity); when last freshness extremes + lean
+    already spoke, ``short last/lean align|clash`` follows so age labels
+    + lean labels alone cannot hide age≠lean (gap last/lean parity).
+    Short÷ring share / short-vs-other lean still deferred. Display only;
+    not a gate.
     """
     n = soft_allow_short_history_count(events)
     if n <= 0:
@@ -488,6 +524,11 @@ def format_soft_allow_short_history_bit(
         lean, _ = soft_allow_short_vs_gap_lean(events)
         if lean:
             head = f"{head} · short vs gap {lean}"
+            last_vs_lean, _ = soft_allow_short_history_last_vs_lean(
+                events, now=now
+            )
+            if last_vs_lean:
+                head = f"{head} · short last/lean {last_vs_lean}"
     return head
 
 

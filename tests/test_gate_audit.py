@@ -60,6 +60,7 @@ def test_soft_allow_short_history_count() -> None:
         soft_allow_short_vs_gap,
         soft_allow_short_pair_share,
         soft_allow_short_vs_gap_lean,
+        soft_allow_short_history_last_vs_lean,
     )
 
     assert soft_allow_short_history_count(None) == 0
@@ -78,6 +79,7 @@ def test_soft_allow_short_history_count() -> None:
     assert soft_allow_short_vs_gap(None) is None
     assert soft_allow_short_pair_share(None) is None
     assert soft_allow_short_vs_gap_lean(None) == ("", False)
+    assert soft_allow_short_history_last_vs_lean(None) == ("", False)
     assert format_soft_allow_short_history_bit(None) == ""
     assert (
         soft_allow_short_history_count(
@@ -134,6 +136,8 @@ def test_soft_allow_short_history_count() -> None:
         "align · hot|thin",
         False,
     )
+    # No freshness stamp → last/lean silent (age extremes required).
+    assert soft_allow_short_history_last_vs_lean(mixed) == ("", False)
     assert format_soft_allow_short_history_bit(mixed) == (
         "2 short · last IPO · tied · vs gap · thin · 1 · 33% · "
         "short vs gap align · hot|thin"
@@ -258,6 +262,11 @@ def test_soft_allow_short_history_count() -> None:
         },
     ]
     assert soft_allow_short_history_last_freshness(aged, now=now) == "aging"
+    # Aging mid → last/lean silent (fresh|expired extremes only).
+    assert soft_allow_short_history_last_vs_lean(aged, now=now) == (
+        "",
+        False,
+    )
     assert format_soft_allow_short_history_bit(aged, now=now) == (
         "1 short · last IPO · aging · n=1 · vs gap · 1 · 50% · "
         "short vs gap clash · short hot · gap ok"
@@ -283,8 +292,72 @@ def test_soft_allow_short_history_count() -> None:
         },
     ]
     assert soft_allow_short_history_last_freshness(fresh, now=now) == "fresh"
+    # Fresh alone (no lean) → last/lean silent.
+    assert soft_allow_short_history_last_vs_lean(fresh, now=now) == (
+        "",
+        False,
+    )
     assert format_soft_allow_short_history_bit(fresh, now=now) == (
         "1 short · last IPO · fresh · n=1"
+    )
+    # Fresh + short/gap align → last/lean align (gap last/lean parity).
+    fresh_align = [
+        {
+            "at": "2026-10-22T11:30:00Z",
+            "gate": "rs",
+            "reason": "IPO RS unknown — short history — allow",
+        },
+        {
+            "at": "2026-10-22T11:00:00Z",
+            "gate": "rs",
+            "reason": "NEW RS unknown — short history — allow",
+        },
+        {
+            "at": "2026-10-22T10:30:00Z",
+            "gate": "rs",
+            "reason": "AAPL RS unknown — anchor gap — allow",
+        },
+    ]
+    assert soft_allow_short_vs_gap_lean(fresh_align) == (
+        "align · hot|thin",
+        False,
+    )
+    assert soft_allow_short_history_last_vs_lean(
+        fresh_align, now=now
+    ) == ("align · fresh · hot|thin", False)
+    assert format_soft_allow_short_history_bit(fresh_align, now=now) == (
+        "2 short · last IPO · fresh · tied · vs gap · thin · 1 · 33% · "
+        "short vs gap align · hot|thin · "
+        "short last/lean align · fresh · hot|thin"
+    )
+    # Expired + short/gap align → last/lean clash (warn).
+    expired_align = [
+        {
+            "at": "2026-10-20T11:00:00Z",
+            "gate": "rs",
+            "reason": "IPO RS unknown — short history — allow",
+        },
+        {
+            "at": "2026-10-20T10:30:00Z",
+            "gate": "rs",
+            "reason": "NEW RS unknown — short history — allow",
+        },
+        {
+            "at": "2026-10-20T10:00:00Z",
+            "gate": "rs",
+            "reason": "AAPL RS unknown — anchor gap — allow",
+        },
+    ]
+    assert soft_allow_short_history_last_freshness(
+        expired_align, now=now
+    ) == "expired"
+    assert soft_allow_short_history_last_vs_lean(
+        expired_align, now=now
+    ) == ("clash · expired · hot|thin", True)
+    assert format_soft_allow_short_history_bit(expired_align, now=now) == (
+        "2 short · last IPO · expired · tied · vs gap · thin · 1 · 33% · "
+        "short vs gap align · hot|thin · "
+        "short last/lean clash · expired · hot|thin"
     )
 
 
