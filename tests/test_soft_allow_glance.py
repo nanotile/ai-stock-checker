@@ -709,6 +709,8 @@ def test_soft_allow_glance_one() -> None:
     assert g["soft_vs_memory_clock_clash_warn"] is False
     assert g["short_history_vs_scan_clash"] == ""
     assert g["short_history_vs_scan_clash_warn"] is False
+    assert g["short_history_vs_cash_clock_clash"] == ""
+    assert g["short_history_vs_cash_clock_clash_warn"] is False
     assert g["laya_freshness"] == ""
     assert g["debate_freshness"] == ""
     assert g["anchor_gap_bit"] == ""
@@ -956,6 +958,69 @@ def test_soft_allow_glance_short_vs_scan_when_last_matches_scan() -> None:
     )
     assert same["short_history_vs_scan_clash"] == ""
     assert same["short_history_vs_scan_clash_warn"] is False
+    # Same short↔scan band silent on the bit (short≠cash may still speak).
+    assert "clash · short" not in same["short_history_bit"] or (
+        same["short_history_vs_cash_clock_clash"]
+        and " · scan " not in same["short_history_bit"]
+    )
+
+
+def test_soft_allow_glance_short_vs_cash_when_short_matches_scan() -> None:
+    """xang1234 #549: short matching scan ≠ pinned cash print generation."""
+    # Saturday afternoon UTC — cash sleeves last-published (US aging).
+    # Soft last + short cursor both fresh match the scan → short≠scan
+    # silent; short≠cash still speaks (gap≠cash / soft≠cash parity).
+    now = datetime(2026, 10, 10, 14, 0, tzinfo=timezone.utc)
+    fresh_at = (now - timedelta(minutes=5)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    g = build_soft_allow_glance(
+        [
+            {
+                "at": fresh_at,
+                "gate": "regime",
+                "reason": "no SPY bars — allow",
+            },
+            {
+                "at": fresh_at,
+                "gate": "rs",
+                "reason": "IPO RS unknown — short history — allow",
+            },
+        ],
+        now=now,
+        scan_time=fresh_at,
+        scan_interval_sec=900,
+    )
+    assert g["last_freshness"] == "fresh"
+    assert g["scan_freshness"] == "fresh"
+    assert g["short_history_last_freshness"] == "fresh"
+    assert g["short_history_vs_scan_clash"] == ""
+    assert g["short_history_vs_scan_clash_warn"] is False
+    cash = g["short_history_vs_cash_clock_clash"]
+    assert cash.startswith("clash · short fresh · cash ")
+    assert g["short_history_vs_cash_clock_clash_warn"] is True
+    assert cash in g["short_history_bit"]
+    assert cash in g["line"]
+    assert g["tone"] == "warn"
+    assert "short/cash" in g["soft_lean_meta"] or "short fresh" in (
+        g["soft_lean_meta"]
+    )
+    # Same-evening last-published: short fresh + cash fresh → silent.
+    even = datetime(2026, 9, 8, 1, 30, tzinfo=timezone.utc)
+    even_at = (even - timedelta(minutes=10)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    same = build_soft_allow_glance(
+        [
+            {
+                "at": even_at,
+                "gate": "rs",
+                "reason": "IPO RS unknown — short history — allow",
+            },
+        ],
+        now=even,
+        scan_time=even_at,
+        scan_interval_sec=900,
+    )
+    assert same["short_history_last_freshness"] == "fresh"
+    assert same["short_history_vs_cash_clock_clash"] == ""
+    assert same["short_history_vs_cash_clock_clash_warn"] is False
     assert "clash · short" not in same["short_history_bit"]
 
 

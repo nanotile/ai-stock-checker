@@ -679,11 +679,45 @@ def soft_allow_short_history_vs_scan_clash(
     return f"clash · short {short_speak} · scan {scan}", True
 
 
+def soft_allow_short_history_vs_cash_clock_clash(
+    events: list[dict[str, Any]] | None,
+    *,
+    cash_band: str = "",
+    now: datetime | None = None,
+) -> tuple[str, bool]:
+    """Short cursor vs pinned cash-print generation (display only).
+
+    Returns ``(bit, warn)``. When newest short-history clock ≠ worst
+    last-published cash sleeve (``expired``≡``stale``), speak
+    ``clash · short expired|aging|fresh · cash fresh|aging|stale``.
+    Same band / missing either / live cash (no pin) silent. Soft-allow
+    *last* matching the scan (and short≠scan alone) can still hide a
+    short cursor that matches the archive but not the cash print —
+    closes short↔cash beside short≠scan + soft↔cash + gap≠cash
+    (xang1234 #549 / e3c84e1 coherent generations + portfolio AI
+    speak-both-sides + gap≠cash parity). Not a gate.
+    """
+    cash = str(cash_band or "").strip().casefold()
+    if cash not in {"fresh", "aging", "stale"}:
+        return "", False
+    short_band = soft_allow_short_history_last_freshness(events, now=now)
+    short_clock = _soft_allow_gap_clock_tone(short_band)
+    if not short_clock or short_clock == cash:
+        return "", False
+    short_speak = (
+        short_band
+        if short_band in {"fresh", "aging", "expired"}
+        else short_clock
+    )
+    return f"clash · short {short_speak} · cash {cash}", True
+
+
 def format_soft_allow_short_history_bit(
     events: list[dict[str, Any]] | None,
     *,
     now: datetime | None = None,
     scan_freshness: str = "",
+    cash_band: str = "",
 ) -> str:
     """Compact ``N short · N bench · last SYM · fresh|… · clash · short… · lead|… · vs gap``.
 
@@ -696,7 +730,10 @@ def format_soft_allow_short_history_bit(
     FinRobot last-row age; unknown stamp silent). When short clock ≠
     scan archive band, ``clash · short … · scan …`` follows age so a
     soft-allow last matching the scan cannot hide a staler young/short
-    cursor (xang1234 #549 / e3c84e1 + gap≠scan parity). Symbol lead /
+    cursor (xang1234 #549 / e3c84e1 + gap≠scan parity). When short clock
+    ≠ pinned cash band, ``clash · short … · cash …`` follows so short
+    matching the scan cannot hide a staler cash print (gap≠cash /
+    short≠scan parity). Symbol lead /
     n=1 / tied follows the cursor (last ≠ ring ownership; gap symbol
     lead parity); when lead spoke, ``last vs lead`` / ``agree`` sits
     right after so cursor≠owner is not clipped; when last freshness
@@ -724,8 +761,8 @@ def format_soft_allow_short_history_bit(
     agreement (gap lead/lean parity); when last/share + last/lean
     already spoke, ``short share/lean align|clash`` follows so the two
     age relationships cannot hide non-agreement or dual-clash (gap
-    share/lean parity). Short÷ring share / short-vs-other lean still
-    deferred. Display only; not a gate.
+    share/lean parity). Short÷ring share / short-vs-other lean /
+    short≠memory still deferred. Display only; not a gate.
     """
     n = soft_allow_short_history_count(events)
     if n <= 0:
@@ -749,6 +786,13 @@ def format_soft_allow_short_history_bit(
             )
             if short_vs_scan:
                 head = f"{head} · {short_vs_scan}"
+            short_vs_cash, _ = soft_allow_short_history_vs_cash_clock_clash(
+                events,
+                cash_band=cash_band,
+                now=now,
+            )
+            if short_vs_cash:
+                head = f"{head} · {short_vs_cash}"
     lead_bit, _lead_name, _lead_share = soft_allow_short_history_symbol_lead(
         events
     )

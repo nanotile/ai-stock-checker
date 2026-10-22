@@ -67,6 +67,7 @@ def test_soft_allow_short_history_count() -> None:
         soft_allow_short_history_last_vs_share,
         soft_allow_short_history_last_vs_lean,
         soft_allow_short_history_vs_scan_clash,
+        soft_allow_short_history_vs_cash_clock_clash,
     )
 
     assert soft_allow_short_history_count(None) == 0
@@ -97,6 +98,10 @@ def test_soft_allow_short_history_count() -> None:
     assert soft_allow_short_history_vs_scan_clash(None) == ("", False)
     assert soft_allow_short_history_vs_scan_clash(
         None, scan_freshness="fresh"
+    ) == ("", False)
+    assert soft_allow_short_history_vs_cash_clock_clash(None) == ("", False)
+    assert soft_allow_short_history_vs_cash_clock_clash(
+        None, cash_band="aging"
     ) == ("", False)
     assert format_soft_allow_short_history_bit(None) == ""
     assert (
@@ -316,6 +321,30 @@ def test_soft_allow_short_history_count() -> None:
     assert soft_allow_short_history_vs_scan_clash(
         expired, scan_freshness="stale", now=now
     ) == ("", False)
+    # Short≠cash: expired≡stale vs aging speaks; same band silent
+    # (gap≠cash / short≠scan parity).
+    assert soft_allow_short_history_vs_cash_clock_clash(
+        expired, cash_band="aging", now=now
+    ) == ("clash · short expired · cash aging", True)
+    assert format_soft_allow_short_history_bit(
+        expired, now=now, cash_band="aging"
+    ) == (
+        "1 short · last IPO · expired · clash · short expired · cash aging"
+        " · n=1"
+    )
+    assert soft_allow_short_history_vs_cash_clock_clash(
+        expired, cash_band="stale", now=now
+    ) == ("", False)
+    # Short matching scan + cash aging — both clash bits on one line.
+    assert format_soft_allow_short_history_bit(
+        expired,
+        now=now,
+        scan_freshness="fresh",
+        cash_band="aging",
+    ) == (
+        "1 short · last IPO · expired · clash · short expired · scan fresh"
+        " · clash · short expired · cash aging · n=1"
+    )
     fresh = [
         {
             "at": "2026-10-22T11:30:00Z",

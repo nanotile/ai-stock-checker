@@ -2074,6 +2074,14 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
         ),
         "short/scan",
     ),
+    # Short cursor vs pinned cash print (gap/cash + short/scan parity).
+    # Short matching the scan can still hide a staler cash sleeve.
+    (
+        re.compile(
+            r"^clash · short \S+ · cash(?: \S+)?"
+        ),
+        "short/cash",
+    ),
     # Cursor ticker + age ride with the count so ``N gap`` does not hide
     # who last failed open or whether that print is still live (#546).
     (
@@ -2534,6 +2542,7 @@ def build_soft_allow_glance(
         soft_allow_short_history_last_lead_vs_share,
         soft_allow_short_history_last_share_vs_lean,
         soft_allow_short_history_vs_scan_clash,
+        soft_allow_short_history_vs_cash_clock_clash,
         format_soft_allow_short_history_bit,
         soft_allow_vs_gap_clock_clash,
         soft_allow_last_vs_lead,
@@ -2631,6 +2640,8 @@ def build_soft_allow_glance(
         "short_history_last_share_vs_lean_warn": False,
         "short_history_vs_scan_clash": "",
         "short_history_vs_scan_clash_warn": False,
+        "short_history_vs_cash_clock_clash": "",
+        "short_history_vs_cash_clock_clash_warn": False,
         "short_history_bit": "",
         "anchor_gap_count": 0,
         "anchor_gap_last": "",
@@ -3003,10 +3014,21 @@ def build_soft_allow_glance(
             now=now,
         )
     )
+    # Short≠cash — short matching the scan can still hide a staler cash
+    # print (gap≠cash / short≠scan parity + xang1234 #549 / e3c84e1).
+    (
+        short_history_vs_cash_clock_clash,
+        short_history_vs_cash_clock_clash_warn,
+    ) = soft_allow_short_history_vs_cash_clock_clash(
+        rows,
+        cash_band=cash_band,
+        now=now,
+    )
     short_history_bit = format_soft_allow_short_history_bit(
         rows,
         now=now,
         scan_freshness=scan_freshness,
+        cash_band=cash_band,
     )
     anchor_gap_n, anchor_gap_share_pct, anchor_gap_share_severity = (
         soft_allow_anchor_gap_share(rows)
@@ -3264,6 +3286,7 @@ def build_soft_allow_glance(
         or short_history_bench_n > 0
         or short_history_last_freshness == "expired"
         or short_history_vs_scan_clash_warn
+        or short_history_vs_cash_clock_clash_warn
         or short_history_last_vs_lead_freshness_warn
         or short_history_last_vs_share_warn
         or short_history_last_vs_lean_warn
@@ -3450,6 +3473,7 @@ def build_soft_allow_glance(
         or anchor_gap_vs_memory_clock_clash_warn
         or short_history_vs_gap_lean_warn
         or short_history_vs_scan_clash_warn
+        or short_history_vs_cash_clock_clash_warn
         or short_history_last_vs_lead_freshness_warn
         or short_history_last_vs_share_warn
         or short_history_last_vs_lean_warn
@@ -3570,6 +3594,10 @@ def build_soft_allow_glance(
         ),
         "short_history_vs_scan_clash": short_history_vs_scan_clash,
         "short_history_vs_scan_clash_warn": short_history_vs_scan_clash_warn,
+        "short_history_vs_cash_clock_clash": short_history_vs_cash_clock_clash,
+        "short_history_vs_cash_clock_clash_warn": (
+            short_history_vs_cash_clock_clash_warn
+        ),
         "short_history_bit": short_history_bit,
         "anchor_gap_count": anchor_gap_n,
         "anchor_gap_last": anchor_gap_last,
