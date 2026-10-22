@@ -370,6 +370,26 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
         )
         == "quiet · 1 fold · gap/cash gap-only US-only scan-only"
     )
+    # Short keep-scan / keep-cash pins ride on the lean chip (gap parity).
+    assert (
+        soft_allow_lean_meta(
+            "clash · short fresh · cash aging · scan-only"
+        )
+        == "quiet · 1 fold · short/cash scan-only"
+    )
+    assert (
+        soft_allow_lean_meta(
+            "clash · short fresh · laya stale · debate aging · "
+            "scan-only · US-only"
+        )
+        == "quiet · 1 fold · short/memory scan-only US-only"
+    )
+    assert (
+        soft_allow_lean_meta(
+            "clash · short expired · scan fresh · US-only · laya-only"
+        )
+        == "quiet · 1 fold · short/scan US-only laya-only"
+    )
     assert (
         soft_allow_lean_meta(
             "clash · gap expired · cash aging · gap-only · ×2 · 100%"
@@ -971,7 +991,9 @@ def test_soft_allow_glance_short_vs_cash_when_short_matches_scan() -> None:
     """xang1234 #549: short matching scan ≠ pinned cash print generation."""
     # Saturday afternoon UTC — cash sleeves last-published (US aging).
     # Soft last + short cursor both fresh match the scan → short≠scan
-    # silent; short≠cash still speaks (gap≠cash / soft≠cash parity).
+    # silent; short≠cash still speaks (gap≠cash / soft≠cash parity) and
+    # keeps ``scan-only`` so cash alone cannot hide the archive match
+    # (gap≠cash keep-scan + #660 / #647 / #531).
     now = datetime(2026, 10, 10, 14, 0, tzinfo=timezone.utc)
     fresh_at = (now - timedelta(minutes=5)).strftime("%Y-%m-%dT%H:%M:%SZ")
     g = build_soft_allow_glance(
@@ -998,13 +1020,13 @@ def test_soft_allow_glance_short_vs_cash_when_short_matches_scan() -> None:
     assert g["short_history_vs_scan_clash_warn"] is False
     cash = g["short_history_vs_cash_clock_clash"]
     assert cash.startswith("clash · short fresh · cash ")
+    assert cash.endswith(" · scan-only")
     assert g["short_history_vs_cash_clock_clash_warn"] is True
     assert cash in g["short_history_bit"]
     assert cash in g["line"]
     assert g["tone"] == "warn"
-    assert "short/cash" in g["soft_lean_meta"] or "short fresh" in (
-        g["soft_lean_meta"]
-    )
+    assert "short/cash" in g["soft_lean_meta"]
+    assert "scan-only" in g["soft_lean_meta"]
     # Same-evening last-published: short fresh + cash fresh → silent.
     even = datetime(2026, 9, 8, 1, 30, tzinfo=timezone.utc)
     even_at = (even - timedelta(minutes=10)).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -1029,8 +1051,9 @@ def test_soft_allow_glance_short_vs_cash_when_short_matches_scan() -> None:
 def test_soft_allow_glance_short_vs_memory_when_short_matches_scan() -> None:
     """xang1234 #549: short matching scan ≠ live LAYA/debate print."""
     # Same-evening last-published: soft + short fresh match scan + cash →
-    # short≠scan / short≠cash silent; short≠memory still speaks
-    # (gap≠memory / soft≠memory parity; quieter lean chip).
+    # short≠scan / short≠cash silent; short≠memory still speaks and keeps
+    # ``scan-only`` + cash pin so memory alone cannot hide those matches
+    # (gap≠memory keep-scan|/cash + #660 / #647 / #531).
     now = datetime(2026, 9, 8, 1, 30, tzinfo=timezone.utc)
     fresh_at = (now - timedelta(minutes=10)).strftime("%Y-%m-%dT%H:%M:%SZ")
     g = build_soft_allow_glance(
@@ -1059,12 +1082,18 @@ def test_soft_allow_glance_short_vs_memory_when_short_matches_scan() -> None:
     assert g["short_history_vs_scan_clash_warn"] is False
     assert g["short_history_vs_cash_clock_clash"] == ""
     mem = g["short_history_vs_memory_clock_clash"]
-    assert mem == "clash · short fresh · laya stale · debate aging"
+    assert mem.startswith(
+        "clash · short fresh · laya stale · debate aging · scan-only"
+    )
+    assert " · scan-only" in mem
+    # Cash pin rides after scan-only (short matches cash this evening).
+    assert mem.endswith("-only") or " · ×" in mem or " · US" in mem
     assert g["short_history_vs_memory_clock_clash_warn"] is True
     assert mem in g["short_history_bit"]
     assert mem in g["line"]
     assert g["tone"] == "warn"
-    assert "short/memory" in g["soft_lean_meta"] or mem in g["soft_lean"]
+    assert "short/memory" in g["soft_lean_meta"]
+    assert "scan-only" in g["soft_lean_meta"]
     # Same band as short — silent (no false mixed-generation warn).
     same = build_soft_allow_glance(
         [
@@ -1101,8 +1130,11 @@ def test_soft_allow_glance_short_vs_memory_when_short_matches_scan() -> None:
         laya_freshness="fresh",
         debate_freshness="stale",
     )
+    assert one["short_history_vs_memory_clock_clash"].startswith(
+        "clash · short fresh · debate stale · scan-only"
+    )
     assert one["short_history_vs_memory_clock_clash"] == (
-        "clash · short fresh · debate stale"
+        "clash · short fresh · debate stale · scan-only · ×2 · 100%"
     )
     assert one["short_history_vs_memory_clock_clash_warn"] is True
     assert "laya" not in one["short_history_vs_memory_clock_clash"]

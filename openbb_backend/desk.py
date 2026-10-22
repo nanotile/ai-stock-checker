@@ -2068,26 +2068,46 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
     # Short cursor vs scan archive (gap/scan parity + xang1234 #549 /
     # e3c84e1). Soft last matching the scan can still hide a staler
     # young/short fail-open — speak both sides on the lean chip.
+    # Optional keep cash / memory pins when short≠cash / short≠memory
+    # are silent (gap≠scan keep-cash|/memory + #660 / #647 / #531).
     (
         re.compile(
             r"^clash · short \S+ · scan(?: \S+)?"
+            r"(?: · ((?:US|Xetra)-only)"
+            r"| · (US|Xetra) · (\d+(?:\.\d+)?%)"
+            r"| · (×\d+) · (\d+(?:\.\d+)?%))?"
+            r"(?: · ((?:laya|debate)-only)"
+            r"| · (laya|debate) · (\d+(?:\.\d+)?%)"
+            r"| · (×\d+) · (\d+(?:\.\d+)?%))?"
         ),
         "short/scan",
     ),
     # Short cursor vs pinned cash print (gap/cash + short/scan parity).
     # Short matching the scan can still hide a staler cash sleeve.
+    # Optional keep ``scan-only`` when short≠scan is silent; optional
+    # keep memory when short≠memory is silent (#660 / #647 / #531).
     (
         re.compile(
             r"^clash · short \S+ · cash(?: \S+)?"
+            r"(?: · (scan-only))?"
+            r"(?: · ((?:laya|debate)-only)"
+            r"| · (laya|debate) · (\d+(?:\.\d+)?%)"
+            r"| · (×\d+) · (\d+(?:\.\d+)?%))?"
         ),
         "short/cash",
     ),
     # Short cursor vs LAYA/debate (gap/memory + short/scan|/cash parity).
     # Short matching scan or cash can still hide a staler advisory print.
+    # Optional keep ``scan-only`` when short≠scan is silent; optional
+    # keep cash when short≠cash is silent (#660 / #647 / #531).
     (
         re.compile(
             r"^clash · short \S+ · (?:laya|debate) (?:fresh|aging|stale|expired)"
             r"(?: · (?:laya|debate) (?:fresh|aging|stale|expired))*"
+            r"(?: · (scan-only))?"
+            r"(?: · ((?:US|Xetra)-only)"
+            r"| · (US|Xetra) · (\d+(?:\.\d+)?%)"
+            r"| · (×\d+) · (\d+(?:\.\d+)?%))?"
         ),
         "short/memory",
     ),
@@ -3018,13 +3038,27 @@ def build_soft_allow_glance(
     ) = soft_allow_short_history_last_share_vs_lean(rows, now=now)
     # Short≠scan after short last freshness is known — soft-allow last
     # matching the scan can still hide a staler young/short cursor
-    # (gap≠scan parity + xang1234 #549 / e3c84e1).
+    # (gap≠scan parity + xang1234 #549 / e3c84e1). Keep cash / memory
+    # pins known only after short≠cash / short≠memory below.
     short_history_vs_scan_clash, short_history_vs_scan_clash_warn = (
         soft_allow_short_history_vs_scan_clash(
             rows,
             scan_freshness=scan_freshness,
             now=now,
         )
+    )
+    # Short≠scan silent (short matches archive) — keep scan-only on
+    # short≠cash / short≠memory so those bits cannot hide the match
+    # (gap≠cash|/memory keep-scan + #660 / #647 / #531).
+    short_keep_scan = (
+        scan_pin
+        if (
+            scan_pin
+            and not short_history_vs_scan_clash
+            and short_history_last_freshness
+            and scan_freshness
+        )
+        else ""
     )
     # Short≠cash — short matching the scan can still hide a staler cash
     # print (gap≠cash / short≠scan parity + xang1234 #549 / e3c84e1).
@@ -3035,7 +3069,30 @@ def build_soft_allow_glance(
         rows,
         cash_band=cash_band,
         now=now,
+        keep_scan_pin_size=short_keep_scan,
     )
+    # Short≠cash silent (short matches cash) — keep cash pin on
+    # short≠scan / short≠memory so those bits cannot hide the match
+    # (gap≠* keep-cash + #660 / #647 / #531).
+    short_keep_cash = (
+        cash_pin
+        if (
+            cash_pin
+            and not short_history_vs_cash_clock_clash
+            and short_history_last_freshness
+            and cash_band
+        )
+        else ""
+    )
+    if short_keep_cash and short_history_vs_scan_clash:
+        short_history_vs_scan_clash, short_history_vs_scan_clash_warn = (
+            soft_allow_short_history_vs_scan_clash(
+                rows,
+                scan_freshness=scan_freshness,
+                now=now,
+                keep_cash_pin_size=short_keep_cash,
+            )
+        )
     # Short≠memory — short matching scan/cash can still hide a staler
     # LAYA/debate print (gap≠memory / soft≠memory / short≠scan|/cash
     # parity + xang1234 #549 / e3c84e1 + FinRobot last-row).
@@ -3047,7 +3104,47 @@ def build_soft_allow_glance(
         laya_freshness=laya_tone,
         debate_freshness=debate_tone,
         now=now,
+        keep_scan_pin_size=short_keep_scan,
+        keep_cash_pin_size=short_keep_cash,
     )
+    # Short≠memory silent (short matches advisory) — keep memory pin on
+    # short≠scan / short≠cash so those bits cannot hide the match
+    # (gap≠* keep-memory + #660 / #647 / #531).
+    short_keep_memory = (
+        memory_advisory_pin_size(
+            own_clock=short_history_last_freshness,
+            laya_freshness=laya_tone,
+            debate_freshness=debate_tone,
+            matched=True,
+        )
+        if (
+            short_history_last_freshness
+            and not short_history_vs_memory_clock_clash
+            and (laya_tone or debate_tone)
+        )
+        else ""
+    )
+    if short_keep_memory and short_history_vs_scan_clash:
+        short_history_vs_scan_clash, short_history_vs_scan_clash_warn = (
+            soft_allow_short_history_vs_scan_clash(
+                rows,
+                scan_freshness=scan_freshness,
+                now=now,
+                keep_cash_pin_size=short_keep_cash,
+                keep_memory_pin_size=short_keep_memory,
+            )
+        )
+    if short_keep_memory and short_history_vs_cash_clock_clash:
+        (
+            short_history_vs_cash_clock_clash,
+            short_history_vs_cash_clock_clash_warn,
+        ) = soft_allow_short_history_vs_cash_clock_clash(
+            rows,
+            cash_band=cash_band,
+            now=now,
+            keep_scan_pin_size=short_keep_scan,
+            keep_memory_pin_size=short_keep_memory,
+        )
     short_history_bit = format_soft_allow_short_history_bit(
         rows,
         now=now,
@@ -3055,6 +3152,9 @@ def build_soft_allow_glance(
         cash_band=cash_band,
         laya_freshness=laya_tone,
         debate_freshness=debate_tone,
+        keep_scan_pin_size=short_keep_scan,
+        keep_cash_pin_size=short_keep_cash,
+        keep_memory_pin_size=short_keep_memory,
     )
     anchor_gap_n, anchor_gap_share_pct, anchor_gap_share_severity = (
         soft_allow_anchor_gap_share(rows)

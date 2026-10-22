@@ -348,6 +348,36 @@ def test_soft_allow_short_history_count() -> None:
         debate_freshness="aging",
         now=now,
     ) == ("clash · short expired · laya fresh · debate aging", True)
+    # Keep-scan / keep-cash when short matches archive or cash (gap≠*
+    # keep-pin parity + #660 / #647 / #531).
+    assert soft_allow_short_history_vs_cash_clock_clash(
+        expired,
+        cash_band="aging",
+        now=now,
+        keep_scan_pin_size=" · scan-only",
+    ) == ("clash · short expired · cash aging · scan-only", True)
+    assert soft_allow_short_history_vs_memory_clock_clash(
+        expired,
+        laya_freshness="fresh",
+        debate_freshness="aging",
+        now=now,
+        keep_scan_pin_size="scan-only",
+        keep_cash_pin_size="US-only",
+    ) == (
+        "clash · short expired · laya fresh · debate aging"
+        " · scan-only · US-only",
+        True,
+    )
+    assert soft_allow_short_history_vs_scan_clash(
+        expired,
+        scan_freshness="fresh",
+        now=now,
+        keep_cash_pin_size="US-only",
+        keep_memory_pin_size="laya-only",
+    ) == (
+        "clash · short expired · scan fresh · US-only · laya-only",
+        True,
+    )
     assert soft_allow_short_history_vs_memory_clock_clash(
         expired,
         laya_freshness="stale",
