@@ -46,6 +46,7 @@ def test_soft_allow_short_history_count() -> None:
     """xang1234 #668: short history ≠ anchor gap ≠ bare RS unknown."""
     from stock_checker.gate_audit import (
         format_soft_allow_short_history_bit,
+        soft_allow_short_history_bench_count,
         soft_allow_short_history_count,
         soft_allow_short_history_last_symbol,
         soft_allow_short_history_symbol_last_vs_lead,
@@ -60,6 +61,8 @@ def test_soft_allow_short_history_count() -> None:
 
     assert soft_allow_short_history_count(None) == 0
     assert soft_allow_short_history_count([]) == 0
+    assert soft_allow_short_history_bench_count(None) == 0
+    assert soft_allow_short_history_bench_count([]) == 0
     assert soft_allow_short_history_last_symbol(None) == ""
     assert soft_allow_short_history_last_symbol([]) == ""
     assert soft_allow_short_history_symbol_lead(None) == ("", "", None)
@@ -102,6 +105,7 @@ def test_soft_allow_short_history_count() -> None:
         "junk",
     ]
     assert soft_allow_short_history_count(mixed) == 2
+    assert soft_allow_short_history_bench_count(mixed) == 0
     # Newest-first ring — IPO is the cursor (#546 after #668).
     assert soft_allow_short_history_last_symbol(mixed) == "IPO"
     # Two distinct short names → tied (no strict lead).
@@ -211,6 +215,26 @@ def test_soft_allow_short_history_count() -> None:
         "4 short · last NEW · lead IPO · 3 · 75% · last vs lead · NEW · "
         "ahead wide · +2 · vs NEW · 1 · 25%"
     )
+    # xang1234 #679: primary-benchmark short ≠ young listing.
+    bench_rows = [
+        {"gate": "rs", "reason": "SPY RS unknown — short history — allow"},
+        {"gate": "rs", "reason": "IPO RS unknown — short history — allow"},
+        {"gate": "rs", "reason": "BTC RS unknown — short history — allow"},
+        {"gate": "rs", "reason": "AAPL RS unknown — anchor gap — allow"},
+    ]
+    assert soft_allow_short_history_count(bench_rows) == 3
+    assert soft_allow_short_history_bench_count(bench_rows) == 2
+    assert soft_allow_short_history_last_symbol(bench_rows) == "SPY"
+    assert format_soft_allow_short_history_bit(bench_rows) == (
+        "3 short · 2 bench · last SPY · tied · vs gap · thin · 1 · 25% · "
+        "short vs gap align · hot|thin"
+    )
+    assert soft_allow_short_history_bench_count(
+        [{"gate": "rs", "reason": "IPO RS unknown — short history — allow"}]
+    ) == 0
+    assert soft_allow_short_history_bench_count(
+        [{"gate": "rs", "reason": "SPY RS unknown — allow"}]
+    ) == 0
 
 
 def test_soft_allow_anchor_gap_count() -> None:

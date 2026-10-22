@@ -750,6 +750,7 @@ def test_soft_allow_glance_short_history_count() -> None:
     )
     assert g["ready"] is True
     assert g["short_history_count"] == 2
+    assert g["short_history_bench_count"] == 0
     assert g["short_history_last"] == "IPO"
     # Two distinct short names → no strict lead (gap sample-gap parity).
     assert g["short_history_symbol_lead"] == ""
@@ -805,6 +806,46 @@ def test_soft_allow_glance_short_history_count() -> None:
         "quiet · 5 folds · short IPO · tied · vs gap thin 1 33% · "
         "short/gap align hot|thin · +1"
     )
+    assert soft_allow_lean_meta("3 short · 2 bench · last SPY") == (
+        "quiet · 1 fold · short 2 bench SPY"
+    )
+
+
+def test_soft_allow_glance_short_history_bench_count() -> None:
+    """xang1234 #679: primary-benchmark short ≠ young listing short."""
+    now = datetime(2026, 10, 22, 12, 0, tzinfo=timezone.utc)
+    g = build_soft_allow_glance(
+        [
+            {
+                "at": "2026-10-22T11:00:00Z",
+                "gate": "rs",
+                "reason": "SPY RS unknown — short history — allow",
+            },
+            {
+                "at": "2026-10-22T10:30:00Z",
+                "gate": "rs",
+                "reason": "IPO RS unknown — short history — allow",
+            },
+            {
+                "at": "2026-10-22T10:00:00Z",
+                "gate": "rs",
+                "reason": "AAPL RS unknown — anchor gap — allow",
+            },
+        ],
+        now=now,
+    )
+    assert g["ready"] is True
+    assert g["short_history_count"] == 2
+    assert g["short_history_bench_count"] == 1
+    assert g["short_history_last"] == "SPY"
+    assert g["short_history_bit"] == (
+        "2 short · 1 bench · last SPY · tied · vs gap · thin · 1 · 33% · "
+        "short vs gap align · hot|thin"
+    )
+    assert "1 bench" in g["line"]
+    assert g["tone"] == "warn"
+    assert g["soft_lean_warn"] is True
+    assert "short 1 bench SPY" in g["soft_lean_meta"]
 
 
 def test_soft_allow_glance_short_history_symbol_lead() -> None:

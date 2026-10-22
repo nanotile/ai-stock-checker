@@ -2050,13 +2050,16 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
     ),
     # Young / short-series fail-opens (xang1234 #668) sit before gap so
     # ``N short · N gap`` does not leave the lean chip bare ``quiet`` —
-    # absolute short count already spoke; the fold must name it. Cursor
+    # absolute short count already spoke; the fold must name it. Primary
+    # bench short (``N bench``) rides before the cursor so SPY/BTC thin
+    # history is not clipped as a young listing (xang1234 #679). Cursor
     # ticker rides with the count (#546 after #668) so ``N short`` does
     # not hide who last failed open (gap last-SYM parity; share/lean
     # still deferred).
     (
         re.compile(
-            r"^\d+ short(?: · last ([A-Za-z0-9][A-Za-z0-9.\-]{0,14}))?"
+            r"^\d+ short(?: · (\d+ bench))?"
+            r"(?: · last ([A-Za-z0-9][A-Za-z0-9.\-]{0,14}))?"
         ),
         "short",
     ),
@@ -2423,6 +2426,7 @@ def build_soft_allow_glance(
         soft_allow_anchor_gap_vs_cash_clock_clash,
         soft_allow_anchor_gap_vs_memory_clock_clash,
         soft_allow_anchor_gap_vs_scan_clash,
+        soft_allow_short_history_bench_count,
         soft_allow_short_history_count,
         soft_allow_short_history_last_symbol,
         soft_allow_short_history_symbol_lead,
@@ -2493,6 +2497,7 @@ def build_soft_allow_glance(
         "last_lead_vs_config_warn": False,
         "sample_gap": "",
         "short_history_count": 0,
+        "short_history_bench_count": 0,
         "short_history_last": "",
         "short_history_symbol_lead": "",
         "short_history_symbol_lead_name": "",
@@ -2797,6 +2802,7 @@ def build_soft_allow_glance(
     # ok / gap vs other lean parity). Short÷ring share / freshness /
     # short-vs-other lean still deferred.
     short_history_n = soft_allow_short_history_count(rows)
+    short_history_bench_n = soft_allow_short_history_bench_count(rows)
     short_history_last = soft_allow_short_history_last_symbol(rows)
     (
         short_history_symbol_lead,
@@ -3101,6 +3107,7 @@ def build_soft_allow_glance(
         or anchor_gap_vs_scan_clash_warn
         or anchor_gap_vs_cash_clock_clash_warn
         or anchor_gap_vs_memory_clock_clash_warn
+        or short_history_bench_n > 0
     ):
         tone = "warn"
     lead_bit = format_soft_allow_lead_bit(rows, band=lead_band)
@@ -3280,6 +3287,7 @@ def build_soft_allow_glance(
         or anchor_gap_vs_cash_clock_clash_warn
         or anchor_gap_vs_memory_clock_clash_warn
         or short_history_vs_gap_lean_warn
+        or short_history_bench_n > 0
     )
     soft_lean_meta = soft_allow_lean_meta(soft_lean, warn=soft_lean_warn)
     if gen_clash_bits and line.startswith(f"{severity} · "):
@@ -3335,6 +3343,7 @@ def build_soft_allow_glance(
         "last_lead_vs_config_warn": last_lead_vs_config_warn,
         "sample_gap": sample_gap,
         "short_history_count": short_history_n,
+        "short_history_bench_count": short_history_bench_n,
         "short_history_last": short_history_last,
         "short_history_symbol_lead": short_history_symbol_lead,
         "short_history_symbol_lead_name": short_history_symbol_lead_name,

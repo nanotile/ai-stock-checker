@@ -51,6 +51,16 @@ SOFT_ALLOW_ANCHOR_GAP_SHARE_QUIET = 25.0
 # share — gap% alone hid usable fail-opens that are not anchor-gap.
 SOFT_ALLOW_OTHER_SHARE_STRONG = 75.0
 SOFT_ALLOW_OTHER_SHARE_THIN = 50.0
+# Primary RS benchmarks (relative_strength bench_label). Short history on
+# these is a stale / thin primary, not a young listing — xang1234 #679.
+PRIMARY_RS_BENCH_LABELS = frozenset(
+    {"SPY", "SPX", "BTC", "BTCUSDT", "BENCHMARK"}
+)
+
+
+def is_primary_rs_bench_label(label: str) -> bool:
+    """True when ``label`` is a stock/crypto RS primary benchmark."""
+    return str(label or "").strip().upper() in PRIMARY_RS_BENCH_LABELS
 
 
 def soft_allow_anchor_gap_count(
@@ -123,6 +133,27 @@ def soft_allow_short_history_last_symbol(
         if sym:
             return sym
     return ""
+
+
+def soft_allow_short_history_bench_count(
+    events: list[dict[str, Any]] | None,
+) -> int:
+    """Count short-history rows whose label is a primary RS benchmark.
+
+    Absolute ``N short`` / ``last SYM`` treat SPY/BTC like a young
+    listing. xang1234 #679 refuses a warm that stops before the last
+    completed session — desk should speak how many short-series
+    fail-opens are the primary benchmark (stale/thin SPY or BTC), not
+    an IPO. Zero silent. Display only; not a gate.
+    """
+    n = 0
+    for row in events or []:
+        if not isinstance(row, dict):
+            continue
+        sym = _short_history_symbol(str(row.get("reason") or ""))
+        if sym and is_primary_rs_bench_label(sym):
+            n += 1
+    return n
 
 
 def _short_history_symbol_counts(
@@ -364,10 +395,12 @@ def soft_allow_short_vs_gap_lean(
 def format_soft_allow_short_history_bit(
     events: list[dict[str, Any]] | None,
 ) -> str:
-    """Compact ``N short · last SYM · lead|n=1|tied · … · vs gap · short vs gap``.
+    """Compact ``N short · N bench · last SYM · lead|… · vs gap · short vs gap``.
 
-    Zero silent. ``last SYM`` sits right after the count so lean cannot
-    clip the young-listing cursor (#546 after #668). Symbol lead /
+    Zero silent. When any short row names a primary RS benchmark
+    (SPY/BTC), ``N bench`` sits right after the count so young-listing
+    short ≠ a stale/thin primary (xang1234 #679 after #668). ``last SYM``
+    follows so lean cannot clip the cursor (#546). Symbol lead /
     n=1 / tied follows the cursor (last ≠ ring ownership; gap symbol
     lead parity); when lead spoke, ``last vs lead`` / ``agree`` sits
     right after so cursor≠owner is not clipped; when a runner exists,
@@ -384,6 +417,9 @@ def format_soft_allow_short_history_bit(
     if n <= 0:
         return ""
     head = f"{n} short"
+    bench_n = soft_allow_short_history_bench_count(events)
+    if bench_n > 0:
+        head = f"{head} · {bench_n} bench"
     last = soft_allow_short_history_last_symbol(events)
     if last:
         head = f"{head} · last {last}"
