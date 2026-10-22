@@ -460,6 +460,26 @@ def gap_cursor_pin_size(*, gap_freshness: str = "") -> str:
     return " · gap-only"
 
 
+def short_history_pin_size(*, short_freshness: str = "") -> str:
+    """Short-history cursor pin (display only).
+
+    Short≠scan/cash/memory/gap and gap≠* keep-short name a generation
+    verb. Absolute ``N short`` lied young/short fail-open ownership was
+    the cursor print; the newest short stamp is a sole published pin
+    like soft last / gap cursor → `` · short-only`` (``gap-only`` /
+    ``soft-only`` / ``scan-only`` parity; xang1234 #647 venue-scope +
+    #531 + #668). Missing / unknown band silent. Not a gate.
+    """
+    t = str(short_freshness or "").strip().casefold()
+    if t == "expired":
+        t = "stale"
+    elif t == "unknown":
+        t = "fresh"
+    if t not in _CASH_PRINT_RANK:
+        return ""
+    return " · short-only"
+
+
 def cash_print_band_size(meta: Mapping[str, Any] | None, *, clock: str) -> str:
     """Cash pin ring size with venue pointer (display only).
 
@@ -1998,7 +2018,8 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
     # Gap cursor pin (``gap-only``) then scan pin (``scan-only``) so
     # sleeve membership ≠ cursor print ≠ archive coverage (#647 / #531);
     # optional keep cash pin when gap≠cash is silent; optional keep
-    # soft-only when soft≠gap is silent (#660 / #647).
+    # soft-only when soft≠gap is silent; optional keep short-only when
+    # short≠gap is silent (#660 / #647 / #668).
     (
         re.compile(
             r"^clash · gap \S+ · scan(?: \S+)?"
@@ -2008,12 +2029,14 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
             r"| · (US|Xetra) · (\d+(?:\.\d+)?%)"
             r"| · (×\d+) · (\d+(?:\.\d+)?%))?"
             r"(?: · (soft-only))?"
+            r"(?: · (short-only))?"
         ),
         "gap/scan",
     ),
     # Gap cursor pin (``gap-only``) then cash pin (US-only / venue · 50% /
     # ×2 · 100%); optional keep ``scan-only`` when gap≠scan is silent;
-    # optional keep soft-only when soft≠gap is silent (#647 / #531 / #660).
+    # optional keep soft-only when soft≠gap is silent; optional keep
+    # short-only when short≠gap is silent (#647 / #531 / #660 / #668).
     (
         re.compile(
             r"^clash · gap \S+ · cash(?: \S+)?"
@@ -2023,15 +2046,16 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
             r"| · (×\d+) · (\d+(?:\.\d+)?%))?"
             r"(?: · (scan-only))?"
             r"(?: · (soft-only))?"
+            r"(?: · (short-only))?"
         ),
         "gap/cash",
     ),
     # Gap cursor pin (``gap-only``) then advisory pin (laya-only /
     # venue · 50% / ×2 · 100%); optional keep ``scan-only`` when
     # gap≠scan is silent; optional keep cash when gap≠cash is silent;
-    # optional keep soft-only when soft≠gap is silent (#647 / #531 /
-    # #660). Tone words required so pin ``debate-only`` is not eaten as
-    # a side.
+    # optional keep soft-only when soft≠gap is silent; optional keep
+    # short-only when short≠gap is silent (#647 / #531 / #660 / #668).
+    # Tone words required so pin ``debate-only`` is not eaten as a side.
     (
         re.compile(
             r"^clash · gap \S+ · (?:laya|debate) (?:fresh|aging|stale|expired)"
@@ -2045,6 +2069,7 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
             r"| · (US|Xetra) · (\d+(?:\.\d+)?%)"
             r"| · (×\d+) · (\d+(?:\.\d+)?%))?"
             r"(?: · (soft-only))?"
+            r"(?: · (short-only))?"
         ),
         "gap/memory",
     ),
@@ -3250,6 +3275,24 @@ def build_soft_allow_glance(
         keep_memory_pin_size=short_keep_memory,
         keep_gap_pin_size=short_keep_gap,
     )
+    # Short≠gap silent (gap matches short cursor) — keep short-only on
+    # gap≠scan / gap≠cash / gap≠memory so those bits cannot hide the
+    # match (short≠* keep-gap speak-both-sides + #660 / #647 / #531 /
+    # #668). Short≠gap already names short · gap; a silent match must
+    # ride the gap bit clashes.
+    short_pin = short_history_pin_size(
+        short_freshness=short_history_last_freshness
+    )
+    gap_keep_short = (
+        short_pin
+        if (
+            short_pin
+            and not short_history_vs_gap_clock_clash
+            and short_history_last_freshness
+            and anchor_gap_last_freshness
+        )
+        else ""
+    )
     anchor_gap_n, anchor_gap_share_pct, anchor_gap_share_severity = (
         soft_allow_anchor_gap_share(rows)
     )
@@ -3279,8 +3322,8 @@ def build_soft_allow_glance(
         soft_allow_anchor_gap_last_share_vs_lean(rows, now=now)
     )
     # Gap≠scan first without keep-cash — cash match is known only after
-    # gap≠cash below (soft≠scan keep-cash parity). Soft keep is known
-    # already (soft≠gap silent above).
+    # gap≠cash below (soft≠scan keep-cash parity). Soft keep + short keep
+    # are known already (soft≠gap / short≠gap silent above).
     anchor_gap_vs_scan_clash, anchor_gap_vs_scan_clash_warn = (
         soft_allow_anchor_gap_vs_scan_clash(
             rows,
@@ -3289,6 +3332,7 @@ def build_soft_allow_glance(
             gap_pin_size=gap_pin,
             scan_pin_size=scan_pin,
             keep_soft_pin_size=gap_keep_soft,
+            keep_short_pin_size=gap_keep_short,
         )
     )
     # Gap≠scan silent (gap matches archive) — keep scan-only on gap≠cash /
@@ -3313,6 +3357,7 @@ def build_soft_allow_glance(
             cash_pin_size=cash_pin,
             keep_scan_pin_size=gap_keep_scan,
             keep_soft_pin_size=gap_keep_soft,
+            keep_short_pin_size=gap_keep_short,
         )
     )
     # Gap≠cash silent (gap matches cash) — keep cash pin on gap≠scan /
@@ -3339,6 +3384,7 @@ def build_soft_allow_glance(
                 scan_pin_size=scan_pin,
                 keep_cash_pin_size=gap_keep_cash,
                 keep_soft_pin_size=gap_keep_soft,
+                keep_short_pin_size=gap_keep_short,
             )
         )
     gap_memory_pin = (
@@ -3363,6 +3409,7 @@ def build_soft_allow_glance(
         keep_scan_pin_size=gap_keep_scan,
         keep_cash_pin_size=gap_keep_cash,
         keep_soft_pin_size=gap_keep_soft,
+        keep_short_pin_size=gap_keep_short,
     )
     # Gap≠memory silent (gap matches advisory) — keep memory pin on
     # gap≠scan / gap≠cash so those bits cannot hide the match (soft≠*
@@ -3393,6 +3440,7 @@ def build_soft_allow_glance(
                 scan_pin_size=scan_pin,
                 keep_cash_pin_size=gap_keep_cash,
                 keep_soft_pin_size=gap_keep_soft,
+                keep_short_pin_size=gap_keep_short,
                 keep_memory_pin_size=gap_keep_memory,
             )
         )
@@ -3406,6 +3454,7 @@ def build_soft_allow_glance(
                 cash_pin_size=cash_pin,
                 keep_scan_pin_size=gap_keep_scan,
                 keep_soft_pin_size=gap_keep_soft,
+                keep_short_pin_size=gap_keep_short,
                 keep_memory_pin_size=gap_keep_memory,
             )
         )
@@ -3423,6 +3472,7 @@ def build_soft_allow_glance(
         keep_scan_pin_size=gap_keep_scan,
         keep_cash_pin_size=gap_keep_cash,
         keep_soft_pin_size=gap_keep_soft,
+        keep_short_pin_size=gap_keep_short,
         keep_memory_pin_size=gap_keep_memory,
     )
     expired_n = sum(1 for r in rows if r.get("freshness") == "expired")

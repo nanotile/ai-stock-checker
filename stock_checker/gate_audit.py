@@ -1144,6 +1144,7 @@ def soft_allow_anchor_gap_vs_scan_clash(
     scan_pin_size: str = "",
     keep_cash_pin_size: str = "",
     keep_soft_pin_size: str = "",
+    keep_short_pin_size: str = "",
     keep_memory_pin_size: str = "",
 ) -> tuple[str, bool]:
     """Gap cursor vs scan archive generation (display only).
@@ -1158,8 +1159,11 @@ def soft_allow_anchor_gap_vs_scan_clash(
     keep-cash + #660 / #647 / #531). When soft≠gap is silent (gap
     matches soft), optional ``keep_soft_pin_size`` appends ``soft-only``
     so scan alone cannot hide the match (soft≠* keep gap-only + #660 /
-    #647 / #531). When gap≠memory is silent (gap matches advisory),
-    optional ``keep_memory_pin_size`` appends ``laya-only`` /
+    #647 / #531). When short≠gap is silent (gap matches short cursor),
+    optional ``keep_short_pin_size`` appends ``short-only`` so scan alone
+    cannot hide the match (short≠* keep-gap speak-both-sides + #660 /
+    #647 / #531 / #668). When gap≠memory is silent (gap matches
+    advisory), optional ``keep_memory_pin_size`` appends ``laya-only`` /
     ``debate-only`` / ``×2 · 100%`` so scan alone cannot hide the match
     (soft≠* keep-memory + #660 / #647 / #531). Gap sleeve ``×N · P%``
     lied fail-open gap-row ownership was the gap cursor print — the
@@ -1188,11 +1192,13 @@ def soft_allow_anchor_gap_vs_scan_clash(
     keep = f" · {raw_keep}" if raw_keep else ""
     raw_soft = str(keep_soft_pin_size or "").strip().lstrip("·").strip()
     keep_soft = f" · {raw_soft}" if raw_soft else ""
+    raw_short = str(keep_short_pin_size or "").strip().lstrip("·").strip()
+    keep_short = f" · {raw_short}" if raw_short else ""
     raw_mem = str(keep_memory_pin_size or "").strip().lstrip("·").strip()
     keep_mem = f" · {raw_mem}" if raw_mem else ""
     return (
         f"clash · gap {gap_speak} · scan {scan}"
-        f"{gap_pin}{pin}{keep}{keep_soft}{keep_mem}",
+        f"{gap_pin}{pin}{keep}{keep_soft}{keep_short}{keep_mem}",
         True,
     )
 
@@ -1206,6 +1212,7 @@ def soft_allow_anchor_gap_vs_cash_clock_clash(
     cash_pin_size: str = "",
     keep_scan_pin_size: str = "",
     keep_soft_pin_size: str = "",
+    keep_short_pin_size: str = "",
     keep_memory_pin_size: str = "",
 ) -> tuple[str, bool]:
     """Gap cursor vs pinned cash-print generation (display only).
@@ -1221,12 +1228,15 @@ def soft_allow_anchor_gap_vs_cash_clock_clash(
     #647 / #531). When soft≠gap is silent (gap matches soft), optional
     ``keep_soft_pin_size`` appends ``soft-only`` so cash alone cannot
     hide the match (soft≠* keep gap-only + #660 / #647 / #531). When
-    gap≠memory is silent (gap matches advisory), optional
-    ``keep_memory_pin_size`` appends the advisory pin so cash alone
-    cannot hide the match (soft≠* keep-memory + #660 / #647 / #531).
-    Gap sleeve ``×N · P%`` lied fail-open gap-row ownership was the gap
-    cursor print — the cursor is a sole published pin (soft≠gap /
-    gap≠scan ``gap-only`` parity + #647 / #531). Same band / missing
+    short≠gap is silent (gap matches short cursor), optional
+    ``keep_short_pin_size`` appends ``short-only`` so cash alone cannot
+    hide the match (short≠* keep-gap speak-both-sides + #660 / #647 /
+    #531 / #668). When gap≠memory is silent (gap matches advisory),
+    optional ``keep_memory_pin_size`` appends the advisory pin so cash
+    alone cannot hide the match (soft≠* keep-memory + #660 / #647 /
+    #531). Gap sleeve ``×N · P%`` lied fail-open gap-row ownership was
+    the gap cursor print — the cursor is a sole published pin (soft≠gap
+    / gap≠scan ``gap-only`` parity + #647 / #531). Same band / missing
     either / live cash (no pin) silent. Soft matching the scan archive
     (and soft≠cash) can still hide a gap cursor that matches soft but
     not the cash print — closes gap↔cash beside soft↔cash + soft↔gap +
@@ -1251,11 +1261,13 @@ def soft_allow_anchor_gap_vs_cash_clock_clash(
     keep = f" · {raw_keep}" if raw_keep else ""
     raw_soft = str(keep_soft_pin_size or "").strip().lstrip("·").strip()
     keep_soft = f" · {raw_soft}" if raw_soft else ""
+    raw_short = str(keep_short_pin_size or "").strip().lstrip("·").strip()
+    keep_short = f" · {raw_short}" if raw_short else ""
     raw_mem = str(keep_memory_pin_size or "").strip().lstrip("·").strip()
     keep_mem = f" · {raw_mem}" if raw_mem else ""
     return (
         f"clash · gap {gap_speak} · cash {cash}"
-        f"{gap_pin}{pin}{keep}{keep_soft}{keep_mem}",
+        f"{gap_pin}{pin}{keep}{keep_soft}{keep_short}{keep_mem}",
         True,
     )
 
@@ -1271,6 +1283,7 @@ def soft_allow_anchor_gap_vs_memory_clock_clash(
     keep_scan_pin_size: str = "",
     keep_cash_pin_size: str = "",
     keep_soft_pin_size: str = "",
+    keep_short_pin_size: str = "",
 ) -> tuple[str, bool]:
     """Gap cursor vs LAYA/debate memory generation (display only).
 
@@ -1288,13 +1301,16 @@ def soft_allow_anchor_gap_vs_memory_clock_clash(
     keep-cash + #660 / #647 / #531). When soft≠gap is silent (gap
     matches soft), optional ``keep_soft_pin_size`` appends ``soft-only``
     so memory alone cannot hide the match (soft≠* keep gap-only + #660 /
-    #647 / #531). Gap sleeve ``×N · P%`` lied fail-open gap-row
-    ownership was the gap cursor print — the cursor is a sole published
-    pin (soft≠gap / gap≠scan ``gap-only`` parity + #647 / #531). Same
-    band / missing either side silent. Soft matching memory (and
-    soft≠gap) can still hide a gap cursor that matches soft but not the
-    advisory print — closes gap↔memory beside soft↔memory + soft↔gap +
-    gap↔scan/cash (xang1234 #549 / e3c84e1 + FinRobot last-row +
+    #647 / #531). When short≠gap is silent (gap matches short cursor),
+    optional ``keep_short_pin_size`` appends ``short-only`` so memory
+    alone cannot hide the match (short≠* keep-gap speak-both-sides +
+    #660 / #647 / #531 / #668). Gap sleeve ``×N · P%`` lied fail-open
+    gap-row ownership was the gap cursor print — the cursor is a sole
+    published pin (soft≠gap / gap≠scan ``gap-only`` parity + #647 /
+    #531). Same band / missing either side silent. Soft matching memory
+    (and soft≠gap) can still hide a gap cursor that matches soft but not
+    the advisory print — closes gap↔memory beside soft↔memory + soft↔gap
+    + gap↔scan/cash (xang1234 #549 / e3c84e1 + FinRobot last-row +
     portfolio AI speak-both-sides). Not a gate.
     """
     gap_band = soft_allow_anchor_gap_last_freshness(events, now=now)
@@ -1326,9 +1342,11 @@ def soft_allow_anchor_gap_vs_memory_clock_clash(
     keep_cash = f" · {raw_cash}" if raw_cash else ""
     raw_soft = str(keep_soft_pin_size or "").strip().lstrip("·").strip()
     keep_soft = f" · {raw_soft}" if raw_soft else ""
+    raw_short = str(keep_short_pin_size or "").strip().lstrip("·").strip()
+    keep_short = f" · {raw_short}" if raw_short else ""
     return (
         f"clash · gap {gap_speak} · {' · '.join(bits)}"
-        f"{gap_pin}{pin}{keep}{keep_cash}{keep_soft}",
+        f"{gap_pin}{pin}{keep}{keep_cash}{keep_soft}{keep_short}",
         True,
     )
 
@@ -1869,6 +1887,7 @@ def format_soft_allow_anchor_gap_bit(
     keep_scan_pin_size: str = "",
     keep_cash_pin_size: str = "",
     keep_soft_pin_size: str = "",
+    keep_short_pin_size: str = "",
     keep_memory_pin_size: str = "",
 ) -> str:
     """Compact ``N gap · last SYM · fresh|aging|expired · lead|n=1|tied · …``.
@@ -1928,6 +1947,7 @@ def format_soft_allow_anchor_gap_bit(
             scan_pin_size=scan_pin_size,
             keep_cash_pin_size=keep_cash_pin_size,
             keep_soft_pin_size=keep_soft_pin_size,
+            keep_short_pin_size=keep_short_pin_size,
             keep_memory_pin_size=keep_memory_pin_size,
         )
         if gap_vs_scan:
@@ -1940,6 +1960,7 @@ def format_soft_allow_anchor_gap_bit(
             cash_pin_size=cash_pin_size,
             keep_scan_pin_size=keep_scan_pin_size,
             keep_soft_pin_size=keep_soft_pin_size,
+            keep_short_pin_size=keep_short_pin_size,
             keep_memory_pin_size=keep_memory_pin_size,
         )
         if gap_vs_cash:
@@ -1954,6 +1975,7 @@ def format_soft_allow_anchor_gap_bit(
             keep_scan_pin_size=keep_scan_pin_size,
             keep_cash_pin_size=keep_cash_pin_size,
             keep_soft_pin_size=keep_soft_pin_size,
+            keep_short_pin_size=keep_short_pin_size,
         )
         if gap_vs_mem:
             head = f"{head} · {gap_vs_mem}"

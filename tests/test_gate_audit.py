@@ -1128,6 +1128,64 @@ def test_soft_allow_anchor_gap_last_freshness() -> None:
         "soft-only · ×2 · 100%",
         True,
     )
+    # Keep-short when gap matches short cursor (short keep-gap
+    # speak-both-sides + #660 / #647 / #531 / #668).
+    assert soft_allow_anchor_gap_vs_scan_clash(
+        [expired_row, other],
+        scan_freshness="fresh",
+        now=now,
+        gap_pin_size=" · gap-only",
+        scan_pin_size=" · scan-only",
+        keep_soft_pin_size=" · soft-only",
+        keep_short_pin_size=" · short-only",
+        keep_memory_pin_size=" · ×2 · 100%",
+    ) == (
+        "clash · gap expired · scan fresh · gap-only · scan-only · "
+        "soft-only · short-only · ×2 · 100%",
+        True,
+    )
+    assert soft_allow_anchor_gap_vs_cash_clock_clash(
+        [expired_row, other],
+        cash_band="aging",
+        now=now,
+        gap_pin_size=" · gap-only",
+        cash_pin_size=" · US-only",
+        keep_scan_pin_size=" · scan-only",
+        keep_short_pin_size=" · short-only",
+    ) == (
+        "clash · gap expired · cash aging · gap-only · US-only · "
+        "scan-only · short-only",
+        True,
+    )
+    assert soft_allow_anchor_gap_vs_memory_clock_clash(
+        [expired_row, other],
+        laya_freshness="fresh",
+        debate_freshness="aging",
+        now=now,
+        gap_pin_size=" · gap-only",
+        keep_scan_pin_size=" · scan-only",
+        keep_short_pin_size=" · short-only",
+    ) == (
+        "clash · gap expired · laya fresh · debate aging · gap-only · "
+        "scan-only · short-only",
+        True,
+    )
+    assert format_soft_allow_anchor_gap_bit(
+        [expired_row, other],
+        now=now,
+        scan_freshness="fresh",
+        gap_pin_size=" · gap-only",
+        scan_pin_size=" · scan-only",
+        keep_short_pin_size=" · short-only",
+    ) == (
+        "1 gap · last AAPL · expired · clash · gap expired · scan fresh · "
+        "gap-only · scan-only · short-only · "
+        "n=1 · hot · 50% · "
+        "last/share clash · expired · hot · ×1 · 50% · vs 1 other · 50% · "
+        "gap vs other clash · gap hot · other ok · "
+        "last/lean align · expired · gap hot · other ok · ×1 · 50% · "
+        "share/lean clash · share clash · lean align · ×1 · 50%"
+    )
     assert soft_allow_anchor_gap_vs_scan_clash(
         [fresh_row, other], scan_freshness="fresh", now=now
     ) == ("", False)
