@@ -1066,6 +1066,52 @@ def test_soft_allow_glance_short_keep_gap_when_short_matches_gap() -> None:
     assert g["tone"] == "warn"
 
 
+def test_soft_allow_glance_soft_keep_short_when_soft_matches_short() -> None:
+    """xang1234 #660/#668: soft≠scan keeps short-only when soft≡short."""
+    now = datetime(2026, 10, 22, 12, 0, tzinfo=timezone.utc)
+    expired_at = (now - timedelta(hours=30)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    scan_at = (now - timedelta(minutes=5)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    g = build_soft_allow_glance(
+        [
+            {
+                "at": expired_at,
+                "gate": "regime",
+                "reason": "no SPY bars — allow",
+            },
+            {
+                "at": expired_at,
+                "gate": "rs",
+                "reason": "IPO RS unknown — short history — allow",
+            },
+        ],
+        now=now,
+        scan_time=scan_at,
+        scan_interval_sec=900,
+    )
+    assert g["last_freshness"] == "stale"
+    assert g["short_history_last_freshness"] == "expired"
+    # Soft matches short — no soft≠short clock clash (expired≡stale).
+    assert g["soft_vs_short_clock_clash"] == ""
+    assert g["soft_vs_short_clock_clash_warn"] is False
+    # Soft≠scan still speaks and keeps short-only so scan alone cannot
+    # hide the matched short cursor (gap≠scan keep-short parity + #668).
+    soft_scan = g["scan_vs_soft_allow_clash"]
+    assert soft_scan.startswith("clash · scan fresh")
+    assert "soft-only" in soft_scan
+    assert soft_scan.endswith(" · short-only")
+    assert soft_scan in g["line"]
+    assert "short-only" in g["soft_lean_meta"] or "short-only" in g["soft_lean"]
+    # Speak-both-sides: short≠scan keeps soft-only so scan alone cannot
+    # hide the matched soft last (soft keep-short + #668).
+    short_scan = g["short_history_vs_scan_clash"]
+    assert short_scan.startswith("clash · short expired · scan fresh")
+    assert short_scan.endswith(" · soft-only")
+    assert g["short_history_vs_scan_clash_warn"] is True
+    assert short_scan in g["short_history_bit"]
+    assert "soft-only" in g["soft_lean_meta"] or "soft-only" in g["soft_lean"]
+    assert g["tone"] == "warn"
+
+
 def test_soft_allow_glance_short_vs_scan_when_last_matches_scan() -> None:
     """xang1234 #549/e3c84e1: soft last matching scan ≠ live short cursor."""
     now = datetime(2026, 10, 22, 12, 0, tzinfo=timezone.utc)
@@ -1184,13 +1230,17 @@ def test_soft_allow_glance_short_vs_cash_when_short_matches_scan() -> None:
     assert g["short_history_vs_scan_clash_warn"] is False
     cash = g["short_history_vs_cash_clock_clash"]
     assert cash.startswith("clash · short fresh · cash ")
-    assert cash.endswith(" · scan-only")
+    # Soft≡short silent — keep soft-only after scan-only so cash alone
+    # cannot hide the matched soft last (#668 speak-both-sides).
+    assert " · scan-only" in cash
+    assert cash.endswith(" · soft-only")
     assert g["short_history_vs_cash_clock_clash_warn"] is True
     assert cash in g["short_history_bit"]
     assert cash in g["line"]
     assert g["tone"] == "warn"
     assert "short/cash" in g["soft_lean_meta"]
     assert "scan-only" in g["soft_lean_meta"]
+    assert "soft-only" in g["soft_lean_meta"] or "soft-only" in g["soft_lean"]
     # Same-evening last-published: short fresh + cash fresh → silent.
     even = datetime(2026, 9, 8, 1, 30, tzinfo=timezone.utc)
     even_at = (even - timedelta(minutes=10)).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -1297,8 +1347,10 @@ def test_soft_allow_glance_short_vs_memory_when_short_matches_scan() -> None:
     assert one["short_history_vs_memory_clock_clash"].startswith(
         "clash · short fresh · debate stale · scan-only"
     )
+    # Soft≡short silent — keep soft-only so debate alone cannot hide the
+    # matched soft last (#668 speak-both-sides).
     assert one["short_history_vs_memory_clock_clash"] == (
-        "clash · short fresh · debate stale · scan-only · ×2 · 100%"
+        "clash · short fresh · debate stale · scan-only · ×2 · 100% · soft-only"
     )
     assert one["short_history_vs_memory_clock_clash_warn"] is True
     assert "laya" not in one["short_history_vs_memory_clock_clash"]

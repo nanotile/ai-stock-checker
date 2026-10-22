@@ -654,6 +654,7 @@ def soft_allow_short_history_vs_scan_clash(
     keep_cash_pin_size: str = "",
     keep_memory_pin_size: str = "",
     keep_gap_pin_size: str = "",
+    keep_soft_pin_size: str = "",
 ) -> tuple[str, bool]:
     """Short cursor vs scan archive generation (display only).
 
@@ -669,7 +670,10 @@ def soft_allow_short_history_vs_scan_clash(
     keep-memory + #660 / #647 / #531). When short≠gap is silent
     (short matches gap cursor), optional ``keep_gap_pin_size`` appends
     ``gap-only`` so scan alone cannot hide the match (soft≠scan
-    keep-gap + #660 / #647 / #531). Same band / missing either
+    keep-gap + #660 / #647 / #531). When soft≠short is silent (short
+    matches soft last), optional ``keep_soft_pin_size`` appends
+    ``soft-only`` so scan alone cannot hide the match (gap≠scan
+    keep-soft + #660 / #647 / #531 / #668). Same band / missing either
     silent. Soft-allow *last* matching the scan (and gap≠scan alone)
     can still hide a staler young/short cursor — speak both sides
     (xang1234 #549 / e3c84e1 generation coherence + gap≠scan parity +
@@ -694,9 +698,11 @@ def soft_allow_short_history_vs_scan_clash(
     keep_mem = f" · {raw_mem}" if raw_mem else ""
     raw_gap = str(keep_gap_pin_size or "").strip().lstrip("·").strip()
     keep_gap = f" · {raw_gap}" if raw_gap else ""
+    raw_soft = str(keep_soft_pin_size or "").strip().lstrip("·").strip()
+    keep_soft = f" · {raw_soft}" if raw_soft else ""
     return (
         f"clash · short {short_speak} · scan {scan}"
-        f"{keep_cash}{keep_mem}{keep_gap}",
+        f"{keep_cash}{keep_mem}{keep_gap}{keep_soft}",
         True,
     )
 
@@ -709,6 +715,7 @@ def soft_allow_short_history_vs_cash_clock_clash(
     keep_scan_pin_size: str = "",
     keep_memory_pin_size: str = "",
     keep_gap_pin_size: str = "",
+    keep_soft_pin_size: str = "",
 ) -> tuple[str, bool]:
     """Short cursor vs pinned cash-print generation (display only).
 
@@ -723,8 +730,11 @@ def soft_allow_short_history_vs_cash_clock_clash(
     cannot hide the match (gap≠cash keep-memory + #660 / #647 / #531).
     When short≠gap is silent (short matches gap cursor), optional
     ``keep_gap_pin_size`` appends ``gap-only`` so cash alone cannot
-    hide the match (soft≠cash keep-gap + #660 / #647 / #531). Same
-    band / missing either / live cash (no pin) silent. Soft-allow
+    hide the match (soft≠cash keep-gap + #660 / #647 / #531). When
+    soft≠short is silent (short matches soft last), optional
+    ``keep_soft_pin_size`` appends ``soft-only`` so cash alone cannot
+    hide the match (gap≠cash keep-soft + #660 / #647 / #531 / #668).
+    Same band / missing either / live cash (no pin) silent. Soft-allow
     *last* matching the scan (and short≠scan alone) can still hide a
     short cursor that matches the archive but not the cash print —
     closes short↔cash beside short≠scan + soft↔cash + gap≠cash
@@ -749,8 +759,11 @@ def soft_allow_short_history_vs_cash_clock_clash(
     keep_mem = f" · {raw_mem}" if raw_mem else ""
     raw_gap = str(keep_gap_pin_size or "").strip().lstrip("·").strip()
     keep_gap = f" · {raw_gap}" if raw_gap else ""
+    raw_soft = str(keep_soft_pin_size or "").strip().lstrip("·").strip()
+    keep_soft = f" · {raw_soft}" if raw_soft else ""
     return (
-        f"clash · short {short_speak} · cash {cash}{keep}{keep_mem}{keep_gap}",
+        f"clash · short {short_speak} · cash {cash}"
+        f"{keep}{keep_mem}{keep_gap}{keep_soft}",
         True,
     )
 
@@ -764,6 +777,7 @@ def soft_allow_short_history_vs_memory_clock_clash(
     keep_scan_pin_size: str = "",
     keep_cash_pin_size: str = "",
     keep_gap_pin_size: str = "",
+    keep_soft_pin_size: str = "",
 ) -> tuple[str, bool]:
     """Short cursor vs LAYA/debate memory generation (display only).
 
@@ -778,9 +792,12 @@ def soft_allow_short_history_vs_memory_clock_clash(
     hide the match (gap≠memory keep-cash + #660 / #647 / #531). When
     short≠gap is silent (short matches gap cursor), optional
     ``keep_gap_pin_size`` appends ``gap-only`` so memory alone cannot
-    hide the match (soft≠memory keep-gap + #660 / #647 / #531). Same
-    band / missing either side silent. Soft-allow *last* matching the
-    scan (and short≠scan / short≠cash alone) can still hide a
+    hide the match (soft≠memory keep-gap + #660 / #647 / #531). When
+    soft≠short is silent (short matches soft last), optional
+    ``keep_soft_pin_size`` appends ``soft-only`` so memory alone cannot
+    hide the match (gap≠memory keep-soft + #660 / #647 / #531 / #668).
+    Same band / missing either side silent. Soft-allow *last* matching
+    the scan (and short≠scan / short≠cash alone) can still hide a
     young/short cursor that matches the archive or cash print but not
     the advisory print — closes short↔memory beside short≠scan +
     short≠cash + soft↔memory + gap≠memory (xang1234 #549 / e3c84e1 +
@@ -813,9 +830,11 @@ def soft_allow_short_history_vs_memory_clock_clash(
     keep_cash = f" · {raw_cash}" if raw_cash else ""
     raw_gap = str(keep_gap_pin_size or "").strip().lstrip("·").strip()
     keep_gap = f" · {raw_gap}" if raw_gap else ""
+    raw_soft = str(keep_soft_pin_size or "").strip().lstrip("·").strip()
+    keep_soft = f" · {raw_soft}" if raw_soft else ""
     return (
         f"clash · short {short_speak} · {' · '.join(bits)}"
-        f"{keep}{keep_cash}{keep_gap}",
+        f"{keep}{keep_cash}{keep_gap}{keep_soft}",
         True,
     )
 
@@ -827,6 +846,7 @@ def soft_allow_short_history_vs_gap_clock_clash(
     keep_scan_pin_size: str = "",
     keep_cash_pin_size: str = "",
     keep_memory_pin_size: str = "",
+    keep_soft_pin_size: str = "",
 ) -> tuple[str, bool]:
     """Short cursor vs gap cursor generation (display only).
 
@@ -838,11 +858,13 @@ def soft_allow_short_history_vs_gap_clock_clash(
     (soft≠gap keep-scan + #660 / #647 / #531). When short≠cash is
     silent, optional ``keep_cash_pin_size`` appends the cash pin; when
     short≠memory is silent, optional ``keep_memory_pin_size`` appends
-    the advisory pin. Same band / missing either silent. Short matching
-    scan/cash/memory (and soft≠gap / short↔gap *count* lean alone) can
-    still hide a staler gap cursor — closes short↔gap generation beside
-    short≠scan|/cash|/memory + soft≠gap (xang1234 #549 / e3c84e1 +
-    portfolio AI speak-both-sides; count lean ≠ clock). Not a gate.
+    the advisory pin; when soft≠short is silent, optional
+    ``keep_soft_pin_size`` appends ``soft-only``. Same band / missing
+    either silent. Short matching scan/cash/memory (and soft≠gap /
+    short↔gap *count* lean alone) can still hide a staler gap cursor —
+    closes short↔gap generation beside short≠scan|/cash|/memory +
+    soft≠gap (xang1234 #549 / e3c84e1 + portfolio AI speak-both-sides;
+    count lean ≠ clock). Not a gate.
     """
     short_band = soft_allow_short_history_last_freshness(events, now=now)
     short_clock = _soft_allow_gap_clock_tone(short_band)
@@ -866,9 +888,11 @@ def soft_allow_short_history_vs_gap_clock_clash(
     keep_cash = f" · {raw_cash}" if raw_cash else ""
     raw_mem = str(keep_memory_pin_size or "").strip().lstrip("·").strip()
     keep_mem = f" · {raw_mem}" if raw_mem else ""
+    raw_soft = str(keep_soft_pin_size or "").strip().lstrip("·").strip()
+    keep_soft = f" · {raw_soft}" if raw_soft else ""
     return (
         f"clash · short {short_speak} · gap {gap_speak}"
-        f"{keep_scan}{keep_cash}{keep_mem}",
+        f"{keep_scan}{keep_cash}{keep_mem}{keep_soft}",
         True,
     )
 
@@ -885,6 +909,7 @@ def format_soft_allow_short_history_bit(
     keep_cash_pin_size: str = "",
     keep_memory_pin_size: str = "",
     keep_gap_pin_size: str = "",
+    keep_soft_pin_size: str = "",
 ) -> str:
     """Compact ``N short · N bench · last SYM · fresh|… · clash · short… · lead|… · vs gap``.
 
@@ -965,6 +990,7 @@ def format_soft_allow_short_history_bit(
                 keep_cash_pin_size=keep_cash_pin_size,
                 keep_memory_pin_size=keep_memory_pin_size,
                 keep_gap_pin_size=keep_gap_pin_size,
+                keep_soft_pin_size=keep_soft_pin_size,
             )
             if short_vs_scan:
                 head = f"{head} · {short_vs_scan}"
@@ -975,6 +1001,7 @@ def format_soft_allow_short_history_bit(
                 keep_scan_pin_size=keep_scan_pin_size,
                 keep_memory_pin_size=keep_memory_pin_size,
                 keep_gap_pin_size=keep_gap_pin_size,
+                keep_soft_pin_size=keep_soft_pin_size,
             )
             if short_vs_cash:
                 head = f"{head} · {short_vs_cash}"
@@ -986,6 +1013,7 @@ def format_soft_allow_short_history_bit(
                 keep_scan_pin_size=keep_scan_pin_size,
                 keep_cash_pin_size=keep_cash_pin_size,
                 keep_gap_pin_size=keep_gap_pin_size,
+                keep_soft_pin_size=keep_soft_pin_size,
             )
             if short_vs_mem:
                 head = f"{head} · {short_vs_mem}"
@@ -995,6 +1023,7 @@ def format_soft_allow_short_history_bit(
                 keep_scan_pin_size=keep_scan_pin_size,
                 keep_cash_pin_size=keep_cash_pin_size,
                 keep_memory_pin_size=keep_memory_pin_size,
+                keep_soft_pin_size=keep_soft_pin_size,
             )
             if short_vs_gap_clock:
                 head = f"{head} · {short_vs_gap_clock}"
