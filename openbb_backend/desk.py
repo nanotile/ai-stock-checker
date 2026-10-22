@@ -2114,6 +2114,17 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
         re.compile(r"^vs gap(?: · (strong|thin))? · (\d+) · (\d+%)"),
         "vs gap",
     ),
+    # Short cursor age vs short+gap pair share (gap last/share parity).
+    # Distinct ``short last/share`` prefix so gap ``last/share`` is not
+    # treated as the young/short relationship. Verb + age + hot|quiet
+    # ride so ``align`` is not a silent confirm of a live hot print.
+    (
+        re.compile(
+            r"^short last/share (align|clash)"
+            r"(?: · (fresh|expired)(?: · (hot|quiet))?)?"
+        ),
+        "short last/share",
+    ),
     # Short vs gap lean after sides (junk vs ok / gap vs other lean
     # parity). Verb + payload ride so ``align`` is not a silent confirm.
     (
@@ -2482,6 +2493,7 @@ def build_soft_allow_glance(
         soft_allow_short_vs_gap,
         soft_allow_short_pair_share,
         soft_allow_short_vs_gap_lean,
+        soft_allow_short_history_last_vs_share,
         soft_allow_short_history_last_vs_lean,
         soft_allow_short_history_last_lead_vs_lean,
         format_soft_allow_short_history_bit,
@@ -2569,6 +2581,8 @@ def build_soft_allow_glance(
         "short_history_pair_severity": "",
         "short_history_vs_gap_lean": "",
         "short_history_vs_gap_lean_warn": False,
+        "short_history_last_vs_share": "",
+        "short_history_last_vs_share_warn": False,
         "short_history_last_vs_lean": "",
         "short_history_last_vs_lean_warn": False,
         "short_history_last_lead_vs_lean": "",
@@ -2917,6 +2931,9 @@ def build_soft_allow_glance(
     short_history_vs_gap_lean, short_history_vs_gap_lean_warn = (
         soft_allow_short_vs_gap_lean(rows)
     )
+    short_history_last_vs_share, short_history_last_vs_share_warn = (
+        soft_allow_short_history_last_vs_share(rows, now=now)
+    )
     short_history_last_vs_lean, short_history_last_vs_lean_warn = (
         soft_allow_short_history_last_vs_lean(rows, now=now)
     )
@@ -3181,6 +3198,7 @@ def build_soft_allow_glance(
         or short_history_bench_n > 0
         or short_history_last_freshness == "expired"
         or short_history_last_vs_lead_freshness_warn
+        or short_history_last_vs_share_warn
         or short_history_last_vs_lean_warn
         or short_history_last_lead_vs_lean_warn
     ):
@@ -3363,6 +3381,7 @@ def build_soft_allow_glance(
         or anchor_gap_vs_memory_clock_clash_warn
         or short_history_vs_gap_lean_warn
         or short_history_last_vs_lead_freshness_warn
+        or short_history_last_vs_share_warn
         or short_history_last_vs_lean_warn
         or short_history_last_lead_vs_lean_warn
         or short_history_bench_n > 0
@@ -3461,6 +3480,8 @@ def build_soft_allow_glance(
         "short_history_pair_severity": short_history_pair_severity,
         "short_history_vs_gap_lean": short_history_vs_gap_lean,
         "short_history_vs_gap_lean_warn": short_history_vs_gap_lean_warn,
+        "short_history_last_vs_share": short_history_last_vs_share,
+        "short_history_last_vs_share_warn": short_history_last_vs_share_warn,
         "short_history_last_vs_lean": short_history_last_vs_lean,
         "short_history_last_vs_lean_warn": short_history_last_vs_lean_warn,
         "short_history_last_lead_vs_lean": short_history_last_lead_vs_lean,
