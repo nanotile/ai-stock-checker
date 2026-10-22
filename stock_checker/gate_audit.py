@@ -651,6 +651,8 @@ def soft_allow_short_history_vs_scan_clash(
     *,
     scan_freshness: str = "",
     now: datetime | None = None,
+    short_pin_size: str = "",
+    scan_pin_size: str = "",
     keep_cash_pin_size: str = "",
     keep_memory_pin_size: str = "",
     keep_gap_pin_size: str = "",
@@ -660,8 +662,14 @@ def soft_allow_short_history_vs_scan_clash(
 
     Returns ``(bit, warn)``. When newest short-history clock ≠ scan
     band (``expired``≡``stale``), speak
-    ``clash · short expired|aging|fresh · scan fresh|aging|stale``.
-    When short≠cash is silent (short matches cash), optional
+    ``clash · short expired|aging|fresh · scan fresh|aging|stale`` then
+    optional short pin (``short-only`` via ``short_pin_size``) then
+    optional scan pin (``scan-only`` via ``scan_pin_size``) — absolute
+    ``N short`` lied young/short fail-open ownership was the cursor
+    print; the newest short stamp is a sole published pin like soft
+    last / gap cursor (gap≠scan ``gap-only · scan-only`` / soft≠scan
+    ``soft-only · scan-only`` parity + #647 / #531 / #668). When
+    short≠cash is silent (short matches cash), optional
     ``keep_cash_pin_size`` appends the cash pin so scan alone cannot
     hide the match (gap≠scan keep-cash + #660 / #647 / #531). When
     short≠memory is silent (short matches advisory), optional
@@ -692,6 +700,10 @@ def soft_allow_short_history_vs_scan_clash(
         if short_band in {"fresh", "aging", "expired"}
         else short_clock
     )
+    raw_short = str(short_pin_size or "").strip().lstrip("·").strip()
+    short_pin = f" · {raw_short}" if raw_short else ""
+    raw_scan = str(scan_pin_size or "").strip().lstrip("·").strip()
+    scan_pin = f" · {raw_scan}" if raw_scan else ""
     raw_cash = str(keep_cash_pin_size or "").strip().lstrip("·").strip()
     keep_cash = f" · {raw_cash}" if raw_cash else ""
     raw_mem = str(keep_memory_pin_size or "").strip().lstrip("·").strip()
@@ -702,7 +714,7 @@ def soft_allow_short_history_vs_scan_clash(
     keep_soft = f" · {raw_soft}" if raw_soft else ""
     return (
         f"clash · short {short_speak} · scan {scan}"
-        f"{keep_cash}{keep_mem}{keep_gap}{keep_soft}",
+        f"{short_pin}{scan_pin}{keep_cash}{keep_mem}{keep_gap}{keep_soft}",
         True,
     )
 
@@ -712,6 +724,8 @@ def soft_allow_short_history_vs_cash_clock_clash(
     *,
     cash_band: str = "",
     now: datetime | None = None,
+    short_pin_size: str = "",
+    cash_pin_size: str = "",
     keep_scan_pin_size: str = "",
     keep_memory_pin_size: str = "",
     keep_gap_pin_size: str = "",
@@ -721,25 +735,29 @@ def soft_allow_short_history_vs_cash_clock_clash(
 
     Returns ``(bit, warn)``. When newest short-history clock ≠ worst
     last-published cash sleeve (``expired``≡``stale``), speak
-    ``clash · short expired|aging|fresh · cash fresh|aging|stale``.
-    When short≠scan is silent (short matches the archive), optional
-    ``keep_scan_pin_size`` appends ``scan-only`` so cash alone cannot
-    hide the matched pin (gap≠cash keep-scan + #660 / #647 / #531).
-    When short≠memory is silent (short matches advisory), optional
-    ``keep_memory_pin_size`` appends the advisory pin so cash alone
-    cannot hide the match (gap≠cash keep-memory + #660 / #647 / #531).
-    When short≠gap is silent (short matches gap cursor), optional
-    ``keep_gap_pin_size`` appends ``gap-only`` so cash alone cannot
-    hide the match (soft≠cash keep-gap + #660 / #647 / #531). When
-    soft≠short is silent (short matches soft last), optional
-    ``keep_soft_pin_size`` appends ``soft-only`` so cash alone cannot
-    hide the match (gap≠cash keep-soft + #660 / #647 / #531 / #668).
-    Same band / missing either / live cash (no pin) silent. Soft-allow
-    *last* matching the scan (and short≠scan alone) can still hide a
-    short cursor that matches the archive but not the cash print —
-    closes short↔cash beside short≠scan + soft↔cash + gap≠cash
-    (xang1234 #549 / e3c84e1 coherent generations + portfolio AI
-    speak-both-sides + gap≠cash parity). Not a gate.
+    ``clash · short expired|aging|fresh · cash fresh|aging|stale`` then
+    optional short pin (``short-only`` via ``short_pin_size``) then
+    optional cash pin (``US-only`` / ``US · 50%`` / ``×2 · 100%`` via
+    ``cash_pin_size``) — gap≠cash ``gap-only · US-only`` / soft≠cash
+    parity + #647 / #531 / #668. When short≠scan is silent (short
+    matches the archive), optional ``keep_scan_pin_size`` appends
+    ``scan-only`` so cash alone cannot hide the matched pin (gap≠cash
+    keep-scan + #660 / #647 / #531). When short≠memory is silent
+    (short matches advisory), optional ``keep_memory_pin_size`` appends
+    the advisory pin so cash alone cannot hide the match (gap≠cash
+    keep-memory + #660 / #647 / #531). When short≠gap is silent (short
+    matches gap cursor), optional ``keep_gap_pin_size`` appends
+    ``gap-only`` so cash alone cannot hide the match (soft≠cash
+    keep-gap + #660 / #647 / #531). When soft≠short is silent (short
+    matches soft last), optional ``keep_soft_pin_size`` appends
+    ``soft-only`` so cash alone cannot hide the match (gap≠cash
+    keep-soft + #660 / #647 / #531 / #668). Same band / missing either
+    / live cash (no pin) silent. Soft-allow *last* matching the scan
+    (and short≠scan alone) can still hide a short cursor that matches
+    the archive but not the cash print — closes short↔cash beside
+    short≠scan + soft↔cash + gap≠cash (xang1234 #549 / e3c84e1
+    coherent generations + portfolio AI speak-both-sides + gap≠cash
+    parity). Not a gate.
     """
     cash = str(cash_band or "").strip().casefold()
     if cash not in {"fresh", "aging", "stale"}:
@@ -753,6 +771,10 @@ def soft_allow_short_history_vs_cash_clock_clash(
         if short_band in {"fresh", "aging", "expired"}
         else short_clock
     )
+    raw_short = str(short_pin_size or "").strip().lstrip("·").strip()
+    short_pin = f" · {raw_short}" if raw_short else ""
+    raw_cash = str(cash_pin_size or "").strip().lstrip("·").strip()
+    cash_pin = f" · {raw_cash}" if raw_cash else ""
     raw_keep = str(keep_scan_pin_size or "").strip().lstrip("·").strip()
     keep = f" · {raw_keep}" if raw_keep else ""
     raw_mem = str(keep_memory_pin_size or "").strip().lstrip("·").strip()
@@ -763,7 +785,7 @@ def soft_allow_short_history_vs_cash_clock_clash(
     keep_soft = f" · {raw_soft}" if raw_soft else ""
     return (
         f"clash · short {short_speak} · cash {cash}"
-        f"{keep}{keep_mem}{keep_gap}{keep_soft}",
+        f"{short_pin}{cash_pin}{keep}{keep_mem}{keep_gap}{keep_soft}",
         True,
     )
 
@@ -774,6 +796,8 @@ def soft_allow_short_history_vs_memory_clock_clash(
     laya_freshness: str = "",
     debate_freshness: str = "",
     now: datetime | None = None,
+    short_pin_size: str = "",
+    memory_pin_size: str = "",
     keep_scan_pin_size: str = "",
     keep_cash_pin_size: str = "",
     keep_gap_pin_size: str = "",
@@ -783,8 +807,12 @@ def soft_allow_short_history_vs_memory_clock_clash(
 
     Returns ``(bit, warn)``. When newest short-history clock ≠ LAYA
     and/or AI-debate clocks (``expired``≡``stale``), speak
-    ``clash · short expired|aging|fresh · laya … · debate …``.
-    When short≠scan is silent (short matches the archive), optional
+    ``clash · short expired|aging|fresh · laya … · debate …`` then
+    optional short pin (``short-only`` via ``short_pin_size``) then
+    optional advisory pin (``laya-only`` / ``laya · 50%`` / ``×2 ·
+    100%`` via ``memory_pin_size``) — gap≠memory ``gap-only`` +
+    advisory pin / soft≠memory parity + #647 / #531 / #668. When
+    short≠scan is silent (short matches the archive), optional
     ``keep_scan_pin_size`` appends ``scan-only`` so memory alone cannot
     hide the matched pin (gap≠memory keep-scan + #660 / #647 / #531).
     When short≠cash is silent (short matches cash), optional
@@ -824,6 +852,10 @@ def soft_allow_short_history_vs_memory_clock_clash(
         bits.append(f"{name} {t}")
     if not bits:
         return "", False
+    raw_short = str(short_pin_size or "").strip().lstrip("·").strip()
+    short_pin = f" · {raw_short}" if raw_short else ""
+    raw_mem = str(memory_pin_size or "").strip().lstrip("·").strip()
+    mem_pin = f" · {raw_mem}" if raw_mem else ""
     raw_keep = str(keep_scan_pin_size or "").strip().lstrip("·").strip()
     keep = f" · {raw_keep}" if raw_keep else ""
     raw_cash = str(keep_cash_pin_size or "").strip().lstrip("·").strip()
@@ -834,7 +866,7 @@ def soft_allow_short_history_vs_memory_clock_clash(
     keep_soft = f" · {raw_soft}" if raw_soft else ""
     return (
         f"clash · short {short_speak} · {' · '.join(bits)}"
-        f"{keep}{keep_cash}{keep_gap}{keep_soft}",
+        f"{short_pin}{mem_pin}{keep}{keep_cash}{keep_gap}{keep_soft}",
         True,
     )
 
@@ -843,6 +875,8 @@ def soft_allow_short_history_vs_gap_clock_clash(
     events: list[dict[str, Any]] | None,
     *,
     now: datetime | None = None,
+    short_pin_size: str = "",
+    gap_pin_size: str = "",
     keep_scan_pin_size: str = "",
     keep_cash_pin_size: str = "",
     keep_memory_pin_size: str = "",
@@ -852,19 +886,22 @@ def soft_allow_short_history_vs_gap_clock_clash(
 
     Returns ``(bit, warn)``. When newest short-history clock ≠ newest
     anchor-gap cursor (``expired``≡``stale``), speak
-    ``clash · short expired|aging|fresh · gap …``. When short≠scan is
-    silent (short matches the archive), optional ``keep_scan_pin_size``
-    appends ``scan-only`` so gap alone cannot hide the match
-    (soft≠gap keep-scan + #660 / #647 / #531). When short≠cash is
-    silent, optional ``keep_cash_pin_size`` appends the cash pin; when
-    short≠memory is silent, optional ``keep_memory_pin_size`` appends
-    the advisory pin; when soft≠short is silent, optional
-    ``keep_soft_pin_size`` appends ``soft-only``. Same band / missing
-    either silent. Short matching scan/cash/memory (and soft≠gap /
-    short↔gap *count* lean alone) can still hide a staler gap cursor —
-    closes short↔gap generation beside short≠scan|/cash|/memory +
-    soft≠gap (xang1234 #549 / e3c84e1 + portfolio AI speak-both-sides;
-    count lean ≠ clock). Not a gate.
+    ``clash · short expired|aging|fresh · gap …`` then optional short
+    pin (``short-only`` via ``short_pin_size``) then optional gap pin
+    (``gap-only`` via ``gap_pin_size``) — soft≠gap ``soft-only ·
+    gap-only`` / gap≠scan sole-pin parity + #647 / #531 / #668. When
+    short≠scan is silent (short matches the archive), optional
+    ``keep_scan_pin_size`` appends ``scan-only`` so gap alone cannot
+    hide the match (soft≠gap keep-scan + #660 / #647 / #531). When
+    short≠cash is silent, optional ``keep_cash_pin_size`` appends the
+    cash pin; when short≠memory is silent, optional
+    ``keep_memory_pin_size`` appends the advisory pin; when soft≠short
+    is silent, optional ``keep_soft_pin_size`` appends ``soft-only``.
+    Same band / missing either silent. Short matching scan/cash/memory
+    (and soft≠gap / short↔gap *count* lean alone) can still hide a
+    staler gap cursor — closes short↔gap generation beside
+    short≠scan|/cash|/memory + soft≠gap (xang1234 #549 / e3c84e1 +
+    portfolio AI speak-both-sides; count lean ≠ clock). Not a gate.
     """
     short_band = soft_allow_short_history_last_freshness(events, now=now)
     short_clock = _soft_allow_gap_clock_tone(short_band)
@@ -882,6 +919,10 @@ def soft_allow_short_history_vs_gap_clock_clash(
     gap_speak = (
         gap_band if gap_band in {"fresh", "aging", "expired"} else gap_clock
     )
+    raw_short = str(short_pin_size or "").strip().lstrip("·").strip()
+    short_pin = f" · {raw_short}" if raw_short else ""
+    raw_gap = str(gap_pin_size or "").strip().lstrip("·").strip()
+    gap_pin = f" · {raw_gap}" if raw_gap else ""
     raw_scan = str(keep_scan_pin_size or "").strip().lstrip("·").strip()
     keep_scan = f" · {raw_scan}" if raw_scan else ""
     raw_cash = str(keep_cash_pin_size or "").strip().lstrip("·").strip()
@@ -892,7 +933,7 @@ def soft_allow_short_history_vs_gap_clock_clash(
     keep_soft = f" · {raw_soft}" if raw_soft else ""
     return (
         f"clash · short {short_speak} · gap {gap_speak}"
-        f"{keep_scan}{keep_cash}{keep_mem}{keep_soft}",
+        f"{short_pin}{gap_pin}{keep_scan}{keep_cash}{keep_mem}{keep_soft}",
         True,
     )
 
@@ -905,6 +946,11 @@ def format_soft_allow_short_history_bit(
     cash_band: str = "",
     laya_freshness: str = "",
     debate_freshness: str = "",
+    short_pin_size: str = "",
+    scan_pin_size: str = "",
+    cash_pin_size: str = "",
+    memory_pin_size: str = "",
+    gap_pin_size: str = "",
     keep_scan_pin_size: str = "",
     keep_cash_pin_size: str = "",
     keep_memory_pin_size: str = "",
@@ -922,22 +968,25 @@ def format_soft_allow_short_history_bit(
     FinRobot last-row age; unknown stamp silent). When short clock ≠
     scan archive band, ``clash · short … · scan …`` follows age so a
     soft-allow last matching the scan cannot hide a staler young/short
-    cursor (xang1234 #549 / e3c84e1 + gap≠scan parity); optional keep
-    cash / memory / gap-only pins when short≠cash / short≠memory /
+    cursor (xang1234 #549 / e3c84e1 + gap≠scan parity); optional
+    ``short-only · scan-only`` sole pins (#647 / #531 / #668); optional
+    keep cash / memory / gap-only pins when short≠cash / short≠memory /
     short≠gap are silent. When short clock ≠ pinned cash band,
     ``clash · short … · cash …`` follows so short matching the scan
     cannot hide a staler cash print (gap≠cash / short≠scan parity);
-    optional keep ``scan-only`` / memory / gap-only when short≠scan /
-    short≠memory / short≠gap are silent. When short clock ≠ LAYA
-    and/or AI-debate, ``clash · short … · laya … · debate …`` follows
-    so short matching the scan or cash cannot hide a staler advisory
-    print (gap≠memory / soft≠memory / short≠scan / short≠cash
-    parity); optional keep ``scan-only`` / cash / gap-only when
-    short≠scan / short≠cash / short≠gap are silent. When short clock ≠
-    gap cursor, ``clash · short … · gap …`` follows so short matching
+    optional ``short-only`` + cash pin; optional keep ``scan-only`` /
+    memory / gap-only when short≠scan / short≠memory / short≠gap are
+    silent. When short clock ≠ LAYA and/or AI-debate, ``clash · short …
+    · laya … · debate …`` follows so short matching the scan or cash
+    cannot hide a staler advisory print (gap≠memory / soft≠memory /
+    short≠scan / short≠cash parity); optional ``short-only`` + advisory
+    pin; optional keep ``scan-only`` / cash / gap-only when short≠scan /
+    short≠cash / short≠gap are silent. When short clock ≠ gap cursor,
+    ``clash · short … · gap …`` follows so short matching
     scan/cash/memory cannot hide a staler gap print (soft≠gap /
-    short≠scan parity; count lean ≠ clock); optional keep
-    ``scan-only`` / cash / memory when those short≠* clashes are silent.
+    short≠scan parity; count lean ≠ clock); optional ``short-only ·
+    gap-only``; optional keep ``scan-only`` / cash / memory when those
+    short≠* clashes are silent.
     Symbol lead / n=1 / tied follows the cursor
     (last ≠ ring ownership; gap symbol lead parity); when lead spoke,
     ``last vs lead`` / ``agree`` sits right after so cursor≠owner is not
@@ -987,6 +1036,8 @@ def format_soft_allow_short_history_bit(
                 events,
                 scan_freshness=scan_freshness,
                 now=now,
+                short_pin_size=short_pin_size,
+                scan_pin_size=scan_pin_size,
                 keep_cash_pin_size=keep_cash_pin_size,
                 keep_memory_pin_size=keep_memory_pin_size,
                 keep_gap_pin_size=keep_gap_pin_size,
@@ -998,6 +1049,8 @@ def format_soft_allow_short_history_bit(
                 events,
                 cash_band=cash_band,
                 now=now,
+                short_pin_size=short_pin_size,
+                cash_pin_size=cash_pin_size,
                 keep_scan_pin_size=keep_scan_pin_size,
                 keep_memory_pin_size=keep_memory_pin_size,
                 keep_gap_pin_size=keep_gap_pin_size,
@@ -1010,6 +1063,8 @@ def format_soft_allow_short_history_bit(
                 laya_freshness=laya_freshness,
                 debate_freshness=debate_freshness,
                 now=now,
+                short_pin_size=short_pin_size,
+                memory_pin_size=memory_pin_size,
                 keep_scan_pin_size=keep_scan_pin_size,
                 keep_cash_pin_size=keep_cash_pin_size,
                 keep_gap_pin_size=keep_gap_pin_size,
@@ -1020,6 +1075,8 @@ def format_soft_allow_short_history_bit(
             short_vs_gap_clock, _ = soft_allow_short_history_vs_gap_clock_clash(
                 events,
                 now=now,
+                short_pin_size=short_pin_size,
+                gap_pin_size=gap_pin_size,
                 keep_scan_pin_size=keep_scan_pin_size,
                 keep_cash_pin_size=keep_cash_pin_size,
                 keep_memory_pin_size=keep_memory_pin_size,

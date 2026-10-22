@@ -384,29 +384,32 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
     )
     assert (
         soft_allow_lean_meta(
-            "clash · short expired · gap fresh · scan-only · US-only"
+            "clash · short expired · gap fresh · short-only · gap-only"
+            " · scan-only · US-only"
         )
-        == "quiet · 1 fold · short/gap scan-only US-only"
+        == "quiet · 1 fold · short/gap short-only gap-only scan-only US-only"
     )
-    # Short keep-scan / keep-cash pins ride on the lean chip (gap parity).
+    # Short sole pins + keep-scan / keep-cash on the lean chip (gap parity).
     assert (
         soft_allow_lean_meta(
-            "clash · short fresh · cash aging · scan-only"
+            "clash · short fresh · cash aging · short-only · US-only"
+            " · scan-only"
         )
-        == "quiet · 1 fold · short/cash scan-only"
+        == "quiet · 1 fold · short/cash short-only US-only scan-only"
     )
     assert (
         soft_allow_lean_meta(
             "clash · short fresh · laya stale · debate aging · "
-            "scan-only · US-only"
+            "short-only · ×2 · 100% · scan-only · US-only"
         )
-        == "quiet · 1 fold · short/memory scan-only US-only"
+        == "quiet · 1 fold · short/memory short-only ×2 100% scan-only US-only"
     )
     assert (
         soft_allow_lean_meta(
-            "clash · short expired · scan fresh · US-only · laya-only"
+            "clash · short expired · scan fresh · short-only · scan-only"
+            " · US-only · laya-only"
         )
-        == "quiet · 1 fold · short/scan US-only laya-only"
+        == "quiet · 1 fold · short/scan short-only scan-only US-only laya-only"
     )
     assert (
         soft_allow_lean_meta(
@@ -985,13 +988,19 @@ def test_soft_allow_glance_short_vs_gap_clock_when_short_matches_scan() -> None:
     # Soft≠gap may also speak (soft last fresh vs gap fresh → silent;
     # gap is fresh same as soft). Short cursor expired ≠ gap fresh.
     assert g["short_history_vs_gap_clock_clash"] == (
-        "clash · short expired · gap fresh"
+        "clash · short expired · gap fresh · short-only · gap-only"
     )
     assert g["short_history_vs_gap_clock_clash_warn"] is True
     assert g["tone"] == "warn"
-    assert "clash · short expired · gap fresh" in g["short_history_bit"]
-    assert "clash · short expired · gap fresh" in g["line"]
-    assert "clash · short expired · gap fresh" in g["soft_lean"]
+    assert "clash · short expired · gap fresh · short-only · gap-only" in (
+        g["short_history_bit"]
+    )
+    assert "clash · short expired · gap fresh · short-only · gap-only" in (
+        g["line"]
+    )
+    assert "clash · short expired · gap fresh · short-only · gap-only" in (
+        g["soft_lean"]
+    )
     # Meta may spill short/gap past the 4-name clip when scan/cash also
     # clash — lean string still carries the generation bit.
     same = build_soft_allow_glance(
@@ -1048,14 +1057,18 @@ def test_soft_allow_glance_short_keep_gap_when_short_matches_gap() -> None:
     # Short matches gap — no short≠gap clock clash.
     assert g["short_history_vs_gap_clock_clash"] == ""
     assert g["short_history_vs_gap_clock_clash_warn"] is False
-    # Short≠scan still speaks and keeps gap-only so scan alone cannot
-    # hide the matched gap cursor (soft≠scan keep-gap parity).
+    # Short≠scan speaks short-only · scan-only and keeps gap-only so
+    # scan alone cannot hide the matched gap cursor (soft≠scan keep-gap
+    # + sole-pin #647 / #531 / #668).
     scan_clash = g["short_history_vs_scan_clash"]
-    assert scan_clash.startswith("clash · short expired · scan fresh")
+    assert scan_clash.startswith(
+        "clash · short expired · scan fresh · short-only · scan-only"
+    )
     assert scan_clash.endswith(" · gap-only")
     assert g["short_history_vs_scan_clash_warn"] is True
     assert scan_clash in g["short_history_bit"]
     assert "gap-only" in g["soft_lean_meta"] or "gap-only" in g["soft_lean"]
+    assert "short-only" in g["soft_lean_meta"] or "short-only" in g["soft_lean"]
     # Speak-both-sides: gap≠scan keeps short-only so scan alone cannot
     # hide the matched short cursor (short keep-gap + #668).
     gap_scan = g["anchor_gap_vs_scan_clash"]
@@ -1101,10 +1114,13 @@ def test_soft_allow_glance_soft_keep_short_when_soft_matches_short() -> None:
     assert soft_scan.endswith(" · short-only")
     assert soft_scan in g["line"]
     assert "short-only" in g["soft_lean_meta"] or "short-only" in g["soft_lean"]
-    # Speak-both-sides: short≠scan keeps soft-only so scan alone cannot
-    # hide the matched soft last (soft keep-short + #668).
+    # Speak-both-sides: short≠scan names short-only · scan-only and keeps
+    # soft-only so scan alone cannot hide the matched soft last
+    # (soft keep-short + sole-pin #647 / #531 / #668).
     short_scan = g["short_history_vs_scan_clash"]
-    assert short_scan.startswith("clash · short expired · scan fresh")
+    assert short_scan.startswith(
+        "clash · short expired · scan fresh · short-only · scan-only"
+    )
     assert short_scan.endswith(" · soft-only")
     assert g["short_history_vs_scan_clash_warn"] is True
     assert short_scan in g["short_history_bit"]
@@ -1154,18 +1170,27 @@ def test_soft_allow_glance_short_vs_scan_when_last_matches_scan() -> None:
     assert "soft/short" in g["soft_lean_meta"] or "short-only" in (
         g["soft_lean_meta"]
     )
-    # Short cursor is a different generation — speak both sides.
+    # Short cursor is a different generation — speak both sides with
+    # sole pins short-only · scan-only (#647 / #531 / #668).
     assert g["short_history_vs_scan_clash"] == (
-        "clash · short expired · scan fresh"
+        "clash · short expired · scan fresh · short-only · scan-only"
     )
     assert g["short_history_vs_scan_clash_warn"] is True
     assert g["tone"] == "warn"
-    assert "clash · short expired · scan fresh" in g["short_history_bit"]
-    assert "last IPO · expired · clash · short expired · scan fresh" in (
-        g["short_history_bit"]
+    assert (
+        "clash · short expired · scan fresh · short-only · scan-only"
+        in g["short_history_bit"]
     )
-    assert "clash · short expired · scan fresh" in g["line"]
-    assert "short/scan" in g["soft_lean_meta"] or "short expired" in (
+    assert (
+        "last IPO · expired · clash · short expired · scan fresh"
+        " · short-only · scan-only"
+        in g["short_history_bit"]
+    )
+    assert (
+        "clash · short expired · scan fresh · short-only · scan-only"
+        in g["line"]
+    )
+    assert "short/scan" in g["soft_lean_meta"] or "short-only" in (
         g["soft_lean_meta"]
     )
     same = build_soft_allow_glance(
@@ -1230,8 +1255,10 @@ def test_soft_allow_glance_short_vs_cash_when_short_matches_scan() -> None:
     assert g["short_history_vs_scan_clash_warn"] is False
     cash = g["short_history_vs_cash_clock_clash"]
     assert cash.startswith("clash · short fresh · cash ")
-    # Soft≡short silent — keep soft-only after scan-only so cash alone
-    # cannot hide the matched soft last (#668 speak-both-sides).
+    # Sole short-only + cash pin; soft≡short silent — keep soft-only
+    # after scan-only so cash alone cannot hide the matched soft last
+    # (#668 / #647 / #531 speak-both-sides).
+    assert " · short-only" in cash
     assert " · scan-only" in cash
     assert cash.endswith(" · soft-only")
     assert g["short_history_vs_cash_clock_clash_warn"] is True
@@ -1239,6 +1266,7 @@ def test_soft_allow_glance_short_vs_cash_when_short_matches_scan() -> None:
     assert cash in g["line"]
     assert g["tone"] == "warn"
     assert "short/cash" in g["soft_lean_meta"]
+    assert "short-only" in g["soft_lean_meta"]
     assert "scan-only" in g["soft_lean_meta"]
     assert "soft-only" in g["soft_lean_meta"] or "soft-only" in g["soft_lean"]
     # Same-evening last-published: short fresh + cash fresh → silent.
@@ -1297,10 +1325,11 @@ def test_soft_allow_glance_short_vs_memory_when_short_matches_scan() -> None:
     assert g["short_history_vs_cash_clock_clash"] == ""
     mem = g["short_history_vs_memory_clock_clash"]
     assert mem.startswith(
-        "clash · short fresh · laya stale · debate aging · scan-only"
+        "clash · short fresh · laya stale · debate aging · short-only"
     )
     assert " · scan-only" in mem
-    # Cash pin rides after scan-only (short matches cash this evening).
+    assert "short-only" in mem
+    # Advisory pin + keep-scan ride after short-only; cash may follow.
     assert mem.endswith("-only") or " · ×" in mem or " · US" in mem
     assert g["short_history_vs_memory_clock_clash_warn"] is True
     assert mem in g["short_history_bit"]
@@ -1308,6 +1337,7 @@ def test_soft_allow_glance_short_vs_memory_when_short_matches_scan() -> None:
     assert g["tone"] == "warn"
     assert "short/memory" in g["soft_lean_meta"]
     assert "scan-only" in g["soft_lean_meta"]
+    assert "short-only" in g["soft_lean_meta"]
     # Same band as short — silent (no false mixed-generation warn).
     same = build_soft_allow_glance(
         [
@@ -1345,15 +1375,18 @@ def test_soft_allow_glance_short_vs_memory_when_short_matches_scan() -> None:
         debate_freshness="stale",
     )
     assert one["short_history_vs_memory_clock_clash"].startswith(
-        "clash · short fresh · debate stale · scan-only"
+        "clash · short fresh · debate stale · short-only"
     )
-    # Soft≡short silent — keep soft-only so debate alone cannot hide the
-    # matched soft last (#668 speak-both-sides).
-    assert one["short_history_vs_memory_clock_clash"] == (
-        "clash · short fresh · debate stale · scan-only · ×2 · 100% · soft-only"
-    )
+    # Sole short-only + debate · 50%; soft≡short silent — keep soft-only
+    # so debate alone cannot hide the matched soft last (#668 / #647 /
+    # #531 speak-both-sides). Cash dual pin may ride as keep-cash.
+    mem_one = one["short_history_vs_memory_clock_clash"]
+    assert " · short-only" in mem_one
+    assert " · debate · 50%" in mem_one or " · debate-only" in mem_one
+    assert " · scan-only" in mem_one
+    assert mem_one.endswith(" · soft-only")
     assert one["short_history_vs_memory_clock_clash_warn"] is True
-    assert "laya" not in one["short_history_vs_memory_clock_clash"]
+    assert "laya" not in mem_one.split(" · debate ")[0]
 
 
 def test_soft_allow_glance_short_history_last_freshness_expired() -> None:
