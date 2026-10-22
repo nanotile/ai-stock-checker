@@ -707,6 +707,8 @@ def test_soft_allow_glance_one() -> None:
     assert g["soft_vs_cash_clock_clash_warn"] is False
     assert g["soft_vs_memory_clock_clash"] == ""
     assert g["soft_vs_memory_clock_clash_warn"] is False
+    assert g["short_history_vs_scan_clash"] == ""
+    assert g["short_history_vs_scan_clash_warn"] is False
     assert g["laya_freshness"] == ""
     assert g["debate_freshness"] == ""
     assert g["anchor_gap_bit"] == ""
@@ -892,6 +894,69 @@ def test_soft_allow_glance_short_history_bench_count() -> None:
     assert g["tone"] == "warn"
     assert g["soft_lean_warn"] is True
     assert "short 1 bench SPY fresh" in g["soft_lean_meta"]
+
+
+def test_soft_allow_glance_short_vs_scan_when_last_matches_scan() -> None:
+    """xang1234 #549/e3c84e1: soft last matching scan ≠ live short cursor."""
+    now = datetime(2026, 10, 22, 12, 0, tzinfo=timezone.utc)
+    fresh_at = (now - timedelta(minutes=5)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    expired_at = (now - timedelta(hours=30)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    scan_at = (now - timedelta(minutes=5)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    g = build_soft_allow_glance(
+        [
+            {
+                "at": fresh_at,
+                "gate": "regime",
+                "reason": "no SPY bars — allow",
+            },
+            {
+                "at": expired_at,
+                "gate": "rs",
+                "reason": "IPO RS unknown — short history — allow",
+            },
+        ],
+        now=now,
+        scan_time=scan_at,
+        scan_interval_sec=900,
+    )
+    assert g["last_freshness"] == "fresh"
+    assert g["scan_freshness"] == "fresh"
+    # Soft-allow last matches scan — no ring-level clash.
+    assert g["scan_vs_soft_allow_clash"] == ""
+    # Short cursor is a different generation — speak both sides.
+    assert g["short_history_vs_scan_clash"] == (
+        "clash · short expired · scan fresh"
+    )
+    assert g["short_history_vs_scan_clash_warn"] is True
+    assert g["tone"] == "warn"
+    assert "clash · short expired · scan fresh" in g["short_history_bit"]
+    assert "last IPO · expired · clash · short expired · scan fresh" in (
+        g["short_history_bit"]
+    )
+    assert "clash · short expired · scan fresh" in g["line"]
+    assert "short/scan" in g["soft_lean_meta"] or "short expired" in (
+        g["soft_lean_meta"]
+    )
+    same = build_soft_allow_glance(
+        [
+            {
+                "at": fresh_at,
+                "gate": "regime",
+                "reason": "no SPY bars — allow",
+            },
+            {
+                "at": fresh_at,
+                "gate": "rs",
+                "reason": "IPO RS unknown — short history — allow",
+            },
+        ],
+        now=now,
+        scan_time=scan_at,
+        scan_interval_sec=900,
+    )
+    assert same["short_history_vs_scan_clash"] == ""
+    assert same["short_history_vs_scan_clash_warn"] is False
+    assert "clash · short" not in same["short_history_bit"]
 
 
 def test_soft_allow_glance_short_history_last_freshness_expired() -> None:

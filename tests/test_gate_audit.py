@@ -66,6 +66,7 @@ def test_soft_allow_short_history_count() -> None:
         soft_allow_short_vs_gap_lean,
         soft_allow_short_history_last_vs_share,
         soft_allow_short_history_last_vs_lean,
+        soft_allow_short_history_vs_scan_clash,
     )
 
     assert soft_allow_short_history_count(None) == 0
@@ -93,6 +94,10 @@ def test_soft_allow_short_history_count() -> None:
     assert soft_allow_short_vs_gap_lean(None) == ("", False)
     assert soft_allow_short_history_last_vs_share(None) == ("", False)
     assert soft_allow_short_history_last_vs_lean(None) == ("", False)
+    assert soft_allow_short_history_vs_scan_clash(None) == ("", False)
+    assert soft_allow_short_history_vs_scan_clash(
+        None, scan_freshness="fresh"
+    ) == ("", False)
     assert format_soft_allow_short_history_bit(None) == ""
     assert (
         soft_allow_short_history_count(
@@ -297,6 +302,20 @@ def test_soft_allow_short_history_count() -> None:
     assert format_soft_allow_short_history_bit(expired, now=now) == (
         "1 short · last IPO · expired · n=1"
     )
+    # Short≠scan: expired cursor ≠ fresh scan; same band silent
+    # (gap≠scan / xang1234 #549 parity).
+    assert soft_allow_short_history_vs_scan_clash(
+        expired, scan_freshness="fresh", now=now
+    ) == ("clash · short expired · scan fresh", True)
+    assert format_soft_allow_short_history_bit(
+        expired, now=now, scan_freshness="fresh"
+    ) == (
+        "1 short · last IPO · expired · clash · short expired · scan fresh"
+        " · n=1"
+    )
+    assert soft_allow_short_history_vs_scan_clash(
+        expired, scan_freshness="stale", now=now
+    ) == ("", False)
     fresh = [
         {
             "at": "2026-10-22T11:30:00Z",
