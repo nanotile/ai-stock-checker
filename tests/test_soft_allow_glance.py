@@ -1027,6 +1027,11 @@ def test_soft_allow_glance_short_history_symbol_lead() -> None:
     assert g["short_history_last_vs_share_warn"] is False
     assert g["short_history_last_vs_lean"] == "align · fresh · hot|thin"
     assert g["short_history_last_vs_lean_warn"] is False
+    # last/lead clash + last/share align → short lead/share clash (gap lead/share).
+    assert g["short_history_last_lead_vs_share"] == (
+        "clash · lead clash · share align"
+    )
+    assert g["short_history_last_lead_vs_share_warn"] is True
     # last/lead clash + last/lean align → short lead/lean clash (not transitive).
     assert g["short_history_last_lead_vs_lean"] == (
         "clash · lead clash · lean align"
@@ -1040,6 +1045,7 @@ def test_soft_allow_glance_short_history_symbol_lead() -> None:
         "last vs lead · NEW · short last/lead clash · fresh · vs NEW · "
         "ahead thin · +1 · vs NEW · 1 · 33% · "
         "vs gap · thin · 1 · 25% · short last/share align · fresh · hot · "
+        "short lead/share clash · lead clash · share align · "
         "short vs gap align · hot|thin · "
         "short last/lean align · fresh · hot|thin · "
         "short lead/lean clash · lead clash · lean align · "
@@ -1049,6 +1055,8 @@ def test_soft_allow_glance_short_history_symbol_lead() -> None:
     assert "last vs lead · NEW" in g["line"]
     assert "short last/lead clash · fresh · vs NEW" in g["line"]
     assert "short last/lead clash · fresh · vs NEW" in g["soft_lean"]
+    assert "short lead/share clash · lead clash · share align" in g["line"]
+    assert "short lead/share clash · lead clash · share align" in g["soft_lean"]
     assert "short lead/lean clash · lead clash · lean align" in g["line"]
     assert "short lead/lean clash · lead clash · lean align" in g["soft_lean"]
     assert "short share/lean align · both align" in g["line"]
@@ -1061,7 +1069,8 @@ def test_soft_allow_glance_short_history_symbol_lead() -> None:
     assert "short vs gap align · hot|thin" in g["line"]
     assert "short NEW fresh" in g["soft_lean_meta"]
     assert "lead IPO" in g["soft_lean_meta"]
-    # short lead/lean is in soft_lean; 4-name meta clip may spill it to +N.
+    # short lead/share + lead/lean are in soft_lean; 4-name meta clip may spill.
+    assert "short lead/share" in g["soft_lean"]
     assert "short lead/lean" in g["soft_lean"]
     assert "short share/lean" in g["soft_lean"]
     assert g["soft_lean_meta"].startswith("clash")

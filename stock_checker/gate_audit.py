@@ -564,6 +564,49 @@ def soft_allow_short_history_last_lead_vs_lean(
     return f"clash · lead {lead_verb} · lean {lean_verb}", True
 
 
+def soft_allow_short_history_last_lead_vs_share(
+    events: list[dict[str, Any]] | None,
+    *,
+    now: datetime | None = None,
+) -> tuple[str, bool]:
+    """Last/lead freshness vs last/share relationship agreement (display only).
+
+    Returns ``(bit, warn)``. Age↔name-vs-lead ≠ age↔share heat. When both
+    already spoke: same verb speaks ``align · both align|clash`` —
+    ``both align`` stays calm; ``both clash`` warns (dual-clash agreement
+    ≠ quiet confirm). Crossed verbs speak
+    ``clash · lead align|clash · share align|clash`` (warn). Missing
+    either stays silent — gap lead/share parity + FinRobot last-row age +
+    portfolio AI speak-both-sides + RyanJHamby severity after short
+    last/lead + last/share alone hid whether cursor-vs-owner and
+    ownership-heat agree *and* whether dual-clash agreement is adverse.
+    Lead/lean + share/lean are not transitive with this edge. Short÷ring
+    share / short-vs-other lean still deferred (no ``×N · P%``). Not a
+    gate.
+    """
+    lead_bit, _ = soft_allow_short_history_last_vs_lead_freshness(
+        events, now=now
+    )
+    share_bit, _ = soft_allow_short_history_last_vs_share(events, now=now)
+    if not lead_bit or not share_bit:
+        return "", False
+
+    def _verb(bit: str) -> str | None:
+        if bit.startswith("align · "):
+            return "align"
+        if bit.startswith("clash · "):
+            return "clash"
+        return None
+
+    lead_verb = _verb(lead_bit)
+    share_verb = _verb(share_bit)
+    if lead_verb is None or share_verb is None:
+        return "", False
+    if lead_verb == share_verb:
+        return f"align · both {lead_verb}", lead_verb == "clash"
+    return f"clash · lead {lead_verb} · share {share_verb}", True
+
+
 def soft_allow_short_history_last_share_vs_lean(
     events: list[dict[str, Any]] | None,
     *,
@@ -579,8 +622,8 @@ def soft_allow_short_history_last_share_vs_lean(
     either stays silent — gap share/lean parity + FinRobot last-row age +
     portfolio AI speak-both-sides + RyanJHamby severity after short
     last/share + last/lean alone hid whether the two relationships agree
-    *and* whether dual-clash agreement is adverse. Lead/share +
-    short÷ring still deferred. Not a gate.
+    *and* whether dual-clash agreement is adverse. Short÷ring /
+    short-vs-other lean still deferred. Not a gate.
     """
     share_bit, _ = soft_allow_short_history_last_vs_share(events, now=now)
     lean_bit, _ = soft_allow_short_history_last_vs_lean(events, now=now)
@@ -630,7 +673,10 @@ def format_soft_allow_short_history_bit(
     pair; when last freshness extremes + pair share lean, ``short
     last/share align|clash`` follows so age labels + ownership heat
     alone cannot hide age≠share (gap last/share parity; short÷pair, not
-    short÷ring); when both pair severities lean, ``short vs gap
+    short÷ring); when last/lead + last/share already spoke, ``short
+    lead/share align|clash`` follows so cursor-vs-owner and ownership
+    heat cannot hide non-agreement or dual-clash (gap lead/share
+    parity); when both pair severities lean, ``short vs gap
     align|clash`` follows so sides alone cannot hide lean agreement
     (junk vs ok / gap vs other lean parity); when last freshness
     extremes + lean already spoke, ``short last/lean align|clash``
@@ -641,8 +687,8 @@ def format_soft_allow_short_history_bit(
     agreement (gap lead/lean parity); when last/share + last/lean
     already spoke, ``short share/lean align|clash`` follows so the two
     age relationships cannot hide non-agreement or dual-clash (gap
-    share/lean parity). Short÷ring share / short-vs-other lean /
-    lead/share still deferred. Display only; not a gate.
+    share/lean parity). Short÷ring share / short-vs-other lean still
+    deferred. Display only; not a gate.
     """
     n = soft_allow_short_history_count(events)
     if n <= 0:
@@ -692,6 +738,11 @@ def format_soft_allow_short_history_bit(
         )
         if last_vs_share:
             head = f"{head} · short last/share {last_vs_share}"
+            lead_vs_share, _ = soft_allow_short_history_last_lead_vs_share(
+                events, now=now
+            )
+            if lead_vs_share:
+                head = f"{head} · short lead/share {lead_vs_share}"
         lean, _ = soft_allow_short_vs_gap_lean(events)
         if lean:
             head = f"{head} · short vs gap {lean}"
