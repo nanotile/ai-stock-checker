@@ -53,6 +53,7 @@ def test_soft_allow_short_history_count() -> None:
         soft_allow_short_history_last_freshness,
         soft_allow_short_history_last_symbol,
         soft_allow_short_history_symbol_last_vs_lead,
+        soft_allow_short_history_last_vs_lead_freshness,
         soft_allow_short_history_symbol_lead,
         soft_allow_short_history_symbol_lead_margin,
         soft_allow_short_history_symbol_lead_sides,
@@ -76,6 +77,10 @@ def test_soft_allow_short_history_count() -> None:
     assert soft_allow_short_history_symbol_lead_sides(None) is None
     assert soft_allow_short_history_symbol_sample_gap(None) == ""
     assert soft_allow_short_history_symbol_last_vs_lead(None) == ""
+    assert soft_allow_short_history_last_vs_lead_freshness(None) == (
+        "",
+        False,
+    )
     assert soft_allow_short_vs_gap(None) is None
     assert soft_allow_short_pair_share(None) is None
     assert soft_allow_short_vs_gap_lean(None) == ("", False)
@@ -358,6 +363,93 @@ def test_soft_allow_short_history_count() -> None:
         "2 short · last IPO · expired · tied · vs gap · thin · 1 · 33% · "
         "short vs gap align · hot|thin · "
         "short last/lean clash · expired · hot|thin"
+    )
+    # Gap last/lead freshness parity: bare agree ≠ live cursor match.
+    # Fresh + agree → short last/lead align; expired + agree → clash warn.
+    fresh_agree = [
+        {
+            "at": "2026-10-22T11:30:00Z",
+            "gate": "rs",
+            "reason": "IPO RS unknown — short history — allow",
+        },
+        {
+            "at": "2026-10-22T11:00:00Z",
+            "gate": "rs",
+            "reason": "IPO RS unknown — short history — allow",
+        },
+        {
+            "at": "2026-10-22T10:30:00Z",
+            "gate": "rs",
+            "reason": "NEW RS unknown — short history — allow",
+        },
+    ]
+    assert soft_allow_short_history_symbol_last_vs_lead(fresh_agree) == (
+        "agree"
+    )
+    assert soft_allow_short_history_last_freshness(
+        fresh_agree, now=now
+    ) == "fresh"
+    assert soft_allow_short_history_last_vs_lead_freshness(
+        fresh_agree, now=now
+    ) == ("align · fresh · agree", False)
+    assert format_soft_allow_short_history_bit(fresh_agree, now=now) == (
+        "3 short · last IPO · fresh · lead IPO · 2 · 67% · agree · "
+        "short last/lead align · fresh · agree · "
+        "ahead thin · +1 · vs NEW · 1 · 33%"
+    )
+    expired_agree = [
+        {
+            "at": "2026-10-20T11:00:00Z",
+            "gate": "rs",
+            "reason": "IPO RS unknown — short history — allow",
+        },
+        {
+            "at": "2026-10-20T10:30:00Z",
+            "gate": "rs",
+            "reason": "IPO RS unknown — short history — allow",
+        },
+        {
+            "at": "2026-10-20T10:00:00Z",
+            "gate": "rs",
+            "reason": "NEW RS unknown — short history — allow",
+        },
+    ]
+    assert soft_allow_short_history_last_vs_lead_freshness(
+        expired_agree, now=now
+    ) == ("clash · expired · agree", True)
+    assert format_soft_allow_short_history_bit(expired_agree, now=now) == (
+        "3 short · last IPO · expired · lead IPO · 2 · 67% · agree · "
+        "short last/lead clash · expired · agree · "
+        "ahead thin · +1 · vs NEW · 1 · 33%"
+    )
+    # Fresh + name clash → short last/lead clash warn.
+    fresh_clash = [
+        {
+            "at": "2026-10-22T11:30:00Z",
+            "gate": "rs",
+            "reason": "NEW RS unknown — short history — allow",
+        },
+        {
+            "at": "2026-10-22T11:00:00Z",
+            "gate": "rs",
+            "reason": "IPO RS unknown — short history — allow",
+        },
+        {
+            "at": "2026-10-22T10:30:00Z",
+            "gate": "rs",
+            "reason": "IPO RS unknown — short history — allow",
+        },
+    ]
+    assert soft_allow_short_history_symbol_last_vs_lead(fresh_clash) == (
+        "last vs lead · NEW"
+    )
+    assert soft_allow_short_history_last_vs_lead_freshness(
+        fresh_clash, now=now
+    ) == ("clash · fresh · vs NEW", True)
+    assert format_soft_allow_short_history_bit(fresh_clash, now=now) == (
+        "3 short · last NEW · fresh · lead IPO · 2 · 67% · "
+        "last vs lead · NEW · short last/lead clash · fresh · vs NEW · "
+        "ahead thin · +1 · vs NEW · 1 · 33%"
     )
 
 

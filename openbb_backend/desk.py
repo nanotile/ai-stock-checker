@@ -2126,6 +2126,19 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
         ),
         "short/gap",
     ),
+    # Short cursor age vs symbol last-vs-lead (gap last/lead freshness
+    # parity). Distinct ``short last/lead`` prefix so gate/gap
+    # ``last/lead`` is not treated as the young/short relationship.
+    # Verb + age + agree|vs ride so ``align`` is not a silent confirm
+    # of a stale name match.
+    (
+        re.compile(
+            r"^short last/lead (align|clash)"
+            r"(?: · (fresh|expired)"
+            r"(?: · (agree|vs [A-Za-z0-9][A-Za-z0-9.\-]{0,14}))?)?"
+        ),
+        "short last/lead",
+    ),
     # Short cursor age vs short/gap lean (gap last/lean parity). Distinct
     # ``short last/lean`` prefix so gap ``last/lean`` is not treated as
     # the young/short relationship. Verb + age + lean tail ride so
@@ -2451,6 +2464,7 @@ def build_soft_allow_glance(
         soft_allow_short_history_symbol_lead_margin,
         soft_allow_short_history_symbol_lead_sides,
         soft_allow_short_history_symbol_last_vs_lead,
+        soft_allow_short_history_last_vs_lead_freshness,
         soft_allow_short_history_symbol_sample_gap,
         soft_allow_short_vs_gap,
         soft_allow_short_pair_share,
@@ -2530,6 +2544,8 @@ def build_soft_allow_glance(
         "short_history_symbol_lead_runner_share": None,
         "short_history_symbol_lead_sides": "",
         "short_history_symbol_last_vs_lead": "",
+        "short_history_last_vs_lead_freshness": "",
+        "short_history_last_vs_lead_freshness_warn": False,
         "short_history_symbol_sample_gap": "",
         "short_history_vs_gap": "",
         "short_history_vs_gap_count": 0,
@@ -2863,6 +2879,10 @@ def build_soft_allow_glance(
     short_history_symbol_last_vs_lead = (
         soft_allow_short_history_symbol_last_vs_lead(rows)
     )
+    (
+        short_history_last_vs_lead_freshness,
+        short_history_last_vs_lead_freshness_warn,
+    ) = soft_allow_short_history_last_vs_lead_freshness(rows, now=now)
     short_history_symbol_sample_gap = (
         soft_allow_short_history_symbol_sample_gap(rows)
     )
@@ -3140,6 +3160,7 @@ def build_soft_allow_glance(
         or anchor_gap_vs_memory_clock_clash_warn
         or short_history_bench_n > 0
         or short_history_last_freshness == "expired"
+        or short_history_last_vs_lead_freshness_warn
         or short_history_last_vs_lean_warn
     ):
         tone = "warn"
@@ -3320,6 +3341,7 @@ def build_soft_allow_glance(
         or anchor_gap_vs_cash_clock_clash_warn
         or anchor_gap_vs_memory_clock_clash_warn
         or short_history_vs_gap_lean_warn
+        or short_history_last_vs_lead_freshness_warn
         or short_history_last_vs_lean_warn
         or short_history_bench_n > 0
         or short_history_last_freshness == "expired"
@@ -3401,6 +3423,12 @@ def build_soft_allow_glance(
         "short_history_symbol_lead_sides": short_history_symbol_lead_sides,
         "short_history_symbol_last_vs_lead": (
             short_history_symbol_last_vs_lead
+        ),
+        "short_history_last_vs_lead_freshness": (
+            short_history_last_vs_lead_freshness
+        ),
+        "short_history_last_vs_lead_freshness_warn": (
+            short_history_last_vs_lead_freshness_warn
         ),
         "short_history_symbol_sample_gap": short_history_symbol_sample_gap,
         "short_history_vs_gap": short_history_vs_gap,
