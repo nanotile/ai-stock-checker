@@ -370,6 +370,17 @@ def test_soft_allow_lean_meta_names_spoken_sleeves() -> None:
         )
         == "quiet · 1 fold · gap/cash gap-only US-only scan-only"
     )
+    # Short≠gap generation clock (soft≠gap parity; count lean ≠ clock).
+    assert (
+        soft_allow_lean_meta("clash · short expired · gap fresh")
+        == "quiet · 1 fold · short/gap"
+    )
+    assert (
+        soft_allow_lean_meta(
+            "clash · short expired · gap fresh · scan-only · US-only"
+        )
+        == "quiet · 1 fold · short/gap scan-only US-only"
+    )
     # Short keep-scan / keep-cash pins ride on the lean chip (gap parity).
     assert (
         soft_allow_lean_meta(
@@ -918,6 +929,70 @@ def test_soft_allow_glance_short_history_bench_count() -> None:
     assert g["tone"] == "warn"
     assert g["soft_lean_warn"] is True
     assert "short 1 bench SPY fresh" in g["soft_lean_meta"]
+
+
+def test_soft_allow_glance_short_vs_gap_clock_when_short_matches_scan() -> None:
+    """xang1234 #549: short matching scan ≠ gap cursor generation."""
+    now = datetime(2026, 10, 22, 12, 0, tzinfo=timezone.utc)
+    fresh_at = (now - timedelta(minutes=5)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    expired_at = (now - timedelta(hours=30)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    scan_at = (now - timedelta(minutes=5)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    g = build_soft_allow_glance(
+        [
+            {
+                "at": fresh_at,
+                "gate": "regime",
+                "reason": "no SPY bars — allow",
+            },
+            {
+                "at": expired_at,
+                "gate": "rs",
+                "reason": "IPO RS unknown — short history — allow",
+            },
+            {
+                "at": fresh_at,
+                "gate": "rs",
+                "reason": "AAPL RS unknown — anchor gap — allow",
+            },
+        ],
+        now=now,
+        scan_time=scan_at,
+        scan_interval_sec=900,
+    )
+    assert g["last_freshness"] == "fresh"
+    assert g["scan_freshness"] == "fresh"
+    assert g["scan_vs_soft_allow_clash"] == ""
+    # Soft≠gap may also speak (soft last fresh vs gap fresh → silent;
+    # gap is fresh same as soft). Short cursor expired ≠ gap fresh.
+    assert g["short_history_vs_gap_clock_clash"] == (
+        "clash · short expired · gap fresh"
+    )
+    assert g["short_history_vs_gap_clock_clash_warn"] is True
+    assert g["tone"] == "warn"
+    assert "clash · short expired · gap fresh" in g["short_history_bit"]
+    assert "clash · short expired · gap fresh" in g["line"]
+    assert "clash · short expired · gap fresh" in g["soft_lean"]
+    # Meta may spill short/gap past the 4-name clip when scan/cash also
+    # clash — lean string still carries the generation bit.
+    same = build_soft_allow_glance(
+        [
+            {
+                "at": fresh_at,
+                "gate": "rs",
+                "reason": "IPO RS unknown — short history — allow",
+            },
+            {
+                "at": fresh_at,
+                "gate": "rs",
+                "reason": "AAPL RS unknown — anchor gap — allow",
+            },
+        ],
+        now=now,
+        scan_time=scan_at,
+        scan_interval_sec=900,
+    )
+    assert same["short_history_vs_gap_clock_clash"] == ""
+    assert same["short_history_vs_gap_clock_clash_warn"] is False
 
 
 def test_soft_allow_glance_short_vs_scan_when_last_matches_scan() -> None:

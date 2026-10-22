@@ -801,6 +801,59 @@ def soft_allow_short_history_vs_memory_clock_clash(
     )
 
 
+def soft_allow_short_history_vs_gap_clock_clash(
+    events: list[dict[str, Any]] | None,
+    *,
+    now: datetime | None = None,
+    keep_scan_pin_size: str = "",
+    keep_cash_pin_size: str = "",
+    keep_memory_pin_size: str = "",
+) -> tuple[str, bool]:
+    """Short cursor vs gap cursor generation (display only).
+
+    Returns ``(bit, warn)``. When newest short-history clock ≠ newest
+    anchor-gap cursor (``expired``≡``stale``), speak
+    ``clash · short expired|aging|fresh · gap …``. When short≠scan is
+    silent (short matches the archive), optional ``keep_scan_pin_size``
+    appends ``scan-only`` so gap alone cannot hide the match
+    (soft≠gap keep-scan + #660 / #647 / #531). When short≠cash is
+    silent, optional ``keep_cash_pin_size`` appends the cash pin; when
+    short≠memory is silent, optional ``keep_memory_pin_size`` appends
+    the advisory pin. Same band / missing either silent. Short matching
+    scan/cash/memory (and soft≠gap / short↔gap *count* lean alone) can
+    still hide a staler gap cursor — closes short↔gap generation beside
+    short≠scan|/cash|/memory + soft≠gap (xang1234 #549 / e3c84e1 +
+    portfolio AI speak-both-sides; count lean ≠ clock). Not a gate.
+    """
+    short_band = soft_allow_short_history_last_freshness(events, now=now)
+    short_clock = _soft_allow_gap_clock_tone(short_band)
+    if not short_clock:
+        return "", False
+    gap_band = soft_allow_anchor_gap_last_freshness(events, now=now)
+    gap_clock = _soft_allow_gap_clock_tone(gap_band)
+    if not gap_clock or short_clock == gap_clock:
+        return "", False
+    short_speak = (
+        short_band
+        if short_band in {"fresh", "aging", "expired"}
+        else short_clock
+    )
+    gap_speak = (
+        gap_band if gap_band in {"fresh", "aging", "expired"} else gap_clock
+    )
+    raw_scan = str(keep_scan_pin_size or "").strip().lstrip("·").strip()
+    keep_scan = f" · {raw_scan}" if raw_scan else ""
+    raw_cash = str(keep_cash_pin_size or "").strip().lstrip("·").strip()
+    keep_cash = f" · {raw_cash}" if raw_cash else ""
+    raw_mem = str(keep_memory_pin_size or "").strip().lstrip("·").strip()
+    keep_mem = f" · {raw_mem}" if raw_mem else ""
+    return (
+        f"clash · short {short_speak} · gap {gap_speak}"
+        f"{keep_scan}{keep_cash}{keep_mem}",
+        True,
+    )
+
+
 def format_soft_allow_short_history_bit(
     events: list[dict[str, Any]] | None,
     *,
@@ -834,7 +887,12 @@ def format_soft_allow_short_history_bit(
     follows so short matching the scan or cash cannot hide a staler
     advisory print (gap≠memory / soft≠memory / short≠scan / short≠cash
     parity); optional keep ``scan-only`` / cash when short≠scan /
-    short≠cash are silent. Symbol lead / n=1 / tied follows the cursor
+    short≠cash are silent. When short clock ≠ gap cursor,
+    ``clash · short … · gap …`` follows so short matching
+    scan/cash/memory cannot hide a staler gap print (soft≠gap /
+    short≠scan parity; count lean ≠ clock); optional keep
+    ``scan-only`` / cash / memory when those short≠* clashes are silent.
+    Symbol lead / n=1 / tied follows the cursor
     (last ≠ ring ownership; gap symbol lead parity); when lead spoke,
     ``last vs lead`` / ``agree`` sits right after so cursor≠owner is not
     clipped; when last freshness extremes + last-vs-lead already spoke,
@@ -907,6 +965,15 @@ def format_soft_allow_short_history_bit(
             )
             if short_vs_mem:
                 head = f"{head} · {short_vs_mem}"
+            short_vs_gap_clock, _ = soft_allow_short_history_vs_gap_clock_clash(
+                events,
+                now=now,
+                keep_scan_pin_size=keep_scan_pin_size,
+                keep_cash_pin_size=keep_cash_pin_size,
+                keep_memory_pin_size=keep_memory_pin_size,
+            )
+            if short_vs_gap_clock:
+                head = f"{head} · {short_vs_gap_clock}"
     lead_bit, _lead_name, _lead_share = soft_allow_short_history_symbol_lead(
         events
     )

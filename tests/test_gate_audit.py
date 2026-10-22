@@ -69,6 +69,7 @@ def test_soft_allow_short_history_count() -> None:
         soft_allow_short_history_vs_scan_clash,
         soft_allow_short_history_vs_cash_clock_clash,
         soft_allow_short_history_vs_memory_clock_clash,
+        soft_allow_short_history_vs_gap_clock_clash,
     )
 
     assert soft_allow_short_history_count(None) == 0
@@ -97,6 +98,7 @@ def test_soft_allow_short_history_count() -> None:
     assert soft_allow_short_history_last_vs_share(None) == ("", False)
     assert soft_allow_short_history_last_vs_lean(None) == ("", False)
     assert soft_allow_short_history_vs_scan_clash(None) == ("", False)
+    assert soft_allow_short_history_vs_gap_clock_clash(None) == ("", False)
     assert soft_allow_short_history_vs_scan_clash(
         None, scan_freshness="fresh"
     ) == ("", False)
@@ -296,7 +298,8 @@ def test_soft_allow_short_history_count() -> None:
         False,
     )
     assert format_soft_allow_short_history_bit(aged, now=now) == (
-        "1 short · last IPO · aging · n=1 · vs gap · 1 · 50% · "
+        "1 short · last IPO · aging · clash · short aging · gap fresh"
+        " · n=1 · vs gap · 1 · 50% · "
         "short vs gap clash · short hot · gap ok"
     )
     expired = [
@@ -416,6 +419,58 @@ def test_soft_allow_short_history_count() -> None:
         " · clash · short expired · cash aging"
         " · clash · short expired · laya fresh · n=1"
     )
+    # Short≠gap: expired short vs fresh gap cursor (soft≠gap / short≠scan
+    # parity; count lean ≠ clock). Same band silent.
+    short_vs_gap_rows = [
+        {
+            "at": "2026-10-21T06:00:00Z",
+            "gate": "rs",
+            "reason": "IPO RS unknown — short history — allow",
+        },
+        {
+            "at": "2026-10-22T11:30:00Z",
+            "gate": "rs",
+            "reason": "AAPL RS unknown — anchor gap — allow",
+        },
+    ]
+    assert soft_allow_short_history_vs_gap_clock_clash(
+        short_vs_gap_rows, now=now
+    ) == ("clash · short expired · gap fresh", True)
+    assert format_soft_allow_short_history_bit(
+        short_vs_gap_rows, now=now
+    ) == (
+        "1 short · last IPO · expired · clash · short expired · gap fresh"
+        " · n=1 · vs gap · 1 · 50%"
+        " · short last/share clash · expired · hot"
+        " · short vs gap clash · short hot · gap ok"
+        " · short last/lean align · expired · short hot · gap ok"
+        " · short share/lean clash · share clash · lean align"
+    )
+    assert soft_allow_short_history_vs_gap_clock_clash(
+        short_vs_gap_rows,
+        now=now,
+        keep_scan_pin_size="scan-only",
+        keep_cash_pin_size="US-only",
+        keep_memory_pin_size="laya-only",
+    ) == (
+        "clash · short expired · gap fresh · scan-only · US-only · laya-only",
+        True,
+    )
+    same_gap_band = [
+        {
+            "at": "2026-10-22T11:30:00Z",
+            "gate": "rs",
+            "reason": "IPO RS unknown — short history — allow",
+        },
+        {
+            "at": "2026-10-22T11:00:00Z",
+            "gate": "rs",
+            "reason": "AAPL RS unknown — anchor gap — allow",
+        },
+    ]
+    assert soft_allow_short_history_vs_gap_clock_clash(
+        same_gap_band, now=now
+    ) == ("", False)
     fresh = [
         {
             "at": "2026-10-22T11:30:00Z",

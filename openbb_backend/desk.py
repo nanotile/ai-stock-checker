@@ -2111,6 +2111,24 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
         ),
         "short/memory",
     ),
+    # Short cursor vs gap cursor generation (soft≠gap + short≠scan
+    # parity + xang1234 #549 / e3c84e1). Count lean ``short vs gap`` is a
+    # different stage — clock ≠ pair ownership. Optional keep
+    # scan/cash/memory pins when those short≠* clashes are silent
+    # (#660 / #647 / #531).
+    (
+        re.compile(
+            r"^clash · short \S+ · gap(?: \S+)?"
+            r"(?: · (scan-only))?"
+            r"(?: · ((?:US|Xetra)-only)"
+            r"| · (US|Xetra) · (\d+(?:\.\d+)?%)"
+            r"| · (×\d+) · (\d+(?:\.\d+)?%))?"
+            r"(?: · ((?:laya|debate)-only)"
+            r"| · (laya|debate) · (\d+(?:\.\d+)?%)"
+            r"| · (×\d+) · (\d+(?:\.\d+)?%))?"
+        ),
+        "short/gap",
+    ),
     # Cursor ticker + age ride with the count so ``N gap`` does not hide
     # who last failed open or whether that print is still live (#546).
     (
@@ -2171,8 +2189,10 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
         ),
         "short last/share",
     ),
-    # Short vs gap lean after sides (junk vs ok / gap vs other lean
-    # parity). Verb + payload ride so ``align`` is not a silent confirm.
+    # Short vs gap *count* lean after sides (junk vs ok / gap vs other
+    # lean parity). Stage label stays the spoken verb so generation
+    # ``clash · short · gap`` can own ``short/gap`` (soft≠gap parity).
+    # Verb + payload ride so ``align`` is not a silent confirm.
     (
         re.compile(
             r"^short vs gap (align|clash)"
@@ -2181,7 +2201,7 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
             r"|short (?:hot|quiet|ok) · gap (?:strong|thin|ok)"
             r"))?"
         ),
-        "short/gap",
+        "short vs gap",
     ),
     # Short cursor age vs symbol last-vs-lead (gap last/lead freshness
     # parity). Distinct ``short last/lead`` prefix so gate/gap
@@ -2573,6 +2593,7 @@ def build_soft_allow_glance(
         soft_allow_short_history_vs_scan_clash,
         soft_allow_short_history_vs_cash_clock_clash,
         soft_allow_short_history_vs_memory_clock_clash,
+        soft_allow_short_history_vs_gap_clock_clash,
         format_soft_allow_short_history_bit,
         soft_allow_vs_gap_clock_clash,
         soft_allow_last_vs_lead,
@@ -2674,6 +2695,8 @@ def build_soft_allow_glance(
         "short_history_vs_cash_clock_clash_warn": False,
         "short_history_vs_memory_clock_clash": "",
         "short_history_vs_memory_clock_clash_warn": False,
+        "short_history_vs_gap_clock_clash": "",
+        "short_history_vs_gap_clock_clash_warn": False,
         "short_history_bit": "",
         "anchor_gap_count": 0,
         "anchor_gap_last": "",
@@ -3145,6 +3168,19 @@ def build_soft_allow_glance(
             keep_scan_pin_size=short_keep_scan,
             keep_memory_pin_size=short_keep_memory,
         )
+    # Short≠gap — short matching scan/cash/memory can still hide a
+    # staler gap cursor (soft≠gap / short≠scan parity + xang1234 #549 /
+    # e3c84e1; count lean ≠ clock).
+    (
+        short_history_vs_gap_clock_clash,
+        short_history_vs_gap_clock_clash_warn,
+    ) = soft_allow_short_history_vs_gap_clock_clash(
+        rows,
+        now=now,
+        keep_scan_pin_size=short_keep_scan,
+        keep_cash_pin_size=short_keep_cash,
+        keep_memory_pin_size=short_keep_memory,
+    )
     short_history_bit = format_soft_allow_short_history_bit(
         rows,
         now=now,
@@ -3414,6 +3450,7 @@ def build_soft_allow_glance(
         or short_history_vs_scan_clash_warn
         or short_history_vs_cash_clock_clash_warn
         or short_history_vs_memory_clock_clash_warn
+        or short_history_vs_gap_clock_clash_warn
         or short_history_last_vs_lead_freshness_warn
         or short_history_last_vs_share_warn
         or short_history_last_vs_lean_warn
@@ -3602,6 +3639,7 @@ def build_soft_allow_glance(
         or short_history_vs_scan_clash_warn
         or short_history_vs_cash_clock_clash_warn
         or short_history_vs_memory_clock_clash_warn
+        or short_history_vs_gap_clock_clash_warn
         or short_history_last_vs_lead_freshness_warn
         or short_history_last_vs_share_warn
         or short_history_last_vs_lean_warn
@@ -3731,6 +3769,10 @@ def build_soft_allow_glance(
         ),
         "short_history_vs_memory_clock_clash_warn": (
             short_history_vs_memory_clock_clash_warn
+        ),
+        "short_history_vs_gap_clock_clash": short_history_vs_gap_clock_clash,
+        "short_history_vs_gap_clock_clash_warn": (
+            short_history_vs_gap_clock_clash_warn
         ),
         "short_history_bit": short_history_bit,
         "anchor_gap_count": anchor_gap_n,
