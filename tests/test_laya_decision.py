@@ -919,6 +919,164 @@ def test_laya_glance_peer_soft_and_gap_both_keep_scan_only(
     assert "scan-only" not in g["scan_vs_laya_clash"]
 
 
+def test_laya_glance_vs_short_clock_clash(monkeypatch, tmp_path: Path) -> None:
+    """Soft last matching LAYA can still hide a staler short-history cursor."""
+    monkeypatch.setenv("LAYA_BASE_URL", "http://laya.test")
+    monkeypatch.setenv("LAYA_ADVISORY", "1")
+    now = datetime(2026, 9, 8, 1, 30, tzinfo=timezone.utc)
+    fresh_at = (now - timedelta(minutes=10)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    stale_at = (now - timedelta(hours=30)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    (tmp_path / "laya_decisions.json").write_text(
+        json.dumps(
+            {
+                "events": [
+                    {
+                        "at": fresh_at,
+                        "symbol": "MSFT",
+                        "ok": True,
+                        "fail_open": False,
+                        "reason": "ok",
+                        "entry": "hold",
+                    }
+                ]
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "gate_soft_allows.json").write_text(
+        json.dumps(
+            {
+                "events": [
+                    {
+                        "at": stale_at,
+                        "gate": "rs",
+                        "reason": "IPO RS unknown — short history — allow",
+                    },
+                    {
+                        "at": fresh_at,
+                        "gate": "breadth",
+                        "reason": "unknown breadth — allow",
+                    },
+                ]
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    g = build_laya_glance(
+        tmp_path, now=now, scan_interval_sec=900, scan_time=fresh_at
+    )
+    assert g["freshness"] == "fresh"
+    assert g["soft_freshness"] == "fresh"
+    assert g["short_freshness"] == "stale"
+    assert g["scan_freshness"] == "fresh"
+    assert g["laya_vs_soft_clock_clash"] == ""
+    assert g["laya_vs_cash_clock_clash"] == ""
+    assert g["laya_vs_short_clock_clash"] == (
+        "clash · short stale · laya-only · short-only · scan-only · "
+        "soft-only · ×2 · 100%"
+    )
+    assert g["laya_vs_short_clock_clash_warn"] is True
+    assert "clash · short stale · laya-only · short-only" in g["line"]
+    assert g["tone"] in {"aging", "stale"}
+    # Same band — silent.
+    (tmp_path / "gate_soft_allows.json").write_text(
+        json.dumps(
+            {
+                "events": [
+                    {
+                        "at": fresh_at,
+                        "gate": "rs",
+                        "reason": "IPO RS unknown — short history — allow",
+                    }
+                ]
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    same = build_laya_glance(
+        tmp_path, now=now, scan_interval_sec=900, scan_time=fresh_at
+    )
+    assert same["short_freshness"] == "fresh"
+    assert same["laya_vs_short_clock_clash"] == ""
+    assert same["laya_vs_short_clock_clash_warn"] is False
+    assert "clash · short" not in same["line"]
+
+
+def test_laya_glance_peer_short_clash_when_laya_matches_short(
+    monkeypatch, tmp_path: Path
+) -> None:
+    """LAYA matching short can still hide debate ≠ short (peer speak)."""
+    from stock_checker.ai_validate_memory import record_ai_validate
+
+    monkeypatch.setenv("LAYA_BASE_URL", "http://laya.test")
+    monkeypatch.setenv("LAYA_ADVISORY", "1")
+    now = datetime(2026, 9, 8, 1, 30, tzinfo=timezone.utc)
+    fresh_at = (now - timedelta(minutes=10)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    stale_at = (now - timedelta(hours=30)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    (tmp_path / "laya_decisions.json").write_text(
+        json.dumps(
+            {
+                "events": [
+                    {
+                        "at": fresh_at,
+                        "symbol": "MSFT",
+                        "ok": True,
+                        "fail_open": False,
+                        "reason": "ok",
+                        "entry": "hold",
+                    }
+                ]
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "gate_soft_allows.json").write_text(
+        json.dumps(
+            {
+                "events": [
+                    {
+                        "at": fresh_at,
+                        "gate": "rs",
+                        "reason": "IPO RS unknown — short history — allow",
+                    }
+                ]
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    record_ai_validate(
+        tmp_path,
+        {"action": "BUY", "confidence": "HIGH", "score": 40, "reasons": ["tape"]},
+        symbol="NVDA",
+        kept=True,
+    )
+    events = json.loads(
+        (tmp_path / "ai_validate_memory.json").read_text(encoding="utf-8")
+    )
+    events["events"][-1]["at"] = stale_at
+    events["updated_at"] = stale_at
+    (tmp_path / "ai_validate_memory.json").write_text(
+        json.dumps(events) + "\n", encoding="utf-8"
+    )
+    g = build_laya_glance(tmp_path, now=now, scan_interval_sec=900)
+    assert g["freshness"] == "fresh"
+    assert g["short_freshness"] == "fresh"
+    assert g["laya_vs_short_clock_clash"] == ""
+    peer = g["laya_peer_short_clock_clash"]
+    assert peer.startswith("peer short · debate ")
+    assert "short fresh" in peer
+    assert " · debate-only · " in peer
+    assert peer.endswith("· short-only · soft-only")
+    assert g["laya_peer_short_clock_clash_warn"] is True
+    assert "peer short" in g["line"]
+    assert g["tone"] in {"aging", "stale"}
+
+
 def test_laya_glance_vs_gap_clock_clash(monkeypatch, tmp_path: Path) -> None:
     """Soft last matching LAYA can still hide a staler gap cursor."""
     monkeypatch.setenv("LAYA_BASE_URL", "http://laya.test")

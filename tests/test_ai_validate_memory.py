@@ -530,6 +530,149 @@ def test_build_ai_debate_glance_vs_gap_clock_clash(tmp_path: Path) -> None:
     assert "clash · gap" not in same["line"]
 
 
+def test_build_ai_debate_glance_vs_short_clock_clash(
+    monkeypatch, tmp_path: Path
+) -> None:
+    """Soft last matching debate can still hide a staler short-history cursor."""
+    now = datetime(2026, 9, 8, 1, 30, tzinfo=timezone.utc)
+    fresh_at = (now - timedelta(minutes=10)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    stale_at = (now - timedelta(hours=30)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    record_ai_validate(
+        tmp_path,
+        {"action": "BUY", "confidence": "HIGH", "score": 40, "reasons": ["tape"]},
+        symbol="MSFT",
+        kept=True,
+    )
+    events = load_ai_validate_memory(tmp_path)
+    events[-1]["at"] = fresh_at
+    path = tmp_path / "ai_validate_memory.json"
+    path.write_text(json.dumps({"updated_at": fresh_at, "events": events}) + "\n")
+    (tmp_path / "gate_soft_allows.json").write_text(
+        json.dumps(
+            {
+                "events": [
+                    {
+                        "at": stale_at,
+                        "gate": "rs",
+                        "reason": "IPO RS unknown — short history — allow",
+                    },
+                    {
+                        "at": fresh_at,
+                        "gate": "breadth",
+                        "reason": "unknown breadth — allow",
+                    },
+                ]
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    g = build_ai_debate_glance(
+        tmp_path, now=now, scan_interval_sec=900, scan_time=fresh_at
+    )
+    assert g["freshness"] == "fresh"
+    assert g["soft_freshness"] == "fresh"
+    assert g["short_freshness"] == "stale"
+    assert g["scan_freshness"] == "fresh"
+    assert g["debate_vs_soft_clock_clash"] == ""
+    assert g["debate_vs_cash_clock_clash"] == ""
+    assert g["debate_vs_short_clock_clash"] == (
+        "clash · short stale · debate-only · short-only · scan-only · "
+        "soft-only · ×2 · 100%"
+    )
+    assert g["debate_vs_short_clock_clash_warn"] is True
+    assert "clash · short stale · debate-only" in g["line"]
+    assert g["tone"] in {"aging", "stale", "buy"}
+    (tmp_path / "gate_soft_allows.json").write_text(
+        json.dumps(
+            {
+                "events": [
+                    {
+                        "at": fresh_at,
+                        "gate": "rs",
+                        "reason": "IPO RS unknown — short history — allow",
+                    }
+                ]
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    same = build_ai_debate_glance(
+        tmp_path, now=now, scan_interval_sec=900, scan_time=fresh_at
+    )
+    assert same["short_freshness"] == "fresh"
+    assert same["debate_vs_short_clock_clash"] == ""
+    assert same["debate_vs_short_clock_clash_warn"] is False
+    assert "clash · short" not in same["line"]
+
+
+def test_build_ai_debate_glance_peer_short_clash_when_debate_matches_short(
+    monkeypatch, tmp_path: Path
+) -> None:
+    """Debate matching short can still hide LAYA ≠ short (peer speak)."""
+    monkeypatch.setenv("LAYA_BASE_URL", "http://laya.test")
+    monkeypatch.setenv("LAYA_ADVISORY", "1")
+    now = datetime(2026, 9, 8, 1, 30, tzinfo=timezone.utc)
+    fresh_at = (now - timedelta(minutes=10)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    stale_at = (now - timedelta(hours=30)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    record_ai_validate(
+        tmp_path,
+        {"action": "BUY", "confidence": "HIGH", "score": 40, "reasons": ["tape"]},
+        symbol="MSFT",
+        kept=True,
+    )
+    events = load_ai_validate_memory(tmp_path)
+    events[-1]["at"] = fresh_at
+    path = tmp_path / "ai_validate_memory.json"
+    path.write_text(json.dumps({"updated_at": fresh_at, "events": events}) + "\n")
+    (tmp_path / "gate_soft_allows.json").write_text(
+        json.dumps(
+            {
+                "events": [
+                    {
+                        "at": fresh_at,
+                        "gate": "rs",
+                        "reason": "IPO RS unknown — short history — allow",
+                    }
+                ]
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "laya_decisions.json").write_text(
+        json.dumps(
+            {
+                "events": [
+                    {
+                        "at": stale_at,
+                        "symbol": "NVDA",
+                        "ok": True,
+                        "fail_open": False,
+                        "reason": "ok",
+                        "entry": "hold",
+                    }
+                ]
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    g = build_ai_debate_glance(tmp_path, now=now, scan_interval_sec=900)
+    assert g["freshness"] == "fresh"
+    assert g["short_freshness"] == "fresh"
+    assert g["debate_vs_short_clock_clash"] == ""
+    peer = g["debate_peer_short_clock_clash"]
+    assert peer.startswith("peer short · laya ")
+    assert "short fresh" in peer
+    assert " · laya-only · " in peer
+    assert peer.endswith("· short-only · soft-only")
+    assert g["debate_peer_short_clock_clash_warn"] is True
+    assert "peer short" in g["line"]
+    assert g["tone"] in {"aging", "stale", "buy"}
+
+
 def test_build_ai_debate_glance_keep_peer_when_own_matches_laya(
     monkeypatch, tmp_path: Path
 ) -> None:

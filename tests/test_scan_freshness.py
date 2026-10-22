@@ -16,10 +16,12 @@ from openbb_backend.desk import (
     memory_own_pin_size,
     memory_peer_cash_clock_clash,
     memory_peer_gap_clock_clash,
+    memory_peer_short_clock_clash,
     memory_peer_soft_clock_clash,
     memory_vs_cash_clock_clash,
     soft_allow_gap_last_clock_tone,
     soft_allow_last_clock_tone,
+    soft_allow_short_history_last_clock_tone,
     soft_allow_vs_cash_clock_clash,
     _scan_vs_cash_clash_delta,
     _scan_vs_cash_delta_vs_sleeve,
@@ -261,6 +263,57 @@ def test_memory_peer_gap_clock_clash_helper() -> None:
     assert memory_peer_gap_clock_clash(
         "fresh", "", "fresh", peer_side="debate"
     ) == ("", False)
+
+
+def test_memory_peer_short_clock_clash_helper() -> None:
+    """Own matching short + peer ≠ short speaks peer (display only)."""
+    assert memory_peer_short_clock_clash(
+        "fresh", "aging", "fresh", peer_side="debate"
+    ) == ("peer short · debate aging · short fresh", True)
+    assert memory_peer_short_clock_clash(
+        "fresh", "stale", "fresh", peer_side="laya"
+    ) == ("peer short · laya stale · short fresh", True)
+    assert memory_peer_short_clock_clash(
+        "stale", "fresh", "expired", peer_side="debate"
+    ) == ("peer short · debate fresh · short stale", True)
+    assert memory_peer_short_clock_clash(
+        "fresh", "aging", "aging", peer_side="debate"
+    ) == ("", False)
+    assert memory_peer_short_clock_clash(
+        "fresh", "fresh", "fresh", peer_side="debate"
+    ) == ("", False)
+    assert memory_peer_short_clock_clash(
+        "fresh", "", "fresh", peer_side="debate"
+    ) == ("", False)
+
+
+def test_soft_allow_short_history_last_clock_tone(
+    tmp_path, monkeypatch
+) -> None:
+    """Newest short-history cursor maps expired→stale (display only)."""
+    import json
+    from datetime import datetime, timedelta, timezone
+
+    monkeypatch.setenv("DATA_DIR", str(tmp_path))
+    now = datetime(2026, 10, 22, 12, 0, tzinfo=timezone.utc)
+    stale_at = (now - timedelta(hours=30)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    (tmp_path / "gate_soft_allows.json").write_text(
+        json.dumps(
+            {
+                "events": [
+                    {
+                        "at": stale_at,
+                        "gate": "rs",
+                        "reason": "IPO RS unknown — short history — allow",
+                    }
+                ]
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    assert soft_allow_short_history_last_clock_tone(tmp_path, now=now) == "stale"
+    assert soft_allow_short_history_last_clock_tone(tmp_path / "missing") == ""
 
 
 def test_scan_freshness_empty() -> None:

@@ -710,6 +710,32 @@ def soft_allow_gap_last_clock_tone(
     return _soft_allow_clock_tone(band)
 
 
+def soft_allow_short_history_last_clock_tone(
+    data_dir: Path | str | None = None,
+    *,
+    now: Optional[datetime] = None,
+) -> str:
+    """Newest RS short-history cursor as scan-band tone (display only).
+
+    Maps ``expired``→``stale`` via ``_soft_allow_clock_tone``. Empty when
+    no parseable short-history row. Soft last / gap matching memory can
+    still hide a staler young/short cursor — speak-both-sides of
+    short≠memory on LAYA/debate (xang1234 #549 / e3c84e1 / #668 +
+    FinRobot last-row + portfolio AI after soft≠short alone). Not a gate.
+    """
+    from stock_checker.gate_audit import (
+        enrich_soft_allows,
+        load_soft_allows,
+        soft_allow_short_history_last_freshness,
+    )
+
+    root = data_dir if data_dir is not None else Path(os.getenv("DATA_DIR", "data"))
+    # File order is oldest-first; short helpers expect newest-first.
+    rows = list(reversed(enrich_soft_allows(load_soft_allows(root), now=now)))
+    band = soft_allow_short_history_last_freshness(rows, now=now)
+    return _soft_allow_clock_tone(band)
+
+
 def memory_peer_cash_clock_clash(
     own_freshness: str,
     peer_freshness: str,
@@ -837,6 +863,54 @@ def memory_peer_gap_clock_clash(
     if peer == gap:
         return "", False
     return f"peer gap · {label} {peer} · gap {gap}", True
+
+
+def memory_peer_short_clock_clash(
+    own_freshness: str,
+    peer_freshness: str,
+    short_band: str,
+    *,
+    peer_side: str,
+) -> tuple[str, bool]:
+    """Peer memory vs short-history cursor when own matches short (display only).
+
+    Returns ``(bit, warn)``. When own clock matches the RS short-history
+    cursor (or own short clash is silent) but peer ≠ short, speak
+    ``peer short · {peer} fresh|aging|stale · short …``. Own already
+    clashing stays silent here — the own bit covers it. Matching short
+    on this glance can still hide a peer that disagrees with the young /
+    short cursor (LAYA↔debate↔short triangle; xang1234 #549 / e3c84e1 /
+    #668 + FinRobot last-row + portfolio AI speak-both-sides; gap peer
+    parity). Compact so the 96-char clip keeps it beside clock clash.
+    Not a gate.
+    """
+    short = str(short_band or "").strip().casefold()
+    if short == "expired":
+        short = "stale"
+    elif short == "unknown":
+        short = "fresh"
+    own = str(own_freshness or "").strip().casefold()
+    if own == "expired":
+        own = "stale"
+    elif own == "unknown":
+        own = "fresh"
+    peer = str(peer_freshness or "").strip().casefold()
+    if peer == "expired":
+        peer = "stale"
+    elif peer == "unknown":
+        peer = "fresh"
+    label = str(peer_side or "").strip().casefold() or "peer"
+    if (
+        own not in _CASH_PRINT_RANK
+        or peer not in _CASH_PRINT_RANK
+        or short not in _CASH_PRINT_RANK
+    ):
+        return "", False
+    if own != short:
+        return "", False
+    if peer == short:
+        return "", False
+    return f"peer short · {label} {peer} · short {short}", True
 
 
 def build_scan_freshness(
@@ -24702,11 +24776,16 @@ def build_laya_glance(
     laya_vs_gap_clock_clash_warn = False
     laya_peer_gap_clock_clash = ""
     laya_peer_gap_clock_clash_warn = False
+    laya_vs_short_clock_clash = ""
+    laya_vs_short_clock_clash_warn = False
+    laya_peer_short_clock_clash = ""
+    laya_peer_short_clock_clash_warn = False
     fail_reason_class = ""
     fail_reason_detail = ""
     fail_reason_warn = False
     soft_freshness = soft_allow_last_clock_tone(root, now=now)
     gap_freshness = soft_allow_gap_last_clock_tone(root, now=now)
+    short_freshness = soft_allow_short_history_last_clock_tone(root, now=now)
     name_clash = ""
     verb_oppose = False
     edge_fee_bits = ""
@@ -24867,19 +24946,56 @@ def build_laya_glance(
                 side="debate", freshness=debate_freshness
             )
             laya_peer_gap_clock_clash += gap_pin
+        # Soft matching memory can still hide a staler short-history cursor.
+        short_pin = (
+            short_history_pin_size(short_freshness=short_freshness)
+            if short_freshness
+            else ""
+        )
+        laya_vs_short_clock_clash = (
+            _clock_clash(freshness, short=short_freshness)
+            if short_freshness
+            else ""
+        )
+        if laya_vs_short_clock_clash and short_pin:
+            # Soft≠cash speaks soft-only then cash; LAYA≠short must name
+            # laya-only then short-only (#647 / #531 / #668).
+            laya_vs_short_clock_clash += memory_own_pin_size(
+                side="laya", freshness=freshness
+            )
+            laya_vs_short_clock_clash += short_pin
+        laya_vs_short_clock_clash_warn = bool(laya_vs_short_clock_clash)
+        # LAYA matching short can still hide debate ≠ short (peer speak).
+        laya_peer_short_clock_clash, laya_peer_short_clock_clash_warn = (
+            memory_peer_short_clock_clash(
+                freshness,
+                debate_freshness,
+                short_freshness,
+                peer_side="debate",
+            )
+        )
+        if laya_peer_short_clock_clash and short_pin:
+            # Soft≠cash speak-both-sides; peer short names debate-only
+            # then short-only (#647 / #531 / #668).
+            laya_peer_short_clock_clash += memory_own_pin_size(
+                side="debate", freshness=debate_freshness
+            )
+            laya_peer_short_clock_clash += short_pin
         if peer_ring and not (
             laya_peer_cash_clock_clash
             or laya_peer_soft_clock_clash
             or laya_peer_gap_clock_clash
+            or laya_peer_short_clock_clash
         ):
             clash += peer_ring
         elif peer_ring:
-            # Peer soft/gap/cash already name peer-only; keep scan-only
-            # on *each* peer bit that spoke (not elif — two peers can
-            # both reference the matched archive pin; dropping all but
-            # the first hid the match on the quieter sleeve). Clip still
-            # keeps the peer prefix (#647 / #531; xang1234 #660 accept
-            # duplicate batch-peer refs — self-ref still omitted).
+            # Peer soft/gap/cash/short already name peer-only; keep
+            # scan-only on *each* peer bit that spoke (not elif — two
+            # peers can both reference the matched archive pin; dropping
+            # all but the first hid the match on the quieter sleeve).
+            # Clip still keeps the peer prefix (#647 / #531; xang1234
+            # #660 accept duplicate batch-peer refs — self-ref still
+            # omitted).
             scan_only = scan_archive_pin_size(
                 scan_freshness=scan_freshness
             )
@@ -24889,10 +25005,13 @@ def build_laya_glance(
                 laya_peer_gap_clock_clash += scan_only
             if laya_peer_cash_clock_clash and scan_only:
                 laya_peer_cash_clock_clash += scan_only
+            if laya_peer_short_clock_clash and scan_only:
+                laya_peer_short_clock_clash += scan_only
         # Own≠scan silent (own matches archive) — keep scan-only on
-        # ≠cash / ≠soft / ≠gap so those bits cannot hide the match
-        # (soft≠cash/gap/memory keep-scan-only + peer soft keep + #660 /
-        # #647 / #531). Own≠scan already names scan-only on the clash.
+        # ≠cash / ≠soft / ≠gap / ≠short so those bits cannot hide the
+        # match (soft≠cash/gap/memory keep-scan-only + peer soft keep +
+        # #660 / #647 / #531 / #668). Own≠scan already names scan-only
+        # on the clash.
         if own_matches_scan:
             keep_scan = scan_archive_pin_size(
                 scan_freshness=scan_freshness
@@ -24904,10 +25023,13 @@ def build_laya_glance(
                     laya_vs_soft_clock_clash += keep_scan
                 if laya_vs_gap_clock_clash:
                     laya_vs_gap_clock_clash += keep_scan
+                if laya_vs_short_clock_clash:
+                    laya_vs_short_clock_clash += keep_scan
         # Own≠soft silent (own matches soft) — keep soft-only on
-        # ≠cash / ≠scan / ≠gap so those bits cannot hide the match
-        # (gap≠scan keep-cash + soft≠scan keep-cash + #660 / #647 /
-        # #531). Own≠soft already names soft-only on the soft clash.
+        # ≠cash / ≠scan / ≠gap / ≠short so those bits cannot hide the
+        # match (gap≠scan keep-cash + soft≠scan keep-cash + #660 /
+        # #647 / #531 / #668). Own≠soft already names soft-only on the
+        # soft clash.
         own_matches_soft = bool(
             soft_freshness and freshness and not laya_vs_soft_clock_clash
         )
@@ -24920,10 +25042,13 @@ def build_laya_glance(
                     clash += keep_soft
                 if laya_vs_gap_clock_clash:
                     laya_vs_gap_clock_clash += keep_soft
+                if laya_vs_short_clock_clash:
+                    laya_vs_short_clock_clash += keep_soft
         # Own≠cash silent (own matches cash) — keep cash pin on
-        # ≠soft / ≠scan / ≠gap so those bits cannot hide the match
-        # (soft≠* keep-cash + gap≠* keep-cash + #660 / #647 / #531).
-        # Own≠cash already names own-only · cash on the cash clash.
+        # ≠soft / ≠scan / ≠gap / ≠short so those bits cannot hide the
+        # match (soft≠* keep-cash + gap≠* keep-cash + #660 / #647 /
+        # #531 / #668). Own≠cash already names own-only · cash on the
+        # cash clash.
         own_matches_cash = bool(
             cash_band and freshness and not laya_vs_cash_clock_clash
         )
@@ -24936,10 +25061,12 @@ def build_laya_glance(
                     clash += keep_cash
                 if laya_vs_gap_clock_clash:
                     laya_vs_gap_clock_clash += keep_cash
+                if laya_vs_short_clock_clash:
+                    laya_vs_short_clock_clash += keep_cash
         # Own≠gap silent (own matches gap) — keep gap-only on
-        # ≠cash / ≠scan / ≠soft so those bits cannot hide the match
-        # (keep soft-only + gap≠scan keep-cash + #660 / #647 / #531).
-        # Own≠gap already names gap-only on the gap clash.
+        # ≠cash / ≠scan / ≠soft / ≠short so those bits cannot hide the
+        # match (keep soft-only + gap≠scan keep-cash + #660 / #647 /
+        # #531 / #668). Own≠gap already names gap-only on the gap clash.
         own_matches_gap = bool(
             gap_freshness and freshness and not laya_vs_gap_clock_clash
         )
@@ -24952,11 +25079,35 @@ def build_laya_glance(
                     clash += keep_gap
                 if laya_vs_soft_clock_clash:
                     laya_vs_soft_clock_clash += keep_gap
+                if laya_vs_short_clock_clash:
+                    laya_vs_short_clock_clash += keep_gap
+        # Own≠short silent (own matches short) — keep short-only on
+        # ≠cash / ≠scan / ≠soft / ≠gap so those bits cannot hide the
+        # match (gap keep short-only + soft keep short-only + #660 /
+        # #647 / #531 / #668). Own≠short already names short-only on
+        # the short clash.
+        own_matches_short = bool(
+            short_freshness and freshness and not laya_vs_short_clock_clash
+        )
+        if own_matches_short:
+            keep_short = short_history_pin_size(
+                short_freshness=short_freshness
+            )
+            if keep_short:
+                if laya_vs_cash_clock_clash:
+                    laya_vs_cash_clock_clash += keep_short
+                if clash and "scan " in clash:
+                    clash += keep_short
+                if laya_vs_soft_clock_clash:
+                    laya_vs_soft_clock_clash += keep_short
+                if laya_vs_gap_clock_clash:
+                    laya_vs_gap_clock_clash += keep_short
         # Own matches peer (same clock) — keep peer-only on
-        # ≠cash / ≠soft / ≠scan / ≠gap so those bits cannot hide the match
-        # (soft≠* keep-memory + #660 / #647 / #531). Peer soft/gap/cash
-        # already name debate-only when peer disagrees with those sleeves;
-        # a silent peer match must ride the own clashes.
+        # ≠cash / ≠soft / ≠scan / ≠gap / ≠short so those bits cannot
+        # hide the match (soft≠* keep-memory + #660 / #647 / #531 /
+        # #668). Peer soft/gap/cash/short already name debate-only when
+        # peer disagrees with those sleeves; a silent peer match must
+        # ride the own clashes.
         own_band = str(freshness or "").strip().casefold()
         if own_band == "expired":
             own_band = "stale"
@@ -24985,10 +25136,13 @@ def build_laya_glance(
                     laya_vs_soft_clock_clash += keep_peer
                 if laya_vs_gap_clock_clash:
                     laya_vs_gap_clock_clash += keep_peer
-        # Own matches soft/cash/gap — keep those pins on peer soft/gap/cash
-        # that already spoke (peer soft keep-scan-only parity; soft≠* keep
-        # pins speak-both-sides). Skip the peer bit that already names that
-        # sleeve (peer soft already has soft-only, etc.).
+                if laya_vs_short_clock_clash:
+                    laya_vs_short_clock_clash += keep_peer
+        # Own matches soft/cash/gap/short — keep those pins on peer
+        # soft/gap/cash/short that already spoke (peer soft keep-scan-only
+        # parity; soft≠* keep pins speak-both-sides). Skip the peer bit
+        # that already names that sleeve (peer soft already has soft-only,
+        # etc.).
         if own_matches_soft:
             keep_soft_peer = soft_allow_pin_size(soft_freshness=soft_freshness)
             if keep_soft_peer:
@@ -24996,6 +25150,8 @@ def build_laya_glance(
                     laya_peer_cash_clock_clash += keep_soft_peer
                 if laya_peer_gap_clock_clash:
                     laya_peer_gap_clock_clash += keep_soft_peer
+                if laya_peer_short_clock_clash:
+                    laya_peer_short_clock_clash += keep_soft_peer
         if own_matches_cash:
             keep_cash_peer = cash_print_band_size(scan_pack, clock=cash_band)
             if keep_cash_peer:
@@ -25003,6 +25159,8 @@ def build_laya_glance(
                     laya_peer_soft_clock_clash += keep_cash_peer
                 if laya_peer_gap_clock_clash:
                     laya_peer_gap_clock_clash += keep_cash_peer
+                if laya_peer_short_clock_clash:
+                    laya_peer_short_clock_clash += keep_cash_peer
         if own_matches_gap:
             keep_gap_peer = gap_cursor_pin_size(gap_freshness=gap_freshness)
             if keep_gap_peer:
@@ -25010,6 +25168,19 @@ def build_laya_glance(
                     laya_peer_soft_clock_clash += keep_gap_peer
                 if laya_peer_cash_clock_clash:
                     laya_peer_cash_clock_clash += keep_gap_peer
+                if laya_peer_short_clock_clash:
+                    laya_peer_short_clock_clash += keep_gap_peer
+        if own_matches_short:
+            keep_short_peer = short_history_pin_size(
+                short_freshness=short_freshness
+            )
+            if keep_short_peer:
+                if laya_peer_soft_clock_clash:
+                    laya_peer_soft_clock_clash += keep_short_peer
+                if laya_peer_cash_clock_clash:
+                    laya_peer_cash_clock_clash += keep_short_peer
+                if laya_peer_gap_clock_clash:
+                    laya_peer_gap_clock_clash += keep_short_peer
         name_clash = _memory_name_clash(
             own_sym, own_verb, debate_sym, debate_action
         )
@@ -25139,6 +25310,12 @@ def build_laya_glance(
             bits.append(laya_vs_gap_clock_clash)
         if laya_peer_gap_clock_clash:
             bits.append(laya_peer_gap_clock_clash)
+        # Short≠memory after gap so soft/gap matching memory cannot hide a
+        # staler young/short cursor (#668 speak-both-sides).
+        if laya_vs_short_clock_clash:
+            bits.append(laya_vs_short_clock_clash)
+        if laya_peer_short_clock_clash:
+            bits.append(laya_peer_short_clock_clash)
         # Own matching soft ≠ peer debate vs soft (FinRobot speak-both-sides).
         if laya_peer_soft_clock_clash:
             bits.append(laya_peer_soft_clock_clash)
@@ -25246,6 +25423,9 @@ def build_laya_glance(
         gap_for_tone = gap_freshness if (
             laya_vs_gap_clock_clash or laya_peer_gap_clock_clash
         ) else ""
+        short_for_tone = short_freshness if (
+            laya_vs_short_clock_clash or laya_peer_short_clock_clash
+        ) else ""
         clash_tone = _clock_clash_tone(
             freshness,
             clash
@@ -25254,12 +25434,15 @@ def build_laya_glance(
             or laya_vs_soft_clock_clash
             or laya_peer_soft_clock_clash
             or laya_vs_gap_clock_clash
-            or laya_peer_gap_clock_clash,
+            or laya_peer_gap_clock_clash
+            or laya_vs_short_clock_clash
+            or laya_peer_short_clock_clash,
             scan=scan_freshness,
             debate=debate_freshness,
             cash=cash_for_tone,
             soft=soft_for_tone,
             gap=gap_for_tone,
+            short=short_for_tone,
         )
         if freshness == "stale" or clash_tone == "stale":
             tone = "stale"
@@ -25272,6 +25455,8 @@ def build_laya_glance(
             or laya_peer_soft_clock_clash_warn
             or laya_vs_gap_clock_clash_warn
             or laya_peer_gap_clock_clash_warn
+            or laya_vs_short_clock_clash_warn
+            or laya_peer_short_clock_clash_warn
             or verb_oppose
             or edge_fee_warn
             or edge_vs_conf_warn
@@ -25300,6 +25485,7 @@ def build_laya_glance(
         "debate_freshness": debate_freshness,
         "soft_freshness": soft_freshness,
         "gap_freshness": gap_freshness,
+        "short_freshness": short_freshness,
         "fail_reason_class": fail_reason_class,
         "fail_reason_detail": fail_reason_detail,
         "fail_reason_warn": fail_reason_warn,
@@ -25321,6 +25507,10 @@ def build_laya_glance(
         "laya_vs_gap_clock_clash_warn": laya_vs_gap_clock_clash_warn,
         "laya_peer_gap_clock_clash": laya_peer_gap_clock_clash,
         "laya_peer_gap_clock_clash_warn": laya_peer_gap_clock_clash_warn,
+        "laya_vs_short_clock_clash": laya_vs_short_clock_clash,
+        "laya_vs_short_clock_clash_warn": laya_vs_short_clock_clash_warn,
+        "laya_peer_short_clock_clash": laya_peer_short_clock_clash,
+        "laya_peer_short_clock_clash_warn": laya_peer_short_clock_clash_warn,
         "memory_name_clash": name_clash,
         "memory_verb_oppose": verb_oppose,
         "edge_fee_bits": edge_fee_bits,
@@ -25558,8 +25748,13 @@ def build_ai_debate_glance(
     debate_vs_gap_clock_clash_warn = False
     debate_peer_gap_clock_clash = ""
     debate_peer_gap_clock_clash_warn = False
+    debate_vs_short_clock_clash = ""
+    debate_vs_short_clock_clash_warn = False
+    debate_peer_short_clock_clash = ""
+    debate_peer_short_clock_clash_warn = False
     soft_freshness = soft_allow_last_clock_tone(root, now=now)
     gap_freshness = soft_allow_gap_last_clock_tone(root, now=now)
+    short_freshness = soft_allow_short_history_last_clock_tone(root, now=now)
     name_clash = ""
     verb_oppose = False
     edge_vs_conf = ""
@@ -25657,10 +25852,30 @@ def build_ai_debate_glance(
             )
             debate_vs_gap_clock_clash += gap_pin
         debate_vs_gap_clock_clash_warn = bool(debate_vs_gap_clock_clash)
+        # Soft matching memory can still hide a staler short-history cursor.
+        short_pin = (
+            short_history_pin_size(short_freshness=short_freshness)
+            if short_freshness
+            else ""
+        )
+        debate_vs_short_clock_clash = (
+            _clock_clash(freshness, short=short_freshness)
+            if short_freshness
+            else ""
+        )
+        if debate_vs_short_clock_clash and short_pin:
+            # Soft≠cash speaks soft-only then cash; debate≠short must name
+            # debate-only then short-only (#647 / #531 / #668).
+            debate_vs_short_clock_clash += memory_own_pin_size(
+                side="debate", freshness=freshness
+            )
+            debate_vs_short_clock_clash += short_pin
+        debate_vs_short_clock_clash_warn = bool(debate_vs_short_clock_clash)
         # Own≠scan silent (own matches archive) — keep scan-only on
-        # ≠cash / ≠soft / ≠gap so those bits cannot hide the match
-        # (soft≠cash/gap/memory keep-scan-only + LAYA own keep + #660 /
-        # #647 / #531). Own≠scan already names scan-only on the clash.
+        # ≠cash / ≠soft / ≠gap / ≠short so those bits cannot hide the
+        # match (soft≠cash/gap/memory keep-scan-only + LAYA own keep +
+        # #660 / #647 / #531 / #668). Own≠scan already names scan-only
+        # on the clash.
         if own_matches_scan:
             keep_scan = scan_archive_pin_size(
                 scan_freshness=scan_freshness
@@ -25672,10 +25887,13 @@ def build_ai_debate_glance(
                     debate_vs_soft_clock_clash += keep_scan
                 if debate_vs_gap_clock_clash:
                     debate_vs_gap_clock_clash += keep_scan
+                if debate_vs_short_clock_clash:
+                    debate_vs_short_clock_clash += keep_scan
         # Own≠soft silent (own matches soft) — keep soft-only on
-        # ≠cash / ≠scan / ≠gap so those bits cannot hide the match
-        # (LAYA keep soft-only + gap≠scan keep-cash + #660 / #647 /
-        # #531). Own≠soft already names soft-only on the soft clash.
+        # ≠cash / ≠scan / ≠gap / ≠short so those bits cannot hide the
+        # match (LAYA keep soft-only + gap≠scan keep-cash + #660 /
+        # #647 / #531 / #668). Own≠soft already names soft-only on the
+        # soft clash.
         own_matches_soft = bool(
             soft_freshness and freshness and not debate_vs_soft_clock_clash
         )
@@ -25688,10 +25906,13 @@ def build_ai_debate_glance(
                     clash += keep_soft
                 if debate_vs_gap_clock_clash:
                     debate_vs_gap_clock_clash += keep_soft
+                if debate_vs_short_clock_clash:
+                    debate_vs_short_clock_clash += keep_soft
         # Own≠cash silent (own matches cash) — keep cash pin on
-        # ≠soft / ≠scan / ≠gap so those bits cannot hide the match
-        # (LAYA keep cash + soft≠* keep-cash + #660 / #647 / #531).
-        # Own≠cash already names own-only · cash on the cash clash.
+        # ≠soft / ≠scan / ≠gap / ≠short so those bits cannot hide the
+        # match (LAYA keep cash + soft≠* keep-cash + #660 / #647 /
+        # #531 / #668). Own≠cash already names own-only · cash on the
+        # cash clash.
         own_matches_cash = bool(
             cash_band and freshness and not debate_vs_cash_clock_clash
         )
@@ -25704,10 +25925,12 @@ def build_ai_debate_glance(
                     clash += keep_cash
                 if debate_vs_gap_clock_clash:
                     debate_vs_gap_clock_clash += keep_cash
+                if debate_vs_short_clock_clash:
+                    debate_vs_short_clock_clash += keep_cash
         # Own≠gap silent (own matches gap) — keep gap-only on
-        # ≠cash / ≠scan / ≠soft so those bits cannot hide the match
-        # (LAYA keep gap-only + keep soft-only + #660 / #647 / #531).
-        # Own≠gap already names gap-only on the gap clash.
+        # ≠cash / ≠scan / ≠soft / ≠short so those bits cannot hide the
+        # match (LAYA keep gap-only + keep soft-only + #660 / #647 /
+        # #531 / #668). Own≠gap already names gap-only on the gap clash.
         own_matches_gap = bool(
             gap_freshness and freshness and not debate_vs_gap_clock_clash
         )
@@ -25720,11 +25943,37 @@ def build_ai_debate_glance(
                     clash += keep_gap
                 if debate_vs_soft_clock_clash:
                     debate_vs_soft_clock_clash += keep_gap
+                if debate_vs_short_clock_clash:
+                    debate_vs_short_clock_clash += keep_gap
+        # Own≠short silent (own matches short) — keep short-only on
+        # ≠cash / ≠scan / ≠soft / ≠gap so those bits cannot hide the
+        # match (LAYA keep short-only + gap keep short-only + #660 /
+        # #647 / #531 / #668). Own≠short already names short-only on
+        # the short clash.
+        own_matches_short = bool(
+            short_freshness
+            and freshness
+            and not debate_vs_short_clock_clash
+        )
+        if own_matches_short:
+            keep_short = short_history_pin_size(
+                short_freshness=short_freshness
+            )
+            if keep_short:
+                if debate_vs_cash_clock_clash:
+                    debate_vs_cash_clock_clash += keep_short
+                if clash and "scan " in clash:
+                    clash += keep_short
+                if debate_vs_soft_clock_clash:
+                    debate_vs_soft_clock_clash += keep_short
+                if debate_vs_gap_clock_clash:
+                    debate_vs_gap_clock_clash += keep_short
         # Own matches peer (same clock) — keep peer-only on
-        # ≠cash / ≠soft / ≠scan / ≠gap so those bits cannot hide the match
-        # (LAYA keep-peer + soft≠* keep-memory + #660 / #647 / #531).
-        # Peer soft/gap/cash already name laya-only when peer disagrees;
-        # a silent peer match must ride the own clashes.
+        # ≠cash / ≠soft / ≠scan / ≠gap / ≠short so those bits cannot
+        # hide the match (LAYA keep-peer + soft≠* keep-memory + #660 /
+        # #647 / #531 / #668). Peer soft/gap/cash/short already name
+        # laya-only when peer disagrees; a silent peer match must ride
+        # the own clashes.
         own_band = str(freshness or "").strip().casefold()
         if own_band == "expired":
             own_band = "stale"
@@ -25753,6 +26002,8 @@ def build_ai_debate_glance(
                     debate_vs_soft_clock_clash += keep_peer
                 if debate_vs_gap_clock_clash:
                     debate_vs_gap_clock_clash += keep_peer
+                if debate_vs_short_clock_clash:
+                    debate_vs_short_clock_clash += keep_peer
         # Debate matching cash can still hide LAYA ≠ cash (peer speak).
         if laya_st.get("advisory"):
             (
@@ -25807,19 +26058,38 @@ def build_ai_debate_glance(
                     side="laya", freshness=laya_freshness
                 )
                 debate_peer_gap_clock_clash += gap_pin
+            # Debate matching short can still hide LAYA ≠ short (peer speak).
+            (
+                debate_peer_short_clock_clash,
+                debate_peer_short_clock_clash_warn,
+            ) = memory_peer_short_clock_clash(
+                freshness,
+                laya_freshness,
+                short_freshness,
+                peer_side="laya",
+            )
+            if debate_peer_short_clock_clash and short_pin:
+                # Soft≠cash speak-both-sides; peer short names laya-only
+                # then short-only (#647 / #531 / #668).
+                debate_peer_short_clock_clash += memory_own_pin_size(
+                    side="laya", freshness=laya_freshness
+                )
+                debate_peer_short_clock_clash += short_pin
             if peer_ring and not (
                 debate_peer_cash_clock_clash
                 or debate_peer_soft_clock_clash
                 or debate_peer_gap_clock_clash
+                or debate_peer_short_clock_clash
             ):
                 clash += peer_ring
             elif peer_ring:
-                # Peer soft/gap/cash already name peer-only; keep scan-only
-                # on *each* peer bit that spoke (not elif — two peers can
-                # both reference the matched archive pin; dropping all but
-                # the first hid the match on the quieter sleeve). Clip still
-                # keeps the peer prefix (#647 / #531; xang1234 #660 accept
-                # duplicate batch-peer refs — self-ref still omitted).
+                # Peer soft/gap/cash/short already name peer-only; keep
+                # scan-only on *each* peer bit that spoke (not elif —
+                # two peers can both reference the matched archive pin;
+                # dropping all but the first hid the match on the quieter
+                # sleeve). Clip still keeps the peer prefix (#647 / #531;
+                # xang1234 #660 accept duplicate batch-peer refs —
+                # self-ref still omitted).
                 scan_only = scan_archive_pin_size(
                     scan_freshness=scan_freshness
                 )
@@ -25829,10 +26099,12 @@ def build_ai_debate_glance(
                     debate_peer_gap_clock_clash += scan_only
                 if debate_peer_cash_clock_clash and scan_only:
                     debate_peer_cash_clock_clash += scan_only
-            # Own matches soft/cash/gap — keep those pins on peer soft/gap/cash
-            # that already spoke (LAYA peer keep soft/cash/gap parity; peer
-            # soft keep-scan-only). Skip the peer bit that already names that
-            # sleeve (peer soft already has soft-only, etc.).
+                if debate_peer_short_clock_clash and scan_only:
+                    debate_peer_short_clock_clash += scan_only
+            # Own matches soft/cash/gap/short — keep those pins on peer
+            # soft/gap/cash/short that already spoke (LAYA peer keep
+            # soft/cash/gap/short parity; peer soft keep-scan-only). Skip
+            # the peer bit that already names that sleeve.
             if own_matches_soft:
                 keep_soft_peer = soft_allow_pin_size(
                     soft_freshness=soft_freshness
@@ -25842,6 +26114,8 @@ def build_ai_debate_glance(
                         debate_peer_cash_clock_clash += keep_soft_peer
                     if debate_peer_gap_clock_clash:
                         debate_peer_gap_clock_clash += keep_soft_peer
+                    if debate_peer_short_clock_clash:
+                        debate_peer_short_clock_clash += keep_soft_peer
             if own_matches_cash:
                 keep_cash_peer = cash_print_band_size(
                     scan_pack, clock=cash_band
@@ -25851,6 +26125,8 @@ def build_ai_debate_glance(
                         debate_peer_soft_clock_clash += keep_cash_peer
                     if debate_peer_gap_clock_clash:
                         debate_peer_gap_clock_clash += keep_cash_peer
+                    if debate_peer_short_clock_clash:
+                        debate_peer_short_clock_clash += keep_cash_peer
             if own_matches_gap:
                 keep_gap_peer = gap_cursor_pin_size(
                     gap_freshness=gap_freshness
@@ -25860,6 +26136,19 @@ def build_ai_debate_glance(
                         debate_peer_soft_clock_clash += keep_gap_peer
                     if debate_peer_cash_clock_clash:
                         debate_peer_cash_clock_clash += keep_gap_peer
+                    if debate_peer_short_clock_clash:
+                        debate_peer_short_clock_clash += keep_gap_peer
+            if own_matches_short:
+                keep_short_peer = short_history_pin_size(
+                    short_freshness=short_freshness
+                )
+                if keep_short_peer:
+                    if debate_peer_soft_clock_clash:
+                        debate_peer_soft_clock_clash += keep_short_peer
+                    if debate_peer_cash_clock_clash:
+                        debate_peer_cash_clock_clash += keep_short_peer
+                    if debate_peer_gap_clock_clash:
+                        debate_peer_gap_clock_clash += keep_short_peer
             name_clash = _memory_name_clash(sym, action, laya_sym, laya_verb)
             verb_oppose = bool(name_clash) and _memory_verb_oppose(
                 action, laya_verb
@@ -25918,6 +26207,12 @@ def build_ai_debate_glance(
         bits.append(debate_vs_gap_clock_clash)
     if debate_peer_gap_clock_clash:
         bits.append(debate_peer_gap_clock_clash)
+    # Short≠memory after gap so soft/gap matching memory cannot hide a
+    # staler young/short cursor (#668 speak-both-sides).
+    if debate_vs_short_clock_clash:
+        bits.append(debate_vs_short_clock_clash)
+    if debate_peer_short_clock_clash:
+        bits.append(debate_peer_short_clock_clash)
     # Own matching soft ≠ peer LAYA vs soft (FinRobot speak-both-sides).
     if debate_peer_soft_clock_clash:
         bits.append(debate_peer_soft_clock_clash)
@@ -25973,6 +26268,9 @@ def build_ai_debate_glance(
     gap_for_tone = gap_freshness if (
         debate_vs_gap_clock_clash or debate_peer_gap_clock_clash
     ) else ""
+    short_for_tone = short_freshness if (
+        debate_vs_short_clock_clash or debate_peer_short_clock_clash
+    ) else ""
     clash_tone = _clock_clash_tone(
         freshness,
         clash
@@ -25981,12 +26279,15 @@ def build_ai_debate_glance(
         or debate_vs_soft_clock_clash
         or debate_peer_soft_clock_clash
         or debate_vs_gap_clock_clash
-        or debate_peer_gap_clock_clash,
+        or debate_peer_gap_clock_clash
+        or debate_vs_short_clock_clash
+        or debate_peer_short_clock_clash,
         scan=scan_freshness,
         laya=laya_freshness,
         cash=cash_for_tone,
         soft=soft_for_tone,
         gap=gap_for_tone,
+        short=short_for_tone,
     )
     if freshness == "stale" or clash_tone == "stale":
         tone = "stale"
@@ -26001,6 +26302,8 @@ def build_ai_debate_glance(
         or debate_peer_soft_clock_clash_warn
         or debate_vs_gap_clock_clash_warn
         or debate_peer_gap_clock_clash_warn
+        or debate_vs_short_clock_clash_warn
+        or debate_peer_short_clock_clash_warn
         or verb_oppose
         or confidence_warn
         or edge_vs_conf_warn
@@ -26034,6 +26337,7 @@ def build_ai_debate_glance(
         "laya_freshness": laya_freshness,
         "soft_freshness": soft_freshness,
         "gap_freshness": gap_freshness,
+        "short_freshness": short_freshness,
         "scan_vs_debate_clash": clash,
         "debate_vs_cash_clock_clash": debate_vs_cash_clock_clash,
         "debate_vs_cash_clock_clash_warn": debate_vs_cash_clock_clash_warn,
@@ -26047,6 +26351,10 @@ def build_ai_debate_glance(
         "debate_vs_gap_clock_clash_warn": debate_vs_gap_clock_clash_warn,
         "debate_peer_gap_clock_clash": debate_peer_gap_clock_clash,
         "debate_peer_gap_clock_clash_warn": debate_peer_gap_clock_clash_warn,
+        "debate_vs_short_clock_clash": debate_vs_short_clock_clash,
+        "debate_vs_short_clock_clash_warn": debate_vs_short_clock_clash_warn,
+        "debate_peer_short_clock_clash": debate_peer_short_clock_clash,
+        "debate_peer_short_clock_clash_warn": debate_peer_short_clock_clash_warn,
         "memory_name_clash": name_clash,
         "memory_verb_oppose": verb_oppose,
         "confidence_bits": confidence_bits,
