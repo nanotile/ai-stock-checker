@@ -490,6 +490,48 @@ def soft_allow_short_history_last_vs_lean(
     return f"clash · {last_fresh} · {lean_tail}", True
 
 
+def soft_allow_short_history_last_lead_vs_lean(
+    events: list[dict[str, Any]] | None,
+    *,
+    now: datetime | None = None,
+) -> tuple[str, bool]:
+    """Last/lead freshness vs last/lean relationship agreement (display only).
+
+    Returns ``(bit, warn)``. Age↔name-vs-lead ≠ age↔lean. When both
+    already spoke: same verb speaks ``align · both align|clash`` —
+    ``both align`` stays calm; ``both clash`` warns (dual-clash agreement
+    ≠ quiet confirm). Crossed verbs speak
+    ``clash · lead align|clash · lean align|clash`` (warn). Missing
+    either stays silent — gap lead/lean parity + FinRobot last-row age +
+    portfolio AI speak-both-sides + RyanJHamby severity after short
+    last/lead + last/lean alone hid whether cursor-vs-owner and age↔lean
+    agree *and* whether dual-clash agreement is adverse. Side-by-side
+    bits are not transitive. Short÷ring share still deferred (no
+    ``×N · P%``). Not a gate.
+    """
+    lead_bit, _ = soft_allow_short_history_last_vs_lead_freshness(
+        events, now=now
+    )
+    lean_bit, _ = soft_allow_short_history_last_vs_lean(events, now=now)
+    if not lead_bit or not lean_bit:
+        return "", False
+
+    def _verb(bit: str) -> str | None:
+        if bit.startswith("align · "):
+            return "align"
+        if bit.startswith("clash · "):
+            return "clash"
+        return None
+
+    lead_verb = _verb(lead_bit)
+    lean_verb = _verb(lean_bit)
+    if lead_verb is None or lean_verb is None:
+        return "", False
+    if lead_verb == lean_verb:
+        return f"align · both {lead_verb}", lead_verb == "clash"
+    return f"clash · lead {lead_verb} · lean {lean_verb}", True
+
+
 def format_soft_allow_short_history_bit(
     events: list[dict[str, Any]] | None,
     *,
@@ -518,9 +560,12 @@ def format_soft_allow_short_history_bit(
     follows so sides alone cannot hide lean agreement (junk vs ok /
     gap vs other lean parity); when last freshness extremes + lean
     already spoke, ``short last/lean align|clash`` follows so age labels
-    + lean labels alone cannot hide age≠lean (gap last/lean parity).
-    Short÷ring share / short-vs-other lean still deferred. Display only;
-    not a gate.
+    + lean labels alone cannot hide age≠lean (gap last/lean parity);
+    when last/lead + last/lean already spoke, ``short lead/lean
+    align|clash`` follows so side-by-side age↔owner and age↔lean cannot
+    hide non-transitive disagreement or dual-clash agreement (gap
+    lead/lean parity). Short÷ring share / short-vs-other lean still
+    deferred. Display only; not a gate.
     """
     n = soft_allow_short_history_count(events)
     if n <= 0:
@@ -573,6 +618,11 @@ def format_soft_allow_short_history_bit(
             )
             if last_vs_lean:
                 head = f"{head} · short last/lean {last_vs_lean}"
+                lead_vs_lean, _ = soft_allow_short_history_last_lead_vs_lean(
+                    events, now=now
+                )
+                if lead_vs_lean:
+                    head = f"{head} · short lead/lean {lead_vs_lean}"
     return head
 
 

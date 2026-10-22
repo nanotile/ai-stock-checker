@@ -54,6 +54,7 @@ def test_soft_allow_short_history_count() -> None:
         soft_allow_short_history_last_symbol,
         soft_allow_short_history_symbol_last_vs_lead,
         soft_allow_short_history_last_vs_lead_freshness,
+        soft_allow_short_history_last_lead_vs_lean,
         soft_allow_short_history_symbol_lead,
         soft_allow_short_history_symbol_lead_margin,
         soft_allow_short_history_symbol_lead_sides,
@@ -81,6 +82,7 @@ def test_soft_allow_short_history_count() -> None:
         "",
         False,
     )
+    assert soft_allow_short_history_last_lead_vs_lean(None) == ("", False)
     assert soft_allow_short_vs_gap(None) is None
     assert soft_allow_short_pair_share(None) is None
     assert soft_allow_short_vs_gap_lean(None) == ("", False)
@@ -451,6 +453,80 @@ def test_soft_allow_short_history_count() -> None:
         "last vs lead · NEW · short last/lead clash · fresh · vs NEW · "
         "ahead thin · +1 · vs NEW · 1 · 33%"
     )
+    # last/lead + last/lean together: crossed verbs → short lead/lean clash.
+    fresh_clash_vs_gap = [
+        {
+            "at": "2026-10-22T11:30:00Z",
+            "gate": "rs",
+            "reason": "NEW RS unknown — short history — allow",
+        },
+        {
+            "at": "2026-10-22T11:00:00Z",
+            "gate": "rs",
+            "reason": "IPO RS unknown — short history — allow",
+        },
+        {
+            "at": "2026-10-22T10:30:00Z",
+            "gate": "rs",
+            "reason": "IPO RS unknown — short history — allow",
+        },
+        {
+            "at": "2026-10-22T10:00:00Z",
+            "gate": "rs",
+            "reason": "AAPL RS unknown — anchor gap — allow",
+        },
+    ]
+    assert soft_allow_short_history_last_vs_lead_freshness(
+        fresh_clash_vs_gap, now=now
+    ) == ("clash · fresh · vs NEW", True)
+    assert soft_allow_short_history_last_vs_lean(
+        fresh_clash_vs_gap, now=now
+    ) == ("align · fresh · hot|thin", False)
+    assert soft_allow_short_history_last_lead_vs_lean(
+        fresh_clash_vs_gap, now=now
+    ) == ("clash · lead clash · lean align", True)
+    assert format_soft_allow_short_history_bit(
+        fresh_clash_vs_gap, now=now
+    ) == (
+        "3 short · last NEW · fresh · lead IPO · 2 · 67% · "
+        "last vs lead · NEW · short last/lead clash · fresh · vs NEW · "
+        "ahead thin · +1 · vs NEW · 1 · 33% · "
+        "vs gap · thin · 1 · 25% · short vs gap align · hot|thin · "
+        "short last/lean align · fresh · hot|thin · "
+        "short lead/lean clash · lead clash · lean align"
+    )
+    # Same verb both clash → short lead/lean align · both clash (warn).
+    expired_agree_vs_gap = [
+        {
+            "at": "2026-10-20T11:00:00Z",
+            "gate": "rs",
+            "reason": "IPO RS unknown — short history — allow",
+        },
+        {
+            "at": "2026-10-20T10:30:00Z",
+            "gate": "rs",
+            "reason": "IPO RS unknown — short history — allow",
+        },
+        {
+            "at": "2026-10-20T10:15:00Z",
+            "gate": "rs",
+            "reason": "NEW RS unknown — short history — allow",
+        },
+        {
+            "at": "2026-10-20T10:00:00Z",
+            "gate": "rs",
+            "reason": "AAPL RS unknown — anchor gap — allow",
+        },
+    ]
+    assert soft_allow_short_history_last_vs_lead_freshness(
+        expired_agree_vs_gap, now=now
+    ) == ("clash · expired · agree", True)
+    assert soft_allow_short_history_last_vs_lean(
+        expired_agree_vs_gap, now=now
+    ) == ("clash · expired · hot|thin", True)
+    assert soft_allow_short_history_last_lead_vs_lean(
+        expired_agree_vs_gap, now=now
+    ) == ("align · both clash", True)
 
 
 def test_soft_allow_anchor_gap_count() -> None:
