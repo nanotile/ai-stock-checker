@@ -262,10 +262,32 @@ def soft_allow_short_history_symbol_lead_sides(
     return bit, str(runner), int(runner_n), runner_share
 
 
+def soft_allow_short_vs_gap(
+    events: list[dict[str, Any]] | None,
+) -> tuple[str, int, int] | None:
+    """Gap side when short already spoke (display only).
+
+    Returns ``(bit, gap_n, gap_share_pct)`` or None. Absolute ``N short``
+    · ``N gap`` alone hid ownership of the RS fail-open pair (young /
+    short vs gappy-anchor). Speaks only when both counts > 0:
+    ``vs gap · N · P%`` (gap÷(short+gap)). Screener junk vs ok / soft
+    gap vs other sides parity after #668 short count + #539 gap count;
+    portfolio AI count≠share. Short÷ring share / freshness / lean still
+    deferred. Not a gate.
+    """
+    short_n = soft_allow_short_history_count(events)
+    gap_n = soft_allow_anchor_gap_count(events)
+    if short_n <= 0 or gap_n <= 0:
+        return None
+    pair = short_n + gap_n
+    gap_share = int(round(100.0 * gap_n / pair))
+    return f"vs gap · {gap_n} · {gap_share}%", gap_n, gap_share
+
+
 def format_soft_allow_short_history_bit(
     events: list[dict[str, Any]] | None,
 ) -> str:
-    """Compact ``N short · last SYM · lead|n=1|tied · agree|last vs lead · ahead · vs``.
+    """Compact ``N short · last SYM · lead|n=1|tied · agree|last vs lead · ahead · vs · vs gap``.
 
     Zero silent. ``last SYM`` sits right after the count so lean cannot
     clip the young-listing cursor (#546 after #668). Symbol lead /
@@ -274,8 +296,10 @@ def format_soft_allow_short_history_bit(
     right after so cursor≠owner is not clipped; when a runner exists,
     ``ahead wide|thin · +K`` then ``vs SYM · N · P%`` follow so ownership
     % ≠ how far ahead ≠ who is #2 (gap margin/sides parity; sole 100%
-    omits). Share / freshness / lean still deferred. Display only; not
-    a gate.
+    omits). When ``N gap`` also spoke, ``vs gap · N · P%`` follows so
+    absolute short+gap counts ≠ ownership of the RS fail-open pair
+    (junk vs ok / gap vs other sides parity). Short÷ring share /
+    freshness / lean still deferred. Display only; not a gate.
     """
     n = soft_allow_short_history_count(events)
     if n <= 0:
@@ -302,6 +326,9 @@ def format_soft_allow_short_history_bit(
         sample_gap = soft_allow_short_history_symbol_sample_gap(events)
         if sample_gap:
             head = f"{head} · {sample_gap}"
+    vs_gap = soft_allow_short_vs_gap(events)
+    if vs_gap is not None:
+        head = f"{head} · {vs_gap[0]}"
     return head
 
 

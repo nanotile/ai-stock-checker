@@ -53,6 +53,7 @@ def test_soft_allow_short_history_count() -> None:
         soft_allow_short_history_symbol_lead_margin,
         soft_allow_short_history_symbol_lead_sides,
         soft_allow_short_history_symbol_sample_gap,
+        soft_allow_short_vs_gap,
     )
 
     assert soft_allow_short_history_count(None) == 0
@@ -64,6 +65,7 @@ def test_soft_allow_short_history_count() -> None:
     assert soft_allow_short_history_symbol_lead_sides(None) is None
     assert soft_allow_short_history_symbol_sample_gap(None) == ""
     assert soft_allow_short_history_symbol_last_vs_lead(None) == ""
+    assert soft_allow_short_vs_gap(None) is None
     assert format_soft_allow_short_history_bit(None) == ""
     assert (
         soft_allow_short_history_count(
@@ -104,8 +106,10 @@ def test_soft_allow_short_history_count() -> None:
     assert soft_allow_short_history_symbol_lead_sides(mixed) is None
     assert soft_allow_short_history_symbol_sample_gap(mixed) == "tied"
     assert soft_allow_short_history_symbol_last_vs_lead(mixed) == ""
+    # Absolute N short · N gap ≠ pair ownership (1 gap ÷ 3 = 33%).
+    assert soft_allow_short_vs_gap(mixed) == ("vs gap · 1 · 33%", 1, 33)
     assert format_soft_allow_short_history_bit(mixed) == (
-        "2 short · last IPO · tied"
+        "2 short · last IPO · tied · vs gap · 1 · 33%"
     )
     lead_rows = [
         {"gate": "rs", "reason": "NEW RS unknown — short history — allow"},
@@ -133,6 +137,8 @@ def test_soft_allow_short_history_count() -> None:
         1,
         33,
     )
+    # Short-only ring → no vs gap (gap silent).
+    assert soft_allow_short_vs_gap(lead_rows) is None
     assert format_soft_allow_short_history_bit(lead_rows) == (
         "3 short · last NEW · lead IPO · 2 · 67% · last vs lead · NEW · "
         "ahead thin · +1 · vs NEW · 1 · 33%"
@@ -143,6 +149,7 @@ def test_soft_allow_short_history_count() -> None:
     assert soft_allow_short_history_symbol_lead(sole) == ("", "", None)
     assert soft_allow_short_history_symbol_lead_margin(sole) is None
     assert soft_allow_short_history_symbol_sample_gap(sole) == "n=1"
+    assert soft_allow_short_vs_gap(sole) is None
     assert format_soft_allow_short_history_bit(sole) == (
         "1 short · last IPO · n=1"
     )

@@ -2101,6 +2101,13 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
         ),
         "ahead",
     ),
+    # Short↔gap pair ownership after the short cascade (absolute
+    # ``N short · N gap`` ≠ gap÷(short+gap); junk vs ok / gap vs other
+    # sides parity). Must match before a silent stall stops gap stages.
+    (
+        re.compile(r"^vs gap · (\d+) · (\d+%)"),
+        "vs gap",
+    ),
     # Verb + payload ride on one stage so ``align`` is not a silent
     # confirm of a live hot print, and ``align · both clash`` / a crossed
     # lead-vs-share pair are not clipped as a calm align (RyanJHamby
@@ -2410,6 +2417,7 @@ def build_soft_allow_glance(
         soft_allow_short_history_symbol_lead_sides,
         soft_allow_short_history_symbol_last_vs_lead,
         soft_allow_short_history_symbol_sample_gap,
+        soft_allow_short_vs_gap,
         format_soft_allow_short_history_bit,
         soft_allow_vs_gap_clock_clash,
         soft_allow_last_vs_lead,
@@ -2483,6 +2491,9 @@ def build_soft_allow_glance(
         "short_history_symbol_lead_sides": "",
         "short_history_symbol_last_vs_lead": "",
         "short_history_symbol_sample_gap": "",
+        "short_history_vs_gap": "",
+        "short_history_vs_gap_count": 0,
+        "short_history_vs_gap_share": None,
         "short_history_bit": "",
         "anchor_gap_count": 0,
         "anchor_gap_last": "",
@@ -2760,7 +2771,9 @@ def build_soft_allow_glance(
     # #546: ``last SYM`` right after the count; symbol lead / n=1 /
     # tied / last-vs-lead / ahead / vs follow so the cursor ≠ ring owner
     # and ownership % ≠ how far ahead ≠ who is #2 (gap symbol-lead
-    # margin/sides parity; share/freshness/lean still deferred).
+    # margin/sides parity). When gap also spoke, ``vs gap · N · P%``
+    # follows so short+gap counts ≠ pair ownership (junk vs ok sides);
+    # short÷ring share/freshness/lean still deferred.
     short_history_n = soft_allow_short_history_count(rows)
     short_history_last = soft_allow_short_history_last_symbol(rows)
     (
@@ -2796,6 +2809,12 @@ def build_soft_allow_glance(
     )
     short_history_symbol_sample_gap = (
         soft_allow_short_history_symbol_sample_gap(rows)
+    )
+    _short_vs_gap = soft_allow_short_vs_gap(rows)
+    short_history_vs_gap = _short_vs_gap[0] if _short_vs_gap else ""
+    short_history_vs_gap_count = _short_vs_gap[1] if _short_vs_gap else 0
+    short_history_vs_gap_share = (
+        _short_vs_gap[2] if _short_vs_gap else None
     )
     short_history_bit = format_soft_allow_short_history_bit(rows)
     anchor_gap_n, anchor_gap_share_pct, anchor_gap_share_severity = (
@@ -3307,6 +3326,9 @@ def build_soft_allow_glance(
             short_history_symbol_last_vs_lead
         ),
         "short_history_symbol_sample_gap": short_history_symbol_sample_gap,
+        "short_history_vs_gap": short_history_vs_gap,
+        "short_history_vs_gap_count": short_history_vs_gap_count,
+        "short_history_vs_gap_share": short_history_vs_gap_share,
         "short_history_bit": short_history_bit,
         "anchor_gap_count": anchor_gap_n,
         "anchor_gap_last": anchor_gap_last,
