@@ -791,6 +791,60 @@ def soft_allow_short_vs_gap_lean(
     return "", False
 
 
+def soft_allow_short_vs_gap_delta(
+    events: list[dict[str, Any]] | None,
+) -> tuple[float | None, str]:
+    """Short%−gap% pair ownership spread when lean already spoke.
+
+    Returns ``(delta_pp, severity)``. Silent when short vs gap lean did
+    not speak. Wide ≥``SOFT_ALLOW_LEAD_SHARE_DELTA_WIDE_PP`` · thin
+    <``SOFT_ALLOW_LEAD_SHARE_DELTA_THIN_PP`` · mid stays silent on the Δ
+    bit (Screener junk vs ok / unique vs dup share Δ parity). Lean
+    labels alone hid how far pair ownership sits (portfolio AI
+    count≠share + xang1234 after short vs gap lean). Display only; not
+    a gate.
+    """
+    lean, _ = soft_allow_short_vs_gap_lean(events)
+    pair = soft_allow_short_pair_share(events)
+    vs = soft_allow_short_vs_gap(events)
+    if not lean or pair is None or vs is None:
+        return None, ""
+    _short_n, short_share, _short_sev = pair
+    _bit, _gap_n, gap_share, _gap_sev = vs
+    delta_pp = round(float(short_share) - float(gap_share), 1)
+    mag = abs(delta_pp)
+    if mag < 1e-9:
+        return None, ""
+    if mag >= SOFT_ALLOW_LEAD_SHARE_DELTA_WIDE_PP:
+        return delta_pp, "wide"
+    if mag < SOFT_ALLOW_LEAD_SHARE_DELTA_THIN_PP:
+        return delta_pp, "thin"
+    return None, ""
+
+
+def soft_allow_short_vs_gap_lean_vs_delta(
+    events: list[dict[str, Any]] | None,
+) -> tuple[str, bool]:
+    """Short vs gap lean vs ownership-Δ lean (display only).
+
+    Returns ``(bit, warn)``. When lean already spoke: Δ wide|thin speaks
+    ``align · wide|thin``; Δ mid (lean spoke, spread silent) speaks
+    ``clash · lean · Δ mid`` (warn). Adverse dual-wide confirm
+    (``align · hot|thin`` + Δ wide) warns — Screener junk vs ok lean vs
+    Δ / Hours attn wide-align parity; favorable quiet|strong stays calm.
+    Lean alone hid whether ownership distance agrees with the lean
+    label (portfolio AI + xang1234 after short vs gap lean). Not a gate.
+    """
+    lean, _ = soft_allow_short_vs_gap_lean(events)
+    if not lean:
+        return "", False
+    delta_pp, delta_sev = soft_allow_short_vs_gap_delta(events)
+    if delta_sev:
+        warn = delta_sev == "wide" and lean.startswith("align · hot|thin")
+        return f"align · {delta_sev}", warn
+    return "clash · lean · Δ mid", True
+
+
 def soft_allow_short_history_last_vs_share(
     events: list[dict[str, Any]] | None,
     *,
@@ -1514,8 +1568,12 @@ def format_soft_allow_short_history_bit(
     cursor-vs-owner and ownership heat cannot hide non-agreement or
     dual-clash (gap lead/share parity); when both pair severities lean,
     ``short vs gap align|clash`` follows so sides alone cannot hide lean
-    agreement (junk vs ok / gap vs other lean parity); when last
-    freshness extremes + lean already spoke, ``short last/lean
+    agreement (junk vs ok / gap vs other lean parity); when lean already
+    spoke, ``short Δ wide|thin · ±Npp`` then ``short lean/Δ align|clash``
+    follow so lean labels alone cannot hide how far pair ownership sits
+    (Screener junk vs ok / unique vs dup share Δ + lean vs Δ parity;
+    mid Δ silent on the Δ bit; lean-spoke + mid → clash · lean · Δ mid).
+    When last freshness extremes + lean already spoke, ``short last/lean
     align|clash`` follows so age labels + lean labels alone cannot hide
     age≠lean (gap last/lean parity); when last/lead + last/lean already
     spoke, ``short lead/lean align|clash`` follows so side-by-side
@@ -1733,6 +1791,15 @@ def format_soft_allow_short_history_bit(
         lean, _ = soft_allow_short_vs_gap_lean(events)
         if lean:
             head = f"{head} · short vs gap {lean}"
+            # Lean alone hid how far short÷pair sits vs gap÷pair
+            # (Screener junk vs ok / unique vs dup share Δ parity).
+            delta_pp, delta_sev = soft_allow_short_vs_gap_delta(events)
+            if delta_sev and delta_pp is not None:
+                sign = f"+{delta_pp:g}" if delta_pp > 0 else f"{delta_pp:g}"
+                head = f"{head} · short Δ {delta_sev} · {sign}pp"
+            lean_vs_delta, _ = soft_allow_short_vs_gap_lean_vs_delta(events)
+            if lean_vs_delta:
+                head = f"{head} · short lean/Δ {lean_vs_delta}"
             last_vs_lean, _ = soft_allow_short_history_last_vs_lean(
                 events, now=now
             )
