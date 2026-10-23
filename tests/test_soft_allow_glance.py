@@ -1039,6 +1039,17 @@ def test_soft_allow_glance_short_history_count() -> None:
         "short bench lean/Δ align wide · short bench Δ lead bench"
     )
     assert soft_allow_lean_meta(
+        "short Δ lead · short · short Δ moods align · both wide"
+    ) == (
+        "quiet · 2 folds · short Δ lead short · "
+        "short Δ moods align both wide"
+    )
+    assert soft_allow_lean_meta(
+        "short Δ moods clash · short/gap wide · bench/young thin"
+    ) == (
+        "quiet · 1 fold · short Δ moods clash short/gap wide bench/young thin"
+    )
+    assert soft_allow_lean_meta(
         "3 short · 2 bench · hot · 66.7% · vs 1 young · thin · 33.3% · "
         "short bench vs young align · hot|thin · last SPY · fresh · "
         "short last/bench align · fresh · hot|thin"
@@ -1186,6 +1197,81 @@ def test_soft_allow_glance_short_history_bench_count() -> None:
     assert "short share/bench clash" in g["soft_lean"]
     assert "short ring/bench clash" in g["soft_lean"]
     assert "short lean/bench clash" in g["soft_lean"]
+
+
+def test_soft_allow_glance_short_delta_moods() -> None:
+    """Pair lean/Δ mood vs bench/young lean/Δ — Yahoo share vs gap parity."""
+    now = datetime(2026, 10, 22, 12, 0, tzinfo=timezone.utc)
+    g = build_soft_allow_glance(
+        [
+            {
+                "at": "2026-10-22T11:00:00Z",
+                "gate": "rs",
+                "reason": "SPY RS unknown — short history — allow",
+            },
+            {
+                "at": "2026-10-22T10:30:00Z",
+                "gate": "rs",
+                "reason": "IPO RS unknown — short history — allow",
+            },
+            {
+                "at": "2026-10-22T10:00:00Z",
+                "gate": "rs",
+                "reason": "BTC RS unknown — short history — allow",
+            },
+            {
+                "at": "2026-10-22T09:30:00Z",
+                "gate": "rs",
+                "reason": "AAPL RS unknown — anchor gap — allow",
+            },
+        ],
+        now=now,
+    )
+    assert g["short_history_vs_gap_lean_vs_delta"] == "align · wide"
+    assert g["short_history_bench_vs_young_lean_vs_delta"] == "align · wide"
+    assert g["short_history_delta_moods"] == "align · both wide"
+    assert g["short_history_delta_moods_warn"] is True
+    assert "short Δ moods align · both wide" in g["short_history_bit"]
+    assert "short Δ moods align · both wide" in g["line"]
+    assert "short Δ moods align · both wide" in g["soft_lean"]
+    assert g["tone"] == "warn"
+    assert g["soft_lean_warn"] is True
+    # Pair wide + bench/young thin → clash (Yahoo share vs gap crossed).
+    clash = build_soft_allow_glance(
+        (
+            [
+                {
+                    "at": "2026-10-22T11:00:00Z",
+                    "gate": "rs",
+                    "reason": "SPY RS unknown — short history — allow",
+                }
+            ]
+            * 6
+            + [
+                {
+                    "at": "2026-10-22T10:30:00Z",
+                    "gate": "rs",
+                    "reason": "IPO RS unknown — short history — allow",
+                }
+            ]
+            * 5
+            + [
+                {
+                    "at": "2026-10-22T10:00:00Z",
+                    "gate": "rs",
+                    "reason": "AAPL RS unknown — anchor gap — allow",
+                }
+            ]
+        ),
+        now=now,
+    )
+    assert clash["short_history_delta_moods"] == (
+        "clash · short/gap wide · bench/young thin"
+    )
+    assert clash["short_history_delta_moods_warn"] is True
+    assert "short Δ moods clash · short/gap wide · bench/young thin" in (
+        clash["short_history_bit"]
+    )
 
 
 def test_soft_allow_glance_short_lead_vs_bench_young() -> None:

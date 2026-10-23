@@ -966,6 +966,44 @@ def soft_allow_short_vs_gap_delta_lead(
     return "short" if pp > 0 else "gap"
 
 
+def soft_allow_short_delta_moods(
+    events: list[dict[str, Any]] | None,
+) -> tuple[str, bool]:
+    """Pair lean/Δ mood vs bench/young lean/Δ mood (display only).
+
+    Returns ``(bit, warn)``. When both lean vs Δ already spoke with an
+    align severity (``wide|thin``): same → ``align · both wide|thin``;
+    crossed → ``clash · short/gap … · bench/young …``. Mid-Δ clash /
+    missing side stay silent. Dual wide warns (Yahoo mix share vs gap
+    wide-align warn); clash warns. Side-by-side lean/Δ labels alone hid
+    whether pair ownership spread mood matches primary-bench vs young
+    (Yahoo mix share vs gap + portfolio AI speak-both-sides after short
+    vs gap + bench vs young Δ). Δ lead size nest still deferred. Not a
+    gate.
+    """
+    pair_lvd, _ = soft_allow_short_vs_gap_lean_vs_delta(events)
+    bench_lvd, _ = soft_allow_short_history_bench_vs_young_lean_vs_delta(
+        events
+    )
+    pair_s = str(pair_lvd or "")
+    bench_s = str(bench_lvd or "")
+    if not pair_s.startswith("align · ") or not bench_s.startswith(
+        "align · "
+    ):
+        return "", False
+    pair_sev = pair_s[len("align · ") :].strip()
+    bench_sev = bench_s[len("align · ") :].strip()
+    if pair_sev not in {"wide", "thin"} or bench_sev not in {"wide", "thin"}:
+        return "", False
+    if pair_sev == bench_sev:
+        # Dual wide agreement ≠ calm confirm (Yahoo mix share vs gap).
+        return f"align · both {pair_sev}", pair_sev == "wide"
+    return (
+        f"clash · short/gap {pair_sev} · bench/young {bench_sev}",
+        True,
+    )
+
+
 def soft_allow_short_history_last_vs_share(
     events: list[dict[str, Any]] | None,
     *,
@@ -1704,7 +1742,11 @@ def format_soft_allow_short_history_bit(
     mid Δ silent on the Δ bit; lean-spoke + mid → clash · lean · Δ mid);
     when lean vs Δ already spoke with a Δ and ±pp ≠ 0, ``short Δ lead ·
     short|gap`` follows so the signed spread alone cannot hide which
-    sleeve owns it (unique vs dup / Yahoo mix Δ lead parity).
+    sleeve owns it (unique vs dup / Yahoo mix Δ lead parity); when both
+    pair and bench lean/Δ already spoke with align severities,
+    ``short Δ moods align|clash`` follows so side-by-side ownership
+    spreads cannot hide whether pair mood matches bench/young mood
+    (Yahoo mix share vs gap + portfolio AI speak-both-sides).
     When last freshness extremes + lean already spoke, ``short last/lean
     align|clash`` follows so age labels + lean labels alone cannot hide
     age≠lean (gap last/lean parity); when last/lead + last/lean already
@@ -1971,6 +2013,12 @@ def format_soft_allow_short_history_bit(
             delta_lead = soft_allow_short_vs_gap_delta_lead(events)
             if delta_lead:
                 head = f"{head} · short Δ lead · {delta_lead}"
+            # Side-by-side pair lean/Δ + bench lean/Δ alone hid whether
+            # ownership-spread moods agree (Yahoo mix share vs gap +
+            # portfolio AI speak-both-sides after both Δ leads).
+            delta_moods, _ = soft_allow_short_delta_moods(events)
+            if delta_moods:
+                head = f"{head} · short Δ moods {delta_moods}"
             last_vs_lean, _ = soft_allow_short_history_last_vs_lean(
                 events, now=now
             )
