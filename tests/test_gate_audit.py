@@ -56,6 +56,7 @@ def test_soft_allow_short_history_count() -> None:
         soft_allow_short_history_last_freshness,
         soft_allow_short_history_last_vs_bench_young,
         soft_allow_short_history_last_lead_vs_bench_young,
+        soft_allow_short_history_last_share_vs_bench_young,
         soft_allow_short_history_last_symbol,
         soft_allow_short_history_symbol_last_vs_lead,
         soft_allow_short_history_last_vs_lead_freshness,
@@ -100,6 +101,14 @@ def test_soft_allow_short_history_count() -> None:
         False,
     )
     assert soft_allow_short_history_last_lead_vs_bench_young([]) == (
+        "",
+        False,
+    )
+    assert soft_allow_short_history_last_share_vs_bench_young(None) == (
+        "",
+        False,
+    )
+    assert soft_allow_short_history_last_share_vs_bench_young([]) == (
         "",
         False,
     )
@@ -359,6 +368,16 @@ def test_soft_allow_short_history_count() -> None:
     assert "short last/bench align · fresh · hot|thin" in (
         format_soft_allow_short_history_bit(fresh_bench, now=now_bench)
     )
+    # last/share align + last/bench align → short share/bench both align.
+    assert soft_allow_short_history_last_vs_share(
+        fresh_bench, now=now_bench
+    ) == ("align · fresh · hot", False)
+    assert soft_allow_short_history_last_share_vs_bench_young(
+        fresh_bench, now=now_bench
+    ) == ("align · both align", False)
+    assert "short share/bench align · both align" in (
+        format_soft_allow_short_history_bit(fresh_bench, now=now_bench)
+    )
     # Fresh cursor + clash lean → last/bench clash (warn).
     clash_bench = [
         {
@@ -381,6 +400,10 @@ def test_soft_allow_short_history_count() -> None:
     ) == ("clash · fresh · bench hot · young ok", True)
     # Tied SPY/IPO → no last/lead → lead/bench silent.
     assert soft_allow_short_history_last_lead_vs_bench_young(
+        clash_bench, now=now_bench
+    ) == ("", False)
+    # No gap → last/share silent → share/bench silent.
+    assert soft_allow_short_history_last_share_vs_bench_young(
         clash_bench, now=now_bench
     ) == ("", False)
     # last/lead clash + last/bench align → short lead/bench clash.
@@ -453,6 +476,97 @@ def test_soft_allow_short_history_count() -> None:
     assert "short lead/bench align · both clash" in (
         format_soft_allow_short_history_bit(
             expired_lead_clash_bench, now=now_bench
+        )
+    )
+    # last/share clash + last/bench clash → short share/bench both clash.
+    # 2 short + 6 gap → pair 25% quiet; fresh↔quiet → last/share clash;
+    # SPY+IPO lean clash; fresh↔clash → last/bench clash.
+    share_both_clash_bench = [
+        {
+            "at": "2026-10-22T11:00:00Z",
+            "gate": "rs",
+            "reason": "SPY RS unknown — short history — allow",
+        },
+        {
+            "at": "2026-10-22T10:30:00Z",
+            "gate": "rs",
+            "reason": "IPO RS unknown — short history — allow",
+        },
+        {
+            "at": "2026-10-22T10:00:00Z",
+            "gate": "rs",
+            "reason": "AAPL RS unknown — anchor gap — allow",
+        },
+        {
+            "at": "2026-10-22T09:30:00Z",
+            "gate": "rs",
+            "reason": "MSFT RS unknown — anchor gap — allow",
+        },
+        {
+            "at": "2026-10-22T09:00:00Z",
+            "gate": "rs",
+            "reason": "NVDA RS unknown — anchor gap — allow",
+        },
+        {
+            "at": "2026-10-22T08:30:00Z",
+            "gate": "rs",
+            "reason": "AMD RS unknown — anchor gap — allow",
+        },
+        {
+            "at": "2026-10-22T08:00:00Z",
+            "gate": "rs",
+            "reason": "META RS unknown — anchor gap — allow",
+        },
+        {
+            "at": "2026-10-22T07:30:00Z",
+            "gate": "rs",
+            "reason": "GOOG RS unknown — anchor gap — allow",
+        },
+    ]
+    assert soft_allow_short_history_last_vs_share(
+        share_both_clash_bench, now=now_bench
+    ) == ("clash · fresh · quiet", True)
+    assert soft_allow_short_history_last_vs_bench_young(
+        share_both_clash_bench, now=now_bench
+    ) == ("clash · fresh · bench hot · young ok", True)
+    assert soft_allow_short_history_last_share_vs_bench_young(
+        share_both_clash_bench, now=now_bench
+    ) == ("align · both clash", True)
+    assert "short share/bench align · both clash" in (
+        format_soft_allow_short_history_bit(
+            share_both_clash_bench, now=now_bench
+        )
+    )
+    # Fresh + hot pair (align share) + clash lean (clash bench) → crossed.
+    share_cross_bench = [
+        {
+            "at": "2026-10-22T11:00:00Z",
+            "gate": "rs",
+            "reason": "SPY RS unknown — short history — allow",
+        },
+        {
+            "at": "2026-10-22T10:30:00Z",
+            "gate": "rs",
+            "reason": "IPO RS unknown — short history — allow",
+        },
+        {
+            "at": "2026-10-22T10:00:00Z",
+            "gate": "rs",
+            "reason": "AAPL RS unknown — anchor gap — allow",
+        },
+    ]
+    assert soft_allow_short_history_last_vs_share(
+        share_cross_bench, now=now_bench
+    ) == ("align · fresh · hot", False)
+    assert soft_allow_short_history_last_vs_bench_young(
+        share_cross_bench, now=now_bench
+    ) == ("clash · fresh · bench hot · young ok", True)
+    assert soft_allow_short_history_last_share_vs_bench_young(
+        share_cross_bench, now=now_bench
+    ) == ("clash · share align · bench clash", True)
+    assert "short share/bench clash · share align · bench clash" in (
+        format_soft_allow_short_history_bit(
+            share_cross_bench, now=now_bench
         )
     )
     assert soft_allow_short_history_bench_count(
