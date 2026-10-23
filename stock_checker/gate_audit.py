@@ -344,6 +344,49 @@ def soft_allow_short_history_last_vs_bench_young(
     return f"clash · {last_fresh} · {lean_tail}", True
 
 
+def soft_allow_short_history_last_lead_vs_bench_young(
+    events: list[dict[str, Any]] | None,
+    *,
+    now: datetime | None = None,
+) -> tuple[str, bool]:
+    """Last/lead freshness vs last/bench relationship agreement (display only).
+
+    Returns ``(bit, warn)``. Age↔name-vs-lead ≠ age↔bench/young lean. When
+    both already spoke: same verb speaks ``align · both align|clash`` —
+    ``both align`` stays calm; ``both clash`` warns (dual-clash agreement
+    ≠ quiet confirm). Crossed verbs speak
+    ``clash · lead align|clash · bench align|clash`` (warn). Missing
+    either stays silent — gap lead/lean + short lead/lean parity after
+    #679 last/bench + last/lead alone hid whether cursor-vs-owner and
+    age↔bench/young agree *and* whether dual-clash agreement is adverse.
+    Side-by-side bits are not transitive. Short-vs-other lean still
+    deferred. Not a gate.
+    """
+    lead_bit, _ = soft_allow_short_history_last_vs_lead_freshness(
+        events, now=now
+    )
+    bench_bit, _ = soft_allow_short_history_last_vs_bench_young(
+        events, now=now
+    )
+    if not lead_bit or not bench_bit:
+        return "", False
+
+    def _verb(bit: str) -> str | None:
+        if bit.startswith("align · "):
+            return "align"
+        if bit.startswith("clash · "):
+            return "clash"
+        return None
+
+    lead_verb = _verb(lead_bit)
+    bench_verb = _verb(bench_bit)
+    if lead_verb is None or bench_verb is None:
+        return "", False
+    if lead_verb == bench_verb:
+        return f"align · both {lead_verb}", lead_verb == "clash"
+    return f"clash · lead {lead_verb} · bench {bench_verb}", True
+
+
 def _short_history_symbol_counts(
     events: list[dict[str, Any]] | None,
 ) -> dict[str, int]:
@@ -1482,6 +1525,13 @@ def format_soft_allow_short_history_bit(
             )
             if last_vs_lead_fresh:
                 head = f"{head} · short last/lead {last_vs_lead_fresh}"
+                lead_vs_bench, _ = (
+                    soft_allow_short_history_last_lead_vs_bench_young(
+                        events, now=now
+                    )
+                )
+                if lead_vs_bench:
+                    head = f"{head} · short lead/bench {lead_vs_bench}"
         margin = soft_allow_short_history_symbol_lead_margin(events)
         if margin is not None:
             head = f"{head} · {margin[0]}"

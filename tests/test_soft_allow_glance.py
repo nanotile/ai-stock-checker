@@ -1015,6 +1015,13 @@ def test_soft_allow_glance_short_history_count() -> None:
         "quiet · 2 folds · short 2 bench hot 66.7% vs 1 young thin 33.3% "
         "align hot|thin SPY fresh · short last/bench align fresh hot|thin"
     )
+    assert soft_allow_lean_meta(
+        "short last/bench align · fresh · hot|thin · "
+        "short lead/bench clash · lead clash · bench align"
+    ) == (
+        "quiet · 2 folds · short last/bench align fresh hot|thin · "
+        "short lead/bench clash lead clash bench align"
+    )
 
 
 def test_soft_allow_glance_short_history_bench_count() -> None:
@@ -1058,6 +1065,9 @@ def test_soft_allow_glance_short_history_bench_count() -> None:
         "clash · fresh · bench hot · young ok"
     )
     assert g["short_history_last_vs_bench_young_warn"] is True
+    # Tied SPY/IPO → no last/lead → lead/bench silent.
+    assert g["short_history_last_lead_vs_bench_young"] == ""
+    assert g["short_history_last_lead_vs_bench_young_warn"] is False
     assert g["short_history_last_vs_share"] == "align · fresh · hot"
     assert g["short_history_last_vs_share_warn"] is False
     assert g["short_history_last_vs_lean"] == "align · fresh · hot|thin"
@@ -1095,6 +1105,56 @@ def test_soft_allow_glance_short_history_bench_count() -> None:
     assert "short 1 bench hot 50% vs 1 young 50% clash" in g["soft_lean_meta"]
     assert "SPY fresh" in g["soft_lean_meta"]
     assert "short last/bench clash" in g["soft_lean_meta"]
+
+
+def test_soft_allow_glance_short_lead_vs_bench_young() -> None:
+    """last/lead ≠ last/bench — short lead/bench after #679 last/bench."""
+    now = datetime(2026, 10, 22, 12, 0, tzinfo=timezone.utc)
+    g = build_soft_allow_glance(
+        [
+            {
+                "at": "2026-10-22T11:30:00Z",
+                "gate": "rs",
+                "reason": "NEW RS unknown — short history — allow",
+            },
+            {
+                "at": "2026-10-22T11:00:00Z",
+                "gate": "rs",
+                "reason": "SPY RS unknown — short history — allow",
+            },
+            {
+                "at": "2026-10-22T10:30:00Z",
+                "gate": "rs",
+                "reason": "SPY RS unknown — short history — allow",
+            },
+            {
+                "at": "2026-10-22T10:00:00Z",
+                "gate": "rs",
+                "reason": "BTC RS unknown — short history — allow",
+            },
+        ],
+        now=now,
+    )
+    assert g["short_history_last_vs_bench_young"] == (
+        "align · fresh · hot|thin"
+    )
+    assert g["short_history_last_vs_bench_young_warn"] is False
+    assert g["short_history_last_vs_lead_freshness"] == (
+        "clash · fresh · vs NEW"
+    )
+    assert g["short_history_last_lead_vs_bench_young"] == (
+        "clash · lead clash · bench align"
+    )
+    assert g["short_history_last_lead_vs_bench_young_warn"] is True
+    assert "short lead/bench clash · lead clash · bench align" in g["line"]
+    assert "short lead/bench clash · lead clash · bench align" in g[
+        "short_history_bit"
+    ]
+    assert "short lead/bench clash · lead clash · bench align" in g[
+        "soft_lean"
+    ]
+    assert g["tone"] == "warn"
+    assert g["soft_lean_warn"] is True
 
 
 def test_soft_allow_glance_short_vs_gap_clock_when_short_matches_scan() -> None:

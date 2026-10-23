@@ -55,6 +55,7 @@ def test_soft_allow_short_history_count() -> None:
         soft_allow_short_history_count,
         soft_allow_short_history_last_freshness,
         soft_allow_short_history_last_vs_bench_young,
+        soft_allow_short_history_last_lead_vs_bench_young,
         soft_allow_short_history_last_symbol,
         soft_allow_short_history_symbol_last_vs_lead,
         soft_allow_short_history_last_vs_lead_freshness,
@@ -94,6 +95,14 @@ def test_soft_allow_short_history_count() -> None:
     assert soft_allow_short_history_bench_vs_young_lean([]) == ("", False)
     assert soft_allow_short_history_last_vs_bench_young(None) == ("", False)
     assert soft_allow_short_history_last_vs_bench_young([]) == ("", False)
+    assert soft_allow_short_history_last_lead_vs_bench_young(None) == (
+        "",
+        False,
+    )
+    assert soft_allow_short_history_last_lead_vs_bench_young([]) == (
+        "",
+        False,
+    )
     assert soft_allow_short_history_last_symbol(None) == ""
     assert soft_allow_short_history_last_symbol([]) == ""
     assert soft_allow_short_history_last_freshness(None) == ""
@@ -370,6 +379,82 @@ def test_soft_allow_short_history_count() -> None:
     assert soft_allow_short_history_last_vs_bench_young(
         clash_bench, now=now_bench
     ) == ("clash · fresh · bench hot · young ok", True)
+    # Tied SPY/IPO → no last/lead → lead/bench silent.
+    assert soft_allow_short_history_last_lead_vs_bench_young(
+        clash_bench, now=now_bench
+    ) == ("", False)
+    # last/lead clash + last/bench align → short lead/bench clash.
+    lead_clash_bench = [
+        {
+            "at": "2026-10-22T11:30:00Z",
+            "gate": "rs",
+            "reason": "NEW RS unknown — short history — allow",
+        },
+        {
+            "at": "2026-10-22T11:00:00Z",
+            "gate": "rs",
+            "reason": "SPY RS unknown — short history — allow",
+        },
+        {
+            "at": "2026-10-22T10:30:00Z",
+            "gate": "rs",
+            "reason": "SPY RS unknown — short history — allow",
+        },
+        {
+            "at": "2026-10-22T10:00:00Z",
+            "gate": "rs",
+            "reason": "BTC RS unknown — short history — allow",
+        },
+    ]
+    assert soft_allow_short_history_last_vs_lead_freshness(
+        lead_clash_bench, now=now_bench
+    ) == ("clash · fresh · vs NEW", True)
+    assert soft_allow_short_history_last_vs_bench_young(
+        lead_clash_bench, now=now_bench
+    ) == ("align · fresh · hot|thin", False)
+    assert soft_allow_short_history_last_lead_vs_bench_young(
+        lead_clash_bench, now=now_bench
+    ) == ("clash · lead clash · bench align", True)
+    assert "short lead/bench clash · lead clash · bench align" in (
+        format_soft_allow_short_history_bit(lead_clash_bench, now=now_bench)
+    )
+    # Same verb both clash → short lead/bench align · both clash (warn).
+    expired_lead_clash_bench = [
+        {
+            "at": "2026-10-20T11:00:00Z",
+            "gate": "rs",
+            "reason": "SPY RS unknown — short history — allow",
+        },
+        {
+            "at": "2026-10-20T10:30:00Z",
+            "gate": "rs",
+            "reason": "SPY RS unknown — short history — allow",
+        },
+        {
+            "at": "2026-10-20T10:15:00Z",
+            "gate": "rs",
+            "reason": "BTC RS unknown — short history — allow",
+        },
+        {
+            "at": "2026-10-20T10:00:00Z",
+            "gate": "rs",
+            "reason": "NEW RS unknown — short history — allow",
+        },
+    ]
+    assert soft_allow_short_history_last_vs_lead_freshness(
+        expired_lead_clash_bench, now=now_bench
+    ) == ("clash · expired · agree", True)
+    assert soft_allow_short_history_last_vs_bench_young(
+        expired_lead_clash_bench, now=now_bench
+    ) == ("clash · expired · hot|thin", True)
+    assert soft_allow_short_history_last_lead_vs_bench_young(
+        expired_lead_clash_bench, now=now_bench
+    ) == ("align · both clash", True)
+    assert "short lead/bench align · both clash" in (
+        format_soft_allow_short_history_bit(
+            expired_lead_clash_bench, now=now_bench
+        )
+    )
     assert soft_allow_short_history_bench_count(
         [{"gate": "rs", "reason": "IPO RS unknown — short history — allow"}]
     ) == 0
