@@ -903,6 +903,8 @@ def test_soft_allow_glance_short_history_count() -> None:
     assert g["short_history_vs_gap_delta_severity"] == "wide"
     assert g["short_history_vs_gap_lean_vs_delta"] == "align · wide"
     assert g["short_history_vs_gap_lean_vs_delta_warn"] is True
+    # Signed +34pp hid that short owns the pair spread (unique/Yahoo Δ lead).
+    assert g["short_history_vs_gap_delta_lead"] == "short"
     # Fresh + pair share hot → last/share align (gap last/share parity).
     assert g["short_history_last_vs_share"] == "align · fresh · hot"
     assert g["short_history_last_vs_share_warn"] is False
@@ -925,7 +927,7 @@ def test_soft_allow_glance_short_history_count() -> None:
         "short last/share align · fresh · hot · "
         "short share/ring align · both align · "
         "short vs gap align · hot|thin · "
-        "short Δ wide · +34pp · short lean/Δ align · wide · "
+        "short Δ wide · +34pp · short lean/Δ align · wide · short Δ lead · short · "
         "short last/lean align · fresh · hot|thin · "
         "short share/lean align · both align · "
         "short ring/lean align · both align"
@@ -935,7 +937,8 @@ def test_soft_allow_glance_short_history_count() -> None:
     assert "short share/ring align · both align" in g["line"]
     assert "short vs gap align · hot|thin" in g["line"]
     assert "short Δ wide · +34pp" in g["line"]
-    assert "short lean/Δ align · wide" in g["line"]
+    assert "short lean/Δ align · wide · short Δ lead · short" in g["line"]
+    assert "short Δ lead · short" in g["line"]
     assert "short last/lean align · fresh · hot|thin" in g["line"]
     assert "short share/lean align · both align" in g["line"]
     assert "short ring/lean align · both align" in g["line"]
@@ -958,7 +961,7 @@ def test_soft_allow_glance_short_history_count() -> None:
     assert "short share/ring align · both align" in g["soft_lean"]
     assert "short vs gap align · hot|thin" in g["soft_lean"]
     assert "short Δ wide · +34pp" in g["soft_lean"]
-    assert "short lean/Δ align · wide" in g["soft_lean"]
+    assert "short lean/Δ align · wide · short Δ lead · short" in g["soft_lean"]
     assert "short last/lean align · fresh · hot|thin" in g["soft_lean"]
     assert "short share/lean align · both align" in g["soft_lean"]
     assert "short ring/lean align · both align" in g["soft_lean"]
@@ -996,14 +999,14 @@ def test_soft_allow_glance_short_history_count() -> None:
         "short last/share align · fresh · hot · "
         "short share/ring align · both align · "
         "short vs gap align · hot|thin · "
-        "short Δ wide · +34pp · short lean/Δ align · wide · "
+        "short Δ wide · +34pp · short lean/Δ align · wide · short Δ lead · short · "
         "short last/lean align · fresh · hot|thin · "
         "short share/lean align · both align · "
         "short ring/lean align · both align · "
         "1 gap · last AAPL · fresh"
     ) == (
-        "quiet · 13 folds · short IPO fresh · tied hot 66.7% · "
-        "short last/ring align fresh hot · vs gap thin 1 33% · +9"
+        "quiet · 14 folds · short IPO fresh · tied hot 66.7% · "
+        "short last/ring align fresh hot · vs gap thin 1 33% · +10"
     )
     assert soft_allow_lean_meta("3 short · 2 bench · last SPY · fresh") == (
         "quiet · 1 fold · short 2 bench SPY fresh"
@@ -1135,7 +1138,7 @@ def test_soft_allow_glance_short_history_bench_count() -> None:
         "short share/bench clash · share align · bench clash · "
         "short share/ring align · both align · "
         "short vs gap align · hot|thin · "
-        "short Δ wide · +34pp · short lean/Δ align · wide · "
+        "short Δ wide · +34pp · short lean/Δ align · wide · short Δ lead · short · "
         "short last/lean align · fresh · hot|thin · "
         "short share/lean align · both align · "
         "short ring/lean align · both align · "
@@ -1834,7 +1837,7 @@ def test_soft_allow_glance_short_history_symbol_lead() -> None:
         "short lead/share clash · lead clash · share align · "
         "short share/ring align · both align · "
         "short vs gap align · hot|thin · "
-        "short Δ wide · +50pp · short lean/Δ align · wide · "
+        "short Δ wide · +50pp · short lean/Δ align · wide · short Δ lead · short · "
         "short last/lean align · fresh · hot|thin · "
         "short lead/lean clash · lead clash · lean align · "
         "short share/lean align · both align · "

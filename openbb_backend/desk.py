@@ -2516,6 +2516,14 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
         ),
         "short lean/Δ",
     ),
+    # Which pair sleeve owns the spoken Δ (unique vs dup / Yahoo mix
+    # Δ lead parity). Prefixed ``short Δ lead`` so Screener bare
+    # ``Δ lead`` does not claim the young/short pair. Side name rides
+    # so ``lead`` is not a nameless confirm of short vs gap.
+    (
+        re.compile(r"^short Δ lead · (short|gap)"),
+        "short Δ lead",
+    ),
     # Short cursor age vs symbol last-vs-lead (gap last/lead freshness
     # parity). Distinct ``short last/lead`` prefix so gate/gap
     # ``last/lead`` is not treated as the young/short relationship.
@@ -2948,6 +2956,7 @@ def build_soft_allow_glance(
         soft_allow_short_vs_gap_lean,
         soft_allow_short_vs_gap_delta,
         soft_allow_short_vs_gap_lean_vs_delta,
+        soft_allow_short_vs_gap_delta_lead,
         soft_allow_short_history_last_vs_share,
         soft_allow_short_history_last_vs_ring_share,
         soft_allow_short_history_last_vs_lean,
@@ -3070,6 +3079,7 @@ def build_soft_allow_glance(
         "short_history_vs_gap_delta_severity": "",
         "short_history_vs_gap_lean_vs_delta": "",
         "short_history_vs_gap_lean_vs_delta_warn": False,
+        "short_history_vs_gap_delta_lead": "",
         "short_history_last_vs_share": "",
         "short_history_last_vs_share_warn": False,
         "short_history_last_vs_ring_share": "",
@@ -3567,6 +3577,7 @@ def build_soft_allow_glance(
         short_history_vs_gap_lean_vs_delta,
         short_history_vs_gap_lean_vs_delta_warn,
     ) = soft_allow_short_vs_gap_lean_vs_delta(rows)
+    short_history_vs_gap_delta_lead = soft_allow_short_vs_gap_delta_lead(rows)
     short_history_last_vs_share, short_history_last_vs_share_warn = (
         soft_allow_short_history_last_vs_share(rows, now=now)
     )
@@ -4493,6 +4504,7 @@ def build_soft_allow_glance(
         "short_history_vs_gap_lean_vs_delta_warn": (
             short_history_vs_gap_lean_vs_delta_warn
         ),
+        "short_history_vs_gap_delta_lead": short_history_vs_gap_delta_lead,
         "short_history_last_vs_share": short_history_last_vs_share,
         "short_history_last_vs_share_warn": short_history_last_vs_share_warn,
         "short_history_last_vs_ring_share": short_history_last_vs_ring_share,

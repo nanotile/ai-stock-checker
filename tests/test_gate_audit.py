@@ -78,6 +78,7 @@ def test_soft_allow_short_history_count() -> None:
         soft_allow_short_vs_gap_lean,
         soft_allow_short_vs_gap_delta,
         soft_allow_short_vs_gap_lean_vs_delta,
+        soft_allow_short_vs_gap_delta_lead,
         soft_allow_short_history_last_vs_share,
         soft_allow_short_history_last_vs_ring_share,
         soft_allow_short_history_last_vs_lean,
@@ -235,6 +236,10 @@ def test_soft_allow_short_history_count() -> None:
         "align · wide",
         True,  # adverse hot|thin + wide
     )
+    # Signed +34pp hid that short owns the pair spread (unique/Yahoo Δ lead).
+    assert soft_allow_short_vs_gap_delta_lead(None) == ""
+    assert soft_allow_short_vs_gap_delta_lead([]) == ""
+    assert soft_allow_short_vs_gap_delta_lead(mixed) == "short"
     # No freshness stamp → last/lean silent (age extremes required).
     assert soft_allow_short_history_last_vs_lean(mixed) == ("", False)
     # Absolute N short ≠ short÷ring (2/3 ≈ 66.7% hot; gap share parity).
@@ -244,7 +249,7 @@ def test_soft_allow_short_history_count() -> None:
     assert format_soft_allow_short_history_bit(mixed) == (
         "2 short · last IPO · tied · hot · 66.7% · vs gap · thin · 1 · 33% · "
         "short vs gap align · hot|thin · short Δ wide · +34pp · "
-        "short lean/Δ align · wide"
+        "short lean/Δ align · wide · short Δ lead · short"
     )
     lead_rows = [
         {"gate": "rs", "reason": "NEW RS unknown — short history — allow"},
@@ -366,7 +371,7 @@ def test_soft_allow_short_history_count() -> None:
         "3 short · 2 bench · hot · 66.7% · vs 1 young · thin · 33.3% · "
         "short bench vs young align · hot|thin · last SPY · tied · "
         "hot · 75% · vs gap · thin · 1 · 25% · short vs gap align · hot|thin · "
-        "short Δ wide · +50pp · short lean/Δ align · wide"
+        "short Δ wide · +50pp · short lean/Δ align · wide · short Δ lead · short"
     )
     # Fresh cursor + align lean → last/bench align (gap last/lean parity).
     now_bench = datetime(2026, 10, 22, 12, 0, tzinfo=timezone.utc)
@@ -1075,7 +1080,7 @@ def test_soft_allow_short_history_count() -> None:
         "short last/share align · fresh · hot · "
         "short share/ring align · both align · "
         "short vs gap align · hot|thin · "
-        "short Δ wide · +34pp · short lean/Δ align · wide · "
+        "short Δ wide · +34pp · short lean/Δ align · wide · short Δ lead · short · "
         "short last/lean align · fresh · hot|thin · "
         "short share/lean align · both align · "
         "short ring/lean align · both align"
@@ -1124,7 +1129,7 @@ def test_soft_allow_short_history_count() -> None:
         "short last/share clash · expired · hot · "
         "short share/ring align · both clash · "
         "short vs gap align · hot|thin · "
-        "short Δ wide · +34pp · short lean/Δ align · wide · "
+        "short Δ wide · +34pp · short lean/Δ align · wide · short Δ lead · short · "
         "short last/lean clash · expired · hot|thin · "
         "short share/lean align · both clash · "
         "short ring/lean align · both clash"
@@ -1280,7 +1285,7 @@ def test_soft_allow_short_history_count() -> None:
         "short lead/share clash · lead clash · share align · "
         "short share/ring align · both align · "
         "short vs gap align · hot|thin · "
-        "short Δ wide · +50pp · short lean/Δ align · wide · "
+        "short Δ wide · +50pp · short lean/Δ align · wide · short Δ lead · short · "
         "short last/lean align · fresh · hot|thin · "
         "short lead/lean clash · lead clash · lean align · "
         "short share/lean align · both align · "
@@ -1347,7 +1352,7 @@ def test_soft_allow_short_history_count() -> None:
         "short lead/share align · both clash · "
         "short share/ring align · both clash · "
         "short vs gap align · hot|thin · "
-        "short Δ wide · +50pp · short lean/Δ align · wide · "
+        "short Δ wide · +50pp · short lean/Δ align · wide · short Δ lead · short · "
         "short last/lean clash · expired · hot|thin · "
         "short lead/lean align · both clash · "
         "short share/lean align · both clash · "

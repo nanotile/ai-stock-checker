@@ -845,6 +845,32 @@ def soft_allow_short_vs_gap_lean_vs_delta(
     return "clash · lean · Δ mid", True
 
 
+def soft_allow_short_vs_gap_delta_lead(
+    events: list[dict[str, Any]] | None,
+) -> str:
+    """Name which pair side owns a spoken short vs gap Δ (display only).
+
+    Returns ``short|gap`` / ``\"\"``. When lean vs Δ already spoke with a
+    Δ (wide|thin) and ±pp ≠ 0, positive short%−gap% → ``short``; negative →
+    ``gap``. Mid-Δ clash / 0pp stay silent. Signed pp alone hid which
+    sleeve owns the spread (Screener unique vs dup / Yahoo mix Δ lead
+    parity after short vs gap share Δ). Not a gate.
+    """
+    lean_vs_delta, _ = soft_allow_short_vs_gap_lean_vs_delta(events)
+    if not str(lean_vs_delta or "").startswith("align ·"):
+        return ""
+    delta_pp, delta_sev = soft_allow_short_vs_gap_delta(events)
+    if not delta_sev or delta_pp is None:
+        return ""
+    try:
+        pp = float(delta_pp)
+    except (TypeError, ValueError):
+        return ""
+    if abs(pp) < 1e-9:
+        return ""
+    return "short" if pp > 0 else "gap"
+
+
 def soft_allow_short_history_last_vs_share(
     events: list[dict[str, Any]] | None,
     *,
@@ -1572,7 +1598,10 @@ def format_soft_allow_short_history_bit(
     spoke, ``short Δ wide|thin · ±Npp`` then ``short lean/Δ align|clash``
     follow so lean labels alone cannot hide how far pair ownership sits
     (Screener junk vs ok / unique vs dup share Δ + lean vs Δ parity;
-    mid Δ silent on the Δ bit; lean-spoke + mid → clash · lean · Δ mid).
+    mid Δ silent on the Δ bit; lean-spoke + mid → clash · lean · Δ mid);
+    when lean vs Δ already spoke with a Δ and ±pp ≠ 0, ``short Δ lead ·
+    short|gap`` follows so the signed spread alone cannot hide which
+    sleeve owns it (unique vs dup / Yahoo mix Δ lead parity).
     When last freshness extremes + lean already spoke, ``short last/lean
     align|clash`` follows so age labels + lean labels alone cannot hide
     age≠lean (gap last/lean parity); when last/lead + last/lean already
@@ -1800,6 +1829,11 @@ def format_soft_allow_short_history_bit(
             lean_vs_delta, _ = soft_allow_short_vs_gap_lean_vs_delta(events)
             if lean_vs_delta:
                 head = f"{head} · short lean/Δ {lean_vs_delta}"
+            # Signed pp alone hid which pair sleeve owns the spread
+            # (unique vs dup / Yahoo mix Δ lead parity).
+            delta_lead = soft_allow_short_vs_gap_delta_lead(events)
+            if delta_lead:
+                head = f"{head} · short Δ lead · {delta_lead}"
             last_vs_lean, _ = soft_allow_short_history_last_vs_lean(
                 events, now=now
             )
