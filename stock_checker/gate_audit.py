@@ -429,6 +429,52 @@ def soft_allow_short_history_last_share_vs_bench_young(
     return f"clash · share {share_verb} · bench {bench_verb}", True
 
 
+def soft_allow_short_history_last_ring_vs_bench_young(
+    events: list[dict[str, Any]] | None,
+    *,
+    now: datetime | None = None,
+) -> tuple[str, bool]:
+    """Last/ring freshness vs last/bench relationship agreement (display only).
+
+    Returns ``(bit, warn)``. Age↔short÷ring heat ≠ age↔bench/young lean.
+    When both already spoke: same verb speaks
+    ``align · both align|clash`` — ``both align`` stays calm; ``both
+    clash`` warns (dual-clash agreement ≠ quiet confirm). Crossed verbs
+    speak ``clash · ring align|clash · bench align|clash`` (warn).
+    Missing either stays silent — gap share/lean + short share/bench
+    parity after #679 last/ring + last/bench alone hid whether ring
+    ownership heat and age↔bench/young agree *and* whether dual-clash
+    agreement is adverse. Side-by-side bits are not transitive
+    (lead/bench + lead/ring + share/bench + share/ring ≠ this edge).
+    Closes ring↔bench↔share with share/bench + share/ring and
+    lead↔ring↔bench with lead/bench + lead/ring. Short-vs-other lean
+    still deferred. Not a gate.
+    """
+    ring_bit, _ = soft_allow_short_history_last_vs_ring_share(
+        events, now=now
+    )
+    bench_bit, _ = soft_allow_short_history_last_vs_bench_young(
+        events, now=now
+    )
+    if not ring_bit or not bench_bit:
+        return "", False
+
+    def _verb(bit: str) -> str | None:
+        if bit.startswith("align · "):
+            return "align"
+        if bit.startswith("clash · "):
+            return "clash"
+        return None
+
+    ring_verb = _verb(ring_bit)
+    bench_verb = _verb(bench_bit)
+    if ring_verb is None or bench_verb is None:
+        return "", False
+    if ring_verb == bench_verb:
+        return f"align · both {ring_verb}", ring_verb == "clash"
+    return f"clash · ring {ring_verb} · bench {bench_verb}", True
+
+
 def _short_history_symbol_counts(
     events: list[dict[str, Any]] | None,
 ) -> dict[str, int]:
@@ -1452,11 +1498,16 @@ def format_soft_allow_short_history_bit(
     age↔bench/young cannot hide non-agreement or dual-clash (gap
     share/lean + short share/lean parity after #679; lead/bench +
     lead/share are not transitive with this edge). When last/ring +
-    last/lean already spoke, ``short ring/lean align|clash`` follows so
-    the two age relationships cannot hide non-agreement or dual-clash
-    (gap share/lean on short÷ring; pair share/lean stays on
-    short÷(short+gap)). Short-vs-other lean still deferred. Display
-    only; not a gate.
+    last/bench already spoke, ``short ring/bench align|clash`` follows
+    so ring ownership heat and age↔bench/young cannot hide
+    non-agreement or dual-clash (closes ring↔bench↔share with
+    share/bench + share/ring and lead↔ring↔bench with lead/bench +
+    lead/ring; gap share/lean + short share/bench parity after #679).
+    When last/ring + last/lean already spoke, ``short ring/lean
+    align|clash`` follows so the two age relationships cannot hide
+    non-agreement or dual-clash (gap share/lean on short÷ring; pair
+    share/lean stays on short÷(short+gap)). Short-vs-other lean still
+    deferred. Display only; not a gate.
     """
     n, ring_share, ring_sev = soft_allow_short_history_share(events)
     if n <= 0 or ring_share is None:
@@ -1605,6 +1656,11 @@ def format_soft_allow_short_history_bit(
         )
         if lead_vs_ring:
             head = f"{head} · short lead/ring {lead_vs_ring}"
+        ring_vs_bench, _ = soft_allow_short_history_last_ring_vs_bench_young(
+            events, now=now
+        )
+        if ring_vs_bench:
+            head = f"{head} · short ring/bench {ring_vs_bench}"
     vs_gap = soft_allow_short_vs_gap(events)
     if vs_gap is not None:
         head = f"{head} · {vs_gap[0]}"

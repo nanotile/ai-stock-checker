@@ -57,6 +57,7 @@ def test_soft_allow_short_history_count() -> None:
         soft_allow_short_history_last_vs_bench_young,
         soft_allow_short_history_last_lead_vs_bench_young,
         soft_allow_short_history_last_share_vs_bench_young,
+        soft_allow_short_history_last_ring_vs_bench_young,
         soft_allow_short_history_last_symbol,
         soft_allow_short_history_symbol_last_vs_lead,
         soft_allow_short_history_last_vs_lead_freshness,
@@ -109,6 +110,14 @@ def test_soft_allow_short_history_count() -> None:
         False,
     )
     assert soft_allow_short_history_last_share_vs_bench_young([]) == (
+        "",
+        False,
+    )
+    assert soft_allow_short_history_last_ring_vs_bench_young(None) == (
+        "",
+        False,
+    )
+    assert soft_allow_short_history_last_ring_vs_bench_young([]) == (
         "",
         False,
     )
@@ -378,6 +387,16 @@ def test_soft_allow_short_history_count() -> None:
     assert "short share/bench align · both align" in (
         format_soft_allow_short_history_bit(fresh_bench, now=now_bench)
     )
+    # last/ring align + last/bench align → short ring/bench both align.
+    assert soft_allow_short_history_last_vs_ring_share(
+        fresh_bench, now=now_bench
+    ) == ("align · fresh · hot", False)
+    assert soft_allow_short_history_last_ring_vs_bench_young(
+        fresh_bench, now=now_bench
+    ) == ("align · both align", False)
+    assert "short ring/bench align · both align" in (
+        format_soft_allow_short_history_bit(fresh_bench, now=now_bench)
+    )
     # Fresh cursor + clash lean → last/bench clash (warn).
     clash_bench = [
         {
@@ -406,6 +425,16 @@ def test_soft_allow_short_history_count() -> None:
     assert soft_allow_short_history_last_share_vs_bench_young(
         clash_bench, now=now_bench
     ) == ("", False)
+    # Short-only ring still speaks last/ring → ring/bench crossed.
+    assert soft_allow_short_history_last_vs_ring_share(
+        clash_bench, now=now_bench
+    ) == ("align · fresh · hot", False)
+    assert soft_allow_short_history_last_ring_vs_bench_young(
+        clash_bench, now=now_bench
+    ) == ("clash · ring align · bench clash", True)
+    assert "short ring/bench clash · ring align · bench clash" in (
+        format_soft_allow_short_history_bit(clash_bench, now=now_bench)
+    )
     # last/lead clash + last/bench align → short lead/bench clash.
     lead_clash_bench = [
         {
@@ -537,6 +566,18 @@ def test_soft_allow_short_history_count() -> None:
             share_both_clash_bench, now=now_bench
         )
     )
+    # last/ring clash + last/bench clash → short ring/bench both clash.
+    assert soft_allow_short_history_last_vs_ring_share(
+        share_both_clash_bench, now=now_bench
+    ) == ("clash · fresh · quiet", True)
+    assert soft_allow_short_history_last_ring_vs_bench_young(
+        share_both_clash_bench, now=now_bench
+    ) == ("align · both clash", True)
+    assert "short ring/bench align · both clash" in (
+        format_soft_allow_short_history_bit(
+            share_both_clash_bench, now=now_bench
+        )
+    )
     # Fresh + hot pair (align share) + clash lean (clash bench) → crossed.
     share_cross_bench = [
         {
@@ -565,6 +606,18 @@ def test_soft_allow_short_history_count() -> None:
         share_cross_bench, now=now_bench
     ) == ("clash · share align · bench clash", True)
     assert "short share/bench clash · share align · bench clash" in (
+        format_soft_allow_short_history_bit(
+            share_cross_bench, now=now_bench
+        )
+    )
+    # last/ring align + last/bench clash → short ring/bench crossed.
+    assert soft_allow_short_history_last_vs_ring_share(
+        share_cross_bench, now=now_bench
+    ) == ("align · fresh · hot", False)
+    assert soft_allow_short_history_last_ring_vs_bench_young(
+        share_cross_bench, now=now_bench
+    ) == ("clash · ring align · bench clash", True)
+    assert "short ring/bench clash · ring align · bench clash" in (
         format_soft_allow_short_history_bit(
             share_cross_bench, now=now_bench
         )
