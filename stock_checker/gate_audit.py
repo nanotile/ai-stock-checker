@@ -498,8 +498,9 @@ def soft_allow_short_history_last_vs_share(
     silent — gap last/share parity + RyanJHamby triad + FinRobot
     last-row age + portfolio AI speak-both-sides after last freshness +
     ``short_pair_share`` alone hid the relationship. Uses short÷(short+gap)
-    (already spoken via ``vs gap``), not short÷ring (still deferred).
-    Not a gate.
+    (already spoken via ``vs gap``). Ring ownership uses
+    ``soft_allow_short_history_last_vs_ring_share`` (short÷ring; pair
+    silent when no gap). Not a gate.
     """
     last_fresh = soft_allow_short_history_last_freshness(events, now=now)
     pair = soft_allow_short_pair_share(events)
@@ -510,6 +511,37 @@ def soft_allow_short_history_last_vs_share(
     ):
         return "", False
     severity = pair[2]
+    live_age = last_fresh == "fresh"
+    hot_share = severity == "hot"
+    if live_age == hot_share:
+        return f"align · {last_fresh} · {severity}", False
+    return f"clash · {last_fresh} · {severity}", True
+
+
+def soft_allow_short_history_last_vs_ring_share(
+    events: list[dict[str, Any]] | None,
+    *,
+    now: datetime | None = None,
+) -> tuple[str, bool]:
+    """Last short freshness vs short÷ring share lean (display only).
+
+    Returns ``(bit, warn)``. Cursor age ≠ ring ownership heat. Extremes
+    only: ``fresh``↔``hot`` and ``expired``↔``quiet`` speak ``align``;
+    crossed pairs speak ``clash`` (warn). ``aging`` / mid share stay
+    silent — gap last/share parity on short÷ring after ring share
+    shipped; pair last/share stays on ``vs gap`` and is silent when
+    there is no gap (short-only ring hid age≠ring). RyanJHamby triad +
+    FinRobot last-row age + portfolio AI speak-both-sides + xang1234
+    #668. Not a gate.
+    """
+    last_fresh = soft_allow_short_history_last_freshness(events, now=now)
+    short_n, _share, severity = soft_allow_short_history_share(events)
+    if (
+        short_n <= 0
+        or last_fresh not in {"fresh", "expired"}
+        or severity not in {"hot", "quiet"}
+    ):
+        return "", False
     live_age = last_fresh == "fresh"
     hot_share = severity == "hot"
     if live_age == hot_share:
@@ -1044,8 +1076,12 @@ def format_soft_allow_short_history_bit(
     the two age relationships cannot hide non-agreement or dual-clash
     (gap share/lean parity). Ring share (``hot|quiet · P%``) sits after
     lead/sides / ``n=1`` so absolute ``N short`` ≠ short÷ring (gap share
-    parity; short÷pair stays on ``vs gap`` / last/share). Short-vs-other
-    lean still deferred. Display only; not a gate.
+    parity; short÷pair stays on ``vs gap`` / last/share). When last
+    freshness extremes + ring share lean already spoke, ``short
+    last/ring align|clash`` follows so age labels + ring heat alone
+    cannot hide age≠ring (gap last/share on short÷ring; pair last/share
+    stays silent when no gap). Short-vs-other lean still deferred.
+    Display only; not a gate.
     """
     n, ring_share, ring_sev = soft_allow_short_history_share(events)
     if n <= 0 or ring_share is None:
@@ -1145,6 +1181,11 @@ def format_soft_allow_short_history_bit(
         head = f"{head} · {ring_sev} · {ring_share:g}%"
     else:
         head = f"{head} · {ring_share:g}%"
+    last_vs_ring, _ = soft_allow_short_history_last_vs_ring_share(
+        events, now=now
+    )
+    if last_vs_ring:
+        head = f"{head} · short last/ring {last_vs_ring}"
     vs_gap = soft_allow_short_vs_gap(events)
     if vs_gap is not None:
         head = f"{head} · {vs_gap[0]}"
