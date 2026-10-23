@@ -429,9 +429,14 @@ def test_window_a_sleeve_mix_crypto_vs_stock() -> None:
     assert crypto_only["stock_share_severity"] == "thin"
     assert crypto_only["crypto_vs_stock"] == "align · hot|thin"
     assert crypto_only["crypto_vs_stock_warn"] is False
+    assert crypto_only["crypto_vs_stock_delta_pp"] == 100.0
+    assert crypto_only["crypto_vs_stock_delta_severity"] == "wide"
+    assert crypto_only["crypto_vs_stock_lean_vs_delta"] == "align · wide"
+    assert crypto_only["crypto_vs_stock_lean_vs_delta_warn"] is True
     assert crypto_only["bit"] == (
         "A crypto-only · 12 · hot · 100% · vs 0 stock · thin · 0%"
         " · crypto vs stock align · hot|thin"
+        " · Δ wide · +100pp · lean/Δ align · wide"
     )
     assert crypto_only["warn"] is True
     stock_only = window_a_sleeve_mix({"crypto_legs": 0, "stock_legs": 10})
@@ -442,10 +447,15 @@ def test_window_a_sleeve_mix_crypto_vs_stock() -> None:
     assert stock_only["stock_share_severity"] == "strong"
     assert stock_only["crypto_vs_stock"] == "align · quiet|strong"
     assert stock_only["crypto_vs_stock_warn"] is False
+    assert stock_only["crypto_vs_stock_delta_pp"] == -100.0
+    assert stock_only["crypto_vs_stock_delta_severity"] == "wide"
+    assert stock_only["crypto_vs_stock_lean_vs_delta"] == "align · wide"
+    assert stock_only["crypto_vs_stock_lean_vs_delta_warn"] is False
     assert (
         stock_only["bit"]
         == "A stock-only · 10 · quiet · 0% · vs 10 stock · strong · 100%"
         " · crypto vs stock align · quiet|strong"
+        " · Δ wide · −100pp · lean/Δ align · wide"
     )
     assert stock_only["warn"] is False
     heavy = window_a_sleeve_mix({"crypto_legs": 8, "stock_legs": 2})
@@ -455,9 +465,14 @@ def test_window_a_sleeve_mix_crypto_vs_stock() -> None:
     assert heavy["stock_share_pct"] == 20
     assert heavy["stock_share_severity"] == "thin"
     assert heavy["crypto_vs_stock"] == "align · hot|thin"
+    assert heavy["crypto_vs_stock_delta_pp"] == 60.0
+    assert heavy["crypto_vs_stock_delta_severity"] == "wide"
+    assert heavy["crypto_vs_stock_lean_vs_delta"] == "align · wide"
+    assert heavy["crypto_vs_stock_lean_vs_delta_warn"] is True
     assert heavy["bit"] == (
         "A crypto-heavy · 8/2 · hot · 80% · vs 2 stock · thin · 20%"
         " · crypto vs stock align · hot|thin"
+        " · Δ wide · +60pp · lean/Δ align · wide"
     )
     assert heavy["warn"] is True
     stock_heavy = window_a_sleeve_mix({"crypto_legs": 2, "stock_legs": 8})
@@ -467,10 +482,15 @@ def test_window_a_sleeve_mix_crypto_vs_stock() -> None:
     assert stock_heavy["stock_share_pct"] == 80
     assert stock_heavy["stock_share_severity"] == "strong"
     assert stock_heavy["crypto_vs_stock"] == "align · quiet|strong"
+    assert stock_heavy["crypto_vs_stock_delta_pp"] == -60.0
+    assert stock_heavy["crypto_vs_stock_delta_severity"] == "wide"
+    assert stock_heavy["crypto_vs_stock_lean_vs_delta"] == "align · wide"
+    assert stock_heavy["crypto_vs_stock_lean_vs_delta_warn"] is False
     assert (
         stock_heavy["bit"]
         == "A stock-heavy · 8/2 · quiet · 20% · vs 8 stock · strong · 80%"
         " · crypto vs stock align · quiet|strong"
+        " · Δ wide · −60pp · lean/Δ align · wide"
     )
     assert stock_heavy["warn"] is False
     mid = window_a_sleeve_mix({"crypto_legs": 3, "stock_legs": 7})
@@ -480,6 +500,8 @@ def test_window_a_sleeve_mix_crypto_vs_stock() -> None:
     assert mid["stock_share_pct"] == 70
     assert mid["stock_share_severity"] == ""
     assert mid["crypto_vs_stock"] == ""
+    assert mid["crypto_vs_stock_delta_pp"] is None
+    assert mid["crypto_vs_stock_lean_vs_delta"] == ""
     assert mid["bit"] == "A stock-heavy · 7/3 · 30% · vs 7 stock · 70%"
     mixed = window_a_sleeve_mix({"crypto_legs": 5, "stock_legs": 5})
     assert mixed["severity"] == "mixed"
@@ -489,9 +511,14 @@ def test_window_a_sleeve_mix_crypto_vs_stock() -> None:
     assert mixed["stock_share_severity"] == ""
     assert mixed["crypto_vs_stock"] == "clash · crypto hot · stock ok"
     assert mixed["crypto_vs_stock_warn"] is True
+    assert mixed["crypto_vs_stock_delta_pp"] is None
+    assert mixed["crypto_vs_stock_delta_severity"] == ""
+    assert mixed["crypto_vs_stock_lean_vs_delta"] == "clash · lean · Δ mid"
+    assert mixed["crypto_vs_stock_lean_vs_delta_warn"] is True
     assert mixed["bit"] == (
         "A mixed · 5/5 · hot · 50% · vs 5 stock · 50%"
         " · crypto vs stock clash · crypto hot · stock ok"
+        " · lean/Δ clash · lean · Δ mid"
     )
     assert mixed["warn"] is True
     sample = window_a_sample_readiness(
@@ -501,16 +528,21 @@ def test_window_a_sleeve_mix_crypto_vs_stock() -> None:
     assert sample["sleeve_bit"] == (
         "A crypto-only · 12 · hot · 100% · vs 0 stock · thin · 0%"
         " · crypto vs stock align · hot|thin"
+        " · Δ wide · +100pp · lean/Δ align · wide"
     )
     assert sample["sleeve_crypto_share_pct"] == 100
     assert sample["sleeve_crypto_share_severity"] == "hot"
     assert sample["sleeve_stock_share_pct"] == 0
     assert sample["sleeve_stock_share_severity"] == "thin"
     assert sample["sleeve_crypto_vs_stock"] == "align · hot|thin"
+    assert sample["sleeve_crypto_vs_stock_delta_pp"] == 100.0
+    assert sample["sleeve_crypto_vs_stock_delta_severity"] == "wide"
+    assert sample["sleeve_crypto_vs_stock_lean_vs_delta"] == "align · wide"
     assert sample["sleeve_warn"] is True
     assert format_window_a_sleeve_bit(sample) == (
         "A crypto-only · 12 · hot · 100% · vs 0 stock · thin · 0%"
         " · crypto vs stock align · hot|thin"
+        " · Δ wide · +100pp · lean/Δ align · wide"
     )
     g = build_promote_ab_glance(
         {"promote_experiment_strategy": False},
@@ -534,9 +566,11 @@ def test_window_a_sleeve_mix_crypto_vs_stock() -> None:
     assert g["a_sleeve_bit"] == (
         "A crypto-only · 12 · hot · 100% · vs 0 stock · thin · 0%"
         " · crypto vs stock align · hot|thin"
+        " · Δ wide · +100pp · lean/Δ align · wide"
     )
     assert g["a_sleeve_warn"] is True
     assert "crypto vs stock align · hot|thin" in g["line"]
+    assert "Δ wide · +100pp" in g["line"]
 
 
 def test_promote_ab_glance_target_met_without_stats() -> None:
