@@ -58,6 +58,7 @@ def test_soft_allow_short_history_count() -> None:
         soft_allow_short_history_last_lead_vs_bench_young,
         soft_allow_short_history_last_share_vs_bench_young,
         soft_allow_short_history_last_ring_vs_bench_young,
+        soft_allow_short_history_last_lean_vs_bench_young,
         soft_allow_short_history_last_symbol,
         soft_allow_short_history_symbol_last_vs_lead,
         soft_allow_short_history_last_vs_lead_freshness,
@@ -118,6 +119,14 @@ def test_soft_allow_short_history_count() -> None:
         False,
     )
     assert soft_allow_short_history_last_ring_vs_bench_young([]) == (
+        "",
+        False,
+    )
+    assert soft_allow_short_history_last_lean_vs_bench_young(None) == (
+        "",
+        False,
+    )
+    assert soft_allow_short_history_last_lean_vs_bench_young([]) == (
         "",
         False,
     )
@@ -397,6 +406,16 @@ def test_soft_allow_short_history_count() -> None:
     assert "short ring/bench align · both align" in (
         format_soft_allow_short_history_bit(fresh_bench, now=now_bench)
     )
+    # last/lean align + last/bench align → short lean/bench both align.
+    assert soft_allow_short_history_last_vs_lean(
+        fresh_bench, now=now_bench
+    ) == ("align · fresh · hot|thin", False)
+    assert soft_allow_short_history_last_lean_vs_bench_young(
+        fresh_bench, now=now_bench
+    ) == ("align · both align", False)
+    assert "short lean/bench align · both align" in (
+        format_soft_allow_short_history_bit(fresh_bench, now=now_bench)
+    )
     # Fresh cursor + clash lean → last/bench clash (warn).
     clash_bench = [
         {
@@ -435,6 +454,10 @@ def test_soft_allow_short_history_count() -> None:
     assert "short ring/bench clash · ring align · bench clash" in (
         format_soft_allow_short_history_bit(clash_bench, now=now_bench)
     )
+    # No gap → last/lean silent → lean/bench silent.
+    assert soft_allow_short_history_last_lean_vs_bench_young(
+        clash_bench, now=now_bench
+    ) == ("", False)
     # last/lead clash + last/bench align → short lead/bench clash.
     lead_clash_bench = [
         {
@@ -578,6 +601,18 @@ def test_soft_allow_short_history_count() -> None:
             share_both_clash_bench, now=now_bench
         )
     )
+    # last/lean align (fresh↔quiet|strong) + last/bench clash → crossed.
+    assert soft_allow_short_history_last_vs_lean(
+        share_both_clash_bench, now=now_bench
+    ) == ("align · fresh · quiet|strong", False)
+    assert soft_allow_short_history_last_lean_vs_bench_young(
+        share_both_clash_bench, now=now_bench
+    ) == ("clash · lean align · bench clash", True)
+    assert "short lean/bench clash · lean align · bench clash" in (
+        format_soft_allow_short_history_bit(
+            share_both_clash_bench, now=now_bench
+        )
+    )
     # Fresh + hot pair (align share) + clash lean (clash bench) → crossed.
     share_cross_bench = [
         {
@@ -618,6 +653,18 @@ def test_soft_allow_short_history_count() -> None:
         share_cross_bench, now=now_bench
     ) == ("clash · ring align · bench clash", True)
     assert "short ring/bench clash · ring align · bench clash" in (
+        format_soft_allow_short_history_bit(
+            share_cross_bench, now=now_bench
+        )
+    )
+    # last/lean align + last/bench clash → short lean/bench crossed.
+    assert soft_allow_short_history_last_vs_lean(
+        share_cross_bench, now=now_bench
+    ) == ("align · fresh · hot|thin", False)
+    assert soft_allow_short_history_last_lean_vs_bench_young(
+        share_cross_bench, now=now_bench
+    ) == ("clash · lean align · bench clash", True)
+    assert "short lean/bench clash · lean align · bench clash" in (
         format_soft_allow_short_history_bit(
             share_cross_bench, now=now_bench
         )

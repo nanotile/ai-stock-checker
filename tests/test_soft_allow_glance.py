@@ -1100,6 +1100,11 @@ def test_soft_allow_glance_short_history_bench_count() -> None:
     assert g["short_history_last_share_vs_lean_warn"] is False
     assert g["short_history_last_ring_vs_lean"] == "align · both align"
     assert g["short_history_last_ring_vs_lean_warn"] is False
+    # last/lean align + last/bench clash → short lean/bench crossed.
+    assert g["short_history_last_lean_vs_bench_young"] == (
+        "clash · lean align · bench clash"
+    )
+    assert g["short_history_last_lean_vs_bench_young_warn"] is True
     assert g["short_history_share_pct"] == 66.7
     assert g["short_history_share_severity"] == "hot"
     assert g["short_history_last_vs_ring_share"] == "align · fresh · hot"
@@ -1121,13 +1126,15 @@ def test_soft_allow_glance_short_history_bench_count() -> None:
         "short vs gap align · hot|thin · "
         "short last/lean align · fresh · hot|thin · "
         "short share/lean align · both align · "
-        "short ring/lean align · both align"
+        "short ring/lean align · both align · "
+        "short lean/bench clash · lean align · bench clash"
     )
     assert "1 bench · hot · 50%" in g["line"]
     assert "vs 1 young · 50%" in g["line"]
     assert "short last/bench clash" in g["line"]
     assert "short share/bench clash" in g["line"]
     assert "short ring/bench clash" in g["line"]
+    assert "short lean/bench clash" in g["line"]
     assert g["tone"] == "warn"
     assert g["soft_lean_warn"] is True
     assert "short 1 bench hot 50% vs 1 young 50% clash" in g["soft_lean_meta"]
@@ -1136,6 +1143,7 @@ def test_soft_allow_glance_short_history_bench_count() -> None:
     # share/bench may clip off soft_lean_meta (+N); soft_lean keeps it.
     assert "short share/bench clash" in g["soft_lean"]
     assert "short ring/bench clash" in g["soft_lean"]
+    assert "short lean/bench clash" in g["soft_lean"]
 
 
 def test_soft_allow_glance_short_lead_vs_bench_young() -> None:
