@@ -2465,6 +2465,19 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
         ),
         "short share/lean",
     ),
+    # Short last/ring vs last/lean meta (gap share/lean on short÷ring).
+    # Distinct ``short ring/lean`` so pair ``short share/lean``
+    # (short÷(short+gap)) is not treated as ring↔lean. Verb + both/
+    # crossed ride so ``align · both clash`` is not a silent confirm.
+    (
+        re.compile(
+            r"^short ring/lean (align|clash)"
+            r"(?: · (both (?:align|clash))"
+            r"| · (ring (?:align|clash))"
+            r" · (lean (?:align|clash)))?"
+        ),
+        "short ring/lean",
+    ),
     # Verb + payload ride on one stage so ``align`` is not a silent
     # confirm of a live hot print, and ``align · both clash`` / a crossed
     # lead-vs-share pair are not clipped as a calm align (RyanJHamby
@@ -2786,6 +2799,7 @@ def build_soft_allow_glance(
         soft_allow_short_history_last_lead_vs_lean,
         soft_allow_short_history_last_lead_vs_share,
         soft_allow_short_history_last_share_vs_lean,
+        soft_allow_short_history_last_ring_vs_lean,
         soft_allow_short_history_vs_scan_clash,
         soft_allow_short_history_vs_cash_clock_clash,
         soft_allow_short_history_vs_memory_clock_clash,
@@ -2890,6 +2904,8 @@ def build_soft_allow_glance(
         "short_history_last_lead_vs_share_warn": False,
         "short_history_last_share_vs_lean": "",
         "short_history_last_share_vs_lean_warn": False,
+        "short_history_last_ring_vs_lean": "",
+        "short_history_last_ring_vs_lean_warn": False,
         "short_history_vs_scan_clash": "",
         "short_history_vs_scan_clash_warn": False,
         "short_history_vs_cash_clock_clash": "",
@@ -3350,6 +3366,10 @@ def build_soft_allow_glance(
         short_history_last_share_vs_lean,
         short_history_last_share_vs_lean_warn,
     ) = soft_allow_short_history_last_share_vs_lean(rows, now=now)
+    (
+        short_history_last_ring_vs_lean,
+        short_history_last_ring_vs_lean_warn,
+    ) = soft_allow_short_history_last_ring_vs_lean(rows, now=now)
     # Short≠scan after short last freshness is known — soft-allow last
     # matching the scan can still hide a staler young/short cursor
     # (gap≠scan parity + xang1234 #549 / e3c84e1). Sole pins
@@ -3877,6 +3897,7 @@ def build_soft_allow_glance(
         or short_history_last_lead_vs_lean_warn
         or short_history_last_lead_vs_share_warn
         or short_history_last_share_vs_lean_warn
+        or short_history_last_ring_vs_lean_warn
     ):
         tone = "warn"
     lead_bit = format_soft_allow_lead_bit(rows, band=lead_band)
@@ -4071,6 +4092,7 @@ def build_soft_allow_glance(
         or short_history_last_lead_vs_lean_warn
         or short_history_last_lead_vs_share_warn
         or short_history_last_share_vs_lean_warn
+        or short_history_last_ring_vs_lean_warn
         or short_history_bench_n > 0
         or short_history_share_severity == "hot"
         or short_history_last_freshness == "expired"
@@ -4189,6 +4211,10 @@ def build_soft_allow_glance(
         "short_history_last_share_vs_lean": short_history_last_share_vs_lean,
         "short_history_last_share_vs_lean_warn": (
             short_history_last_share_vs_lean_warn
+        ),
+        "short_history_last_ring_vs_lean": short_history_last_ring_vs_lean,
+        "short_history_last_ring_vs_lean_warn": (
+            short_history_last_ring_vs_lean_warn
         ),
         "short_history_vs_scan_clash": short_history_vs_scan_clash,
         "short_history_vs_scan_clash_warn": short_history_vs_scan_clash_warn,

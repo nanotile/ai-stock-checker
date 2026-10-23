@@ -706,6 +706,48 @@ def soft_allow_short_history_last_share_vs_lean(
     return f"clash · share {share_verb} · lean {lean_verb}", True
 
 
+def soft_allow_short_history_last_ring_vs_lean(
+    events: list[dict[str, Any]] | None,
+    *,
+    now: datetime | None = None,
+) -> tuple[str, bool]:
+    """Last/ring vs last/lean relationship agreement (display only).
+
+    Returns ``(bit, warn)``. Age↔short÷ring ≠ age↔short/gap lean. When
+    both already spoke: same verb speaks ``align · both align|clash`` —
+    ``both align`` stays calm; ``both clash`` warns (dual-clash
+    agreement ≠ quiet confirm). Crossed verbs speak
+    ``clash · ring align|clash · lean align|clash`` (warn). Missing
+    either stays silent — gap share/lean parity on short÷ring after
+    last/ring + last/lean; pair ``short share/lean`` stays on
+    short÷(short+gap) and is silent on short-only rings (last/lean needs
+    a gap). FinRobot last-row age + portfolio AI speak-both-sides +
+    RyanJHamby severity + xang1234 #668. Side-by-side last/ring +
+    last/lean alone hid whether the two relationships agree. Not a gate.
+    """
+    ring_bit, _ = soft_allow_short_history_last_vs_ring_share(
+        events, now=now
+    )
+    lean_bit, _ = soft_allow_short_history_last_vs_lean(events, now=now)
+    if not ring_bit or not lean_bit:
+        return "", False
+
+    def _verb(bit: str) -> str | None:
+        if bit.startswith("align · "):
+            return "align"
+        if bit.startswith("clash · "):
+            return "clash"
+        return None
+
+    ring_verb = _verb(ring_bit)
+    lean_verb = _verb(lean_bit)
+    if ring_verb is None or lean_verb is None:
+        return "", False
+    if ring_verb == lean_verb:
+        return f"align · both {ring_verb}", ring_verb == "clash"
+    return f"clash · ring {ring_verb} · lean {lean_verb}", True
+
+
 def soft_allow_short_history_vs_scan_clash(
     events: list[dict[str, Any]] | None,
     *,
@@ -1080,8 +1122,11 @@ def format_soft_allow_short_history_bit(
     freshness extremes + ring share lean already spoke, ``short
     last/ring align|clash`` follows so age labels + ring heat alone
     cannot hide age≠ring (gap last/share on short÷ring; pair last/share
-    stays silent when no gap). Short-vs-other lean still deferred.
-    Display only; not a gate.
+    stays silent when no gap). When last/ring + last/lean already spoke,
+    ``short ring/lean align|clash`` follows so the two age relationships
+    cannot hide non-agreement or dual-clash (gap share/lean on
+    short÷ring; pair share/lean stays on short÷(short+gap)). Short-vs-
+    other lean still deferred. Display only; not a gate.
     """
     n, ring_share, ring_sev = soft_allow_short_history_share(events)
     if n <= 0 or ring_share is None:
@@ -1217,6 +1262,11 @@ def format_soft_allow_short_history_bit(
                 )
                 if share_vs_lean:
                     head = f"{head} · short share/lean {share_vs_lean}"
+                ring_vs_lean, _ = soft_allow_short_history_last_ring_vs_lean(
+                    events, now=now
+                )
+                if ring_vs_lean:
+                    head = f"{head} · short ring/lean {ring_vs_lean}"
     return head
 
 
