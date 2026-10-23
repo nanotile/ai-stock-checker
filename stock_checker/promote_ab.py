@@ -2392,6 +2392,8 @@ def window_a_sample_readiness(
         "sleeve_crypto_share_severity": "",
         "sleeve_stock_share_pct": None,
         "sleeve_stock_share_severity": "",
+        "sleeve_crypto_vs_stock": "",
+        "sleeve_crypto_vs_stock_warn": False,
         "stale_closes": False,
         "stale_closes_bit": "",
         "aging_closes": False,
@@ -2788,6 +2790,8 @@ def window_a_sample_readiness(
     sleeve_crypto_share_severity = str(sleeve.get("crypto_share_severity") or "")
     sleeve_stock_share_pct = sleeve.get("stock_share_pct")
     sleeve_stock_share_severity = str(sleeve.get("stock_share_severity") or "")
+    sleeve_crypto_vs_stock = str(sleeve.get("crypto_vs_stock") or "")
+    sleeve_crypto_vs_stock_warn = bool(sleeve.get("crypto_vs_stock_warn"))
 
     last_sell_raw = stats.get("last_sell")
     last_sell_dt = parse_trade_timestamp(last_sell_raw)
@@ -5142,6 +5146,8 @@ def window_a_sample_readiness(
         "sleeve_crypto_share_severity": sleeve_crypto_share_severity,
         "sleeve_stock_share_pct": sleeve_stock_share_pct,
         "sleeve_stock_share_severity": sleeve_stock_share_severity,
+        "sleeve_crypto_vs_stock": sleeve_crypto_vs_stock,
+        "sleeve_crypto_vs_stock_warn": sleeve_crypto_vs_stock_warn,
         "stale_closes": stale_closes,
         "stale_closes_bit": stale_closes_bit,
         "aging_closes": aging_closes,
@@ -5735,7 +5741,13 @@ def window_a_sleeve_mix(stats: dict[str, Any] | None) -> dict[str, Any]:
     When crypto share already spoke, also speak remaining stock legs
     ``vs N stock · [strong|thin] · P%`` (Screener junk vs ok sides +
     soft-allow gap vs other + portfolio AI speak-both-sides). Crypto%
-    alone hid usable equity legs in the control. Not a gate.
+    alone hid usable equity legs in the control.
+
+    When crypto+stock sides already spoke, also speak lean
+    ``crypto vs stock align · hot|thin`` / ``quiet|strong``, or
+    ``clash · crypto hot · stock ok`` (Screener junk vs ok lean +
+    soft-allow gap vs other lean). Sides alone hid lean agreement.
+    Clash warns when crypto hot or stock thin. Not a gate.
     """
     empty: dict[str, Any] = {
         "crypto_legs": None,
@@ -5748,6 +5760,8 @@ def window_a_sleeve_mix(stats: dict[str, Any] | None) -> dict[str, Any]:
         "crypto_share_severity": "",
         "stock_share_pct": None,
         "stock_share_severity": "",
+        "crypto_vs_stock": "",
+        "crypto_vs_stock_warn": False,
     }
     if not isinstance(stats, dict):
         return empty
@@ -5803,7 +5817,35 @@ def window_a_sleeve_mix(stats: dict[str, Any] | None) -> dict[str, Any]:
         severity = "mixed"
         core = f"mixed · {crypto_n}/{stock_n}"
         warn = False
+    # Lean after sides (junk_vs_ok / gap vs other parity). Mid stock → "ok".
+    crypto_vs_stock = ""
+    crypto_vs_stock_warn = False
+    crypto_lean = share_sev in {"hot", "quiet"}
+    stock_lean = stock_sev in {"strong", "thin"}
+    stock_label = stock_sev or "ok"
+    crypto_label = share_sev or "ok"
+    if crypto_lean and stock_lean:
+        matched = (share_sev == "hot" and stock_sev == "thin") or (
+            share_sev == "quiet" and stock_sev == "strong"
+        )
+        if matched:
+            crypto_vs_stock = f"align · {share_sev}|{stock_sev}"
+        else:
+            crypto_vs_stock = (
+                f"clash · crypto {share_sev} · stock {stock_sev}"
+            )
+            crypto_vs_stock_warn = True
+    elif crypto_lean != stock_lean:
+        crypto_vs_stock = (
+            f"clash · crypto {crypto_label} · stock {stock_label}"
+        )
+        crypto_vs_stock_warn = share_sev == "hot" or stock_sev == "thin"
+    lean_tail = (
+        f"crypto vs stock {crypto_vs_stock}" if crypto_vs_stock else ""
+    )
     meter = f"{core} · {share_tail} · {stock_tail}"
+    if lean_tail:
+        meter = f"{meter} · {lean_tail}"
     bit = f"A {meter}"
     return {
         "crypto_legs": crypto_n,
@@ -5811,11 +5853,13 @@ def window_a_sleeve_mix(stats: dict[str, Any] | None) -> dict[str, Any]:
         "severity": severity,
         "bit": bit,
         "meter_bit": meter,
-        "warn": warn,
+        "warn": warn or crypto_vs_stock_warn,
         "crypto_share_pct": share_pct,
         "crypto_share_severity": share_sev,
         "stock_share_pct": stock_share_pct,
         "stock_share_severity": stock_sev,
+        "crypto_vs_stock": crypto_vs_stock,
+        "crypto_vs_stock_warn": crypto_vs_stock_warn,
     }
 
 

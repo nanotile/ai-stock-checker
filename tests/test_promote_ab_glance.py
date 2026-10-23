@@ -427,7 +427,12 @@ def test_window_a_sleeve_mix_crypto_vs_stock() -> None:
     assert crypto_only["crypto_share_severity"] == "hot"
     assert crypto_only["stock_share_pct"] == 0
     assert crypto_only["stock_share_severity"] == "thin"
-    assert crypto_only["bit"] == "A crypto-only · 12 · hot · 100% · vs 0 stock · thin · 0%"
+    assert crypto_only["crypto_vs_stock"] == "align · hot|thin"
+    assert crypto_only["crypto_vs_stock_warn"] is False
+    assert crypto_only["bit"] == (
+        "A crypto-only · 12 · hot · 100% · vs 0 stock · thin · 0%"
+        " · crypto vs stock align · hot|thin"
+    )
     assert crypto_only["warn"] is True
     stock_only = window_a_sleeve_mix({"crypto_legs": 0, "stock_legs": 10})
     assert stock_only["severity"] == "stock_only"
@@ -435,9 +440,12 @@ def test_window_a_sleeve_mix_crypto_vs_stock() -> None:
     assert stock_only["crypto_share_severity"] == "quiet"
     assert stock_only["stock_share_pct"] == 100
     assert stock_only["stock_share_severity"] == "strong"
+    assert stock_only["crypto_vs_stock"] == "align · quiet|strong"
+    assert stock_only["crypto_vs_stock_warn"] is False
     assert (
         stock_only["bit"]
         == "A stock-only · 10 · quiet · 0% · vs 10 stock · strong · 100%"
+        " · crypto vs stock align · quiet|strong"
     )
     assert stock_only["warn"] is False
     heavy = window_a_sleeve_mix({"crypto_legs": 8, "stock_legs": 2})
@@ -446,7 +454,11 @@ def test_window_a_sleeve_mix_crypto_vs_stock() -> None:
     assert heavy["crypto_share_severity"] == "hot"
     assert heavy["stock_share_pct"] == 20
     assert heavy["stock_share_severity"] == "thin"
-    assert heavy["bit"] == "A crypto-heavy · 8/2 · hot · 80% · vs 2 stock · thin · 20%"
+    assert heavy["crypto_vs_stock"] == "align · hot|thin"
+    assert heavy["bit"] == (
+        "A crypto-heavy · 8/2 · hot · 80% · vs 2 stock · thin · 20%"
+        " · crypto vs stock align · hot|thin"
+    )
     assert heavy["warn"] is True
     stock_heavy = window_a_sleeve_mix({"crypto_legs": 2, "stock_legs": 8})
     assert stock_heavy["severity"] == "stock_heavy"
@@ -454,9 +466,11 @@ def test_window_a_sleeve_mix_crypto_vs_stock() -> None:
     assert stock_heavy["crypto_share_severity"] == "quiet"
     assert stock_heavy["stock_share_pct"] == 80
     assert stock_heavy["stock_share_severity"] == "strong"
+    assert stock_heavy["crypto_vs_stock"] == "align · quiet|strong"
     assert (
         stock_heavy["bit"]
         == "A stock-heavy · 8/2 · quiet · 20% · vs 8 stock · strong · 80%"
+        " · crypto vs stock align · quiet|strong"
     )
     assert stock_heavy["warn"] is False
     mid = window_a_sleeve_mix({"crypto_legs": 3, "stock_legs": 7})
@@ -465,6 +479,7 @@ def test_window_a_sleeve_mix_crypto_vs_stock() -> None:
     assert mid["crypto_share_severity"] == ""
     assert mid["stock_share_pct"] == 70
     assert mid["stock_share_severity"] == ""
+    assert mid["crypto_vs_stock"] == ""
     assert mid["bit"] == "A stock-heavy · 7/3 · 30% · vs 7 stock · 70%"
     mixed = window_a_sleeve_mix({"crypto_legs": 5, "stock_legs": 5})
     assert mixed["severity"] == "mixed"
@@ -472,22 +487,30 @@ def test_window_a_sleeve_mix_crypto_vs_stock() -> None:
     assert mixed["crypto_share_severity"] == "hot"
     assert mixed["stock_share_pct"] == 50
     assert mixed["stock_share_severity"] == ""
-    assert mixed["bit"] == "A mixed · 5/5 · hot · 50% · vs 5 stock · 50%"
-    assert mixed["warn"] is False
+    assert mixed["crypto_vs_stock"] == "clash · crypto hot · stock ok"
+    assert mixed["crypto_vs_stock_warn"] is True
+    assert mixed["bit"] == (
+        "A mixed · 5/5 · hot · 50% · vs 5 stock · 50%"
+        " · crypto vs stock clash · crypto hot · stock ok"
+    )
+    assert mixed["warn"] is True
     sample = window_a_sample_readiness(
         {"trades": 12, "buys": 6, "sells": 6, "crypto_legs": 12, "stock_legs": 0}
     )
     assert sample["sleeve_severity"] == "crypto_only"
     assert sample["sleeve_bit"] == (
         "A crypto-only · 12 · hot · 100% · vs 0 stock · thin · 0%"
+        " · crypto vs stock align · hot|thin"
     )
     assert sample["sleeve_crypto_share_pct"] == 100
     assert sample["sleeve_crypto_share_severity"] == "hot"
     assert sample["sleeve_stock_share_pct"] == 0
     assert sample["sleeve_stock_share_severity"] == "thin"
+    assert sample["sleeve_crypto_vs_stock"] == "align · hot|thin"
     assert sample["sleeve_warn"] is True
     assert format_window_a_sleeve_bit(sample) == (
         "A crypto-only · 12 · hot · 100% · vs 0 stock · thin · 0%"
+        " · crypto vs stock align · hot|thin"
     )
     g = build_promote_ab_glance(
         {"promote_experiment_strategy": False},
@@ -510,9 +533,10 @@ def test_window_a_sleeve_mix_crypto_vs_stock() -> None:
     )
     assert g["a_sleeve_bit"] == (
         "A crypto-only · 12 · hot · 100% · vs 0 stock · thin · 0%"
+        " · crypto vs stock align · hot|thin"
     )
     assert g["a_sleeve_warn"] is True
-    assert "vs 0 stock · thin · 0%" in g["line"]
+    assert "crypto vs stock align · hot|thin" in g["line"]
 
 
 def test_promote_ab_glance_target_met_without_stats() -> None:
