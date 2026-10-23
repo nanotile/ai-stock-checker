@@ -411,6 +411,67 @@ def test_format_window_a_fill_progress_bit() -> None:
     assert format_window_a_fill_progress_bit(sided) == "12/10 fills · 5/3 sells"
 
 
+def test_window_a_sleeve_mix_crypto_vs_stock() -> None:
+    """Summarize already counts legs; glance must speak crypto-churn control."""
+    from stock_checker.promote_ab import (
+        format_window_a_sleeve_bit,
+        window_a_sample_readiness,
+        window_a_sleeve_mix,
+    )
+
+    assert window_a_sleeve_mix(None)["bit"] == ""
+    assert window_a_sleeve_mix({"trades": 4})["bit"] == ""
+    crypto_only = window_a_sleeve_mix({"crypto_legs": 12, "stock_legs": 0})
+    assert crypto_only["severity"] == "crypto_only"
+    assert crypto_only["bit"] == "A crypto-only · 12"
+    assert crypto_only["warn"] is True
+    stock_only = window_a_sleeve_mix({"crypto_legs": 0, "stock_legs": 10})
+    assert stock_only["severity"] == "stock_only"
+    assert stock_only["bit"] == "A stock-only · 10"
+    assert stock_only["warn"] is False
+    heavy = window_a_sleeve_mix({"crypto_legs": 8, "stock_legs": 2})
+    assert heavy["severity"] == "crypto_heavy"
+    assert heavy["bit"] == "A crypto-heavy · 8/2"
+    assert heavy["warn"] is True
+    stock_heavy = window_a_sleeve_mix({"crypto_legs": 2, "stock_legs": 8})
+    assert stock_heavy["severity"] == "stock_heavy"
+    assert stock_heavy["bit"] == "A stock-heavy · 8/2"
+    assert stock_heavy["warn"] is False
+    mixed = window_a_sleeve_mix({"crypto_legs": 5, "stock_legs": 5})
+    assert mixed["severity"] == "mixed"
+    assert mixed["bit"] == "A mixed · 5/5"
+    assert mixed["warn"] is False
+    sample = window_a_sample_readiness(
+        {"trades": 12, "buys": 6, "sells": 6, "crypto_legs": 12, "stock_legs": 0}
+    )
+    assert sample["sleeve_severity"] == "crypto_only"
+    assert sample["sleeve_bit"] == "A crypto-only · 12"
+    assert sample["sleeve_warn"] is True
+    assert format_window_a_sleeve_bit(sample) == "A crypto-only · 12"
+    g = build_promote_ab_glance(
+        {"promote_experiment_strategy": False},
+        as_of=date(2026, 9, 9),
+        window_stats={
+            "trades": 12,
+            "buys": 6,
+            "sells": 6,
+            "fees": 50.0,
+            "realized_pnl": 20.0,
+            "net_after_all_fees": -30.0,
+            "crypto_legs": 12,
+            "stock_legs": 0,
+            "wins": 3,
+            "losses": 3,
+            "avg_win": 20.0,
+            "avg_loss": 10.0,
+            "last_sell": "2026-09-08 12:00:00",
+        },
+    )
+    assert g["a_sleeve_bit"] == "A crypto-only · 12"
+    assert g["a_sleeve_warn"] is True
+    assert "A crypto-only · 12" in g["line"]
+
+
 def test_promote_ab_glance_target_met_without_stats() -> None:
     g = build_promote_ab_glance(
         {"promote_experiment_strategy": False},

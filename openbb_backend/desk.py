@@ -5215,6 +5215,8 @@ def build_calm_streak_glance(
         "window_a_sells": None,
         "window_a_target_sells": None,
         "window_a_sample_status": "",
+        "window_a_sleeve_bit": "",
+        "window_a_sleeve_warn": False,
         "window_a_fee_net_bit": "",
         "window_a_fee_mood_bit": "",
         "window_a_fee_drag": False,
@@ -5547,6 +5549,8 @@ def build_calm_streak_glance(
     window_a_sells: int | None = None
     window_a_target_sells: int | None = None
     window_a_sample_status = ""
+    window_a_sleeve_bit = ""
+    window_a_sleeve_warn = False
     window_a_fee_net_bit = ""
     window_a_fee_mood_bit = ""
     window_a_fee_drag = False
@@ -6100,6 +6104,20 @@ def build_calm_streak_glance(
             if status_bit:
                 window_a_sample_status = status_bit
                 status = f"{status} · {status_bit}"
+            # Sleeve before fee cascade — fill count alone hid BTC-churn
+            # control (A13 + portfolio AI + xang1234 market-pointer).
+            sleeve_raw = str(sample.get("sleeve_bit") or "").strip()
+            if sleeve_raw:
+                window_a_sleeve_bit = sleeve_raw
+                window_a_sleeve_warn = bool(sample.get("sleeve_warn"))
+                compact_sleeve = (
+                    sleeve_raw[2:].strip()
+                    if sleeve_raw.startswith("A ")
+                    else sleeve_raw
+                )
+                status = f"{status} · {compact_sleeve}"
+                if window_a_sleeve_warn:
+                    tone = "warn"
             if sample.get("known") and isinstance(stats, dict):
                 fee_net = format_window_stats_bit(
                     stats, include_fills=False
@@ -18047,6 +18065,8 @@ def build_calm_streak_glance(
         "window_a_sells": window_a_sells,
         "window_a_target_sells": window_a_target_sells,
         "window_a_sample_status": window_a_sample_status,
+        "window_a_sleeve_bit": window_a_sleeve_bit,
+        "window_a_sleeve_warn": window_a_sleeve_warn,
         "window_a_fee_net_bit": window_a_fee_net_bit,
         "window_a_fee_mood_bit": window_a_fee_mood_bit,
         "window_a_fee_drag": window_a_fee_drag,
@@ -19481,6 +19501,7 @@ def build_promote_ab_glance(
         format_window_a_fill_progress_bit,
         format_window_a_fresh_closes_bit,
         format_window_a_open_only_bit,
+        format_window_a_sleeve_bit,
         format_window_a_stale_closes_bit,
         format_window_a_thin_bit,
         format_window_a_thin_closes_bit,
@@ -19748,6 +19769,8 @@ def build_promote_ab_glance(
         "closes_net_profit_factor_thin": False,
         "closes_net_profit_factor_eats_edge": False,
         "a_fill_progress_bit": "",
+        "a_sleeve_bit": "",
+        "a_sleeve_warn": False,
         "a_thin_bit": "",
         "a_open_only_bit": "",
         "a_thin_closes_bit": "",
@@ -20494,6 +20517,8 @@ def build_promote_ab_glance(
     a_fill_progress_bit = (
         format_window_a_fill_progress_bit(sample) if window == "A" else ""
     )
+    a_sleeve_bit = format_window_a_sleeve_bit(sample) if window == "A" else ""
+    a_sleeve_warn = bool(sample.get("sleeve_warn")) if window == "A" else False
     a_thin_bit = format_window_a_thin_bit(sample) if window == "A" else ""
     a_open_only_bit = (
         format_window_a_open_only_bit(sample) if window == "A" else ""
@@ -20936,6 +20961,7 @@ def build_promote_ab_glance(
         return [
             b
             for b in (
+                a_sleeve_bit,
                 a_fee_status_bit,
                 a_closes_polarity_bit,
                 a_closes_win_rate_bit,
@@ -21031,9 +21057,10 @@ def build_promote_ab_glance(
         return " · ".join([*bits, base])
 
     def _honesty_warn() -> bool:
-        """Warn on fee drag / fees thin / all-loss / loss-lean / WR·Kelly·payoff·PF thin / neg Kelly / half-Kelly under sizer·slot·cap / quarter-Kelly under sizer·slot·cap / practical Kelly cut·none / Kelly sample thin / loss streak hot / loss streak max hot / loss streak mean hot / loss streak med hot / loss streak min hot / loss streak σ hot / loss streak CV hot / exit mix hot / tp share thin / sl share hot / rot share hot / trim share hot / euro offset hot / euro gap hot / euro conc hot / euro count skew hot / euro size hot / euro size n thin / euro size rest n thin / euro size sign loss / euro size rest sign loss / euro size sign clash lead-loss / euro size clash net loss / euro size clash keep thin / clash keep fees eat·thin / unknown exits / neg·thin expectancy / net expect / fee take / net PF / WR below BE / thin WR edge."""
+        """Warn on crypto sleeve / fee drag / fees thin / all-loss / loss-lean / WR·Kelly·payoff·PF thin / neg Kelly / half-Kelly under sizer·slot·cap / quarter-Kelly under sizer·slot·cap / practical Kelly cut·none / Kelly sample thin / loss streak hot / loss streak max hot / loss streak mean hot / loss streak med hot / loss streak min hot / loss streak σ hot / loss streak CV hot / exit mix hot / tp share thin / sl share hot / rot share hot / trim share hot / euro offset hot / euro gap hot / euro conc hot / euro count skew hot / euro size hot / euro size n thin / euro size rest n thin / euro size sign loss / euro size rest sign loss / euro size sign clash lead-loss / euro size clash net loss / euro size clash keep thin / clash keep fees eat·thin / unknown exits / neg·thin expectancy / net expect / fee take / net PF / WR below BE / thin WR edge."""
         return bool(
-            a_fee_drag_bit
+            a_sleeve_warn
+            or a_fee_drag_bit
             or fees_thin
             or closes_all_loss
             or closes_loss_lean
@@ -21630,6 +21657,8 @@ def build_promote_ab_glance(
     ]
     if a_fill_progress_bit:
         parts.append(a_fill_progress_bit)
+    if a_sleeve_bit:
+        parts.append(a_sleeve_bit)
     if stats_bit and protocol_ok:
         parts.append(stats_bit)
     parts.append(status)
@@ -22451,6 +22480,8 @@ def build_promote_ab_glance(
             closes_net_profit_factor_eats_edge if window == "A" else False
         ),
         "a_fill_progress_bit": a_fill_progress_bit,
+        "a_sleeve_bit": a_sleeve_bit,
+        "a_sleeve_warn": a_sleeve_warn,
         "a_thin_bit": a_thin_bit,
         "a_open_only_bit": a_open_only_bit,
         "a_thin_closes_bit": a_thin_closes_bit,

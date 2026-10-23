@@ -2373,6 +2373,11 @@ def window_a_sample_readiness(
         "open_only_bit": "",
         "thin_closes": False,
         "thin_closes_bit": "",
+        "crypto_legs": None,
+        "stock_legs": None,
+        "sleeve_severity": "",
+        "sleeve_bit": "",
+        "sleeve_warn": False,
         "stale_closes": False,
         "stale_closes_bit": "",
         "aging_closes": False,
@@ -2755,6 +2760,16 @@ def window_a_sample_readiness(
     thin_closes_bit = ""
     if thin_closes:
         thin_closes_bit = f"A thin closes · {sells} sells <{sell_need}"
+
+    # Crypto vs stock fill mix — summarize already counts legs; glance must
+    # speak them so a BTC-churn control is not read as equity promote edge
+    # (A13 fee-model gap + portfolio AI + xang1234 market-pointer).
+    sleeve = window_a_sleeve_mix(stats)
+    crypto_legs = sleeve.get("crypto_legs")
+    stock_legs = sleeve.get("stock_legs")
+    sleeve_severity = str(sleeve.get("severity") or "")
+    sleeve_bit = str(sleeve.get("bit") or "")
+    sleeve_warn = bool(sleeve.get("warn"))
 
     last_sell_raw = stats.get("last_sell")
     last_sell_dt = parse_trade_timestamp(last_sell_raw)
@@ -5100,6 +5115,11 @@ def window_a_sample_readiness(
         "open_only_bit": open_only_bit,
         "thin_closes": thin_closes,
         "thin_closes_bit": thin_closes_bit,
+        "crypto_legs": crypto_legs,
+        "stock_legs": stock_legs,
+        "sleeve_severity": sleeve_severity,
+        "sleeve_bit": sleeve_bit,
+        "sleeve_warn": sleeve_warn,
         "stale_closes": stale_closes,
         "stale_closes_bit": stale_closes_bit,
         "aging_closes": aging_closes,
@@ -5675,6 +5695,84 @@ def window_a_sample_readiness(
         "last_sell": last_sell_dt.isoformat() if last_sell_dt else None,
     }
 
+
+
+def window_a_sleeve_mix(stats: dict[str, Any] | None) -> dict[str, Any]:
+    """Crypto vs stock fill mix for Window A (display / ops honesty).
+
+    ``summarize_window_trades`` already counts ``crypto_legs`` / ``stock_legs``;
+    the glance never spoke them — a crypto-churn control ledger is not an
+    equity promote sample (A13 fee-model gaps + portfolio AI speak-both-sides
+    + xang1234 market-pointer). Missing keys → silent fail-open. Warn on
+    ``crypto-only`` / ``crypto-heavy`` only (does not block ready for B).
+    Not a gate.
+    """
+    empty: dict[str, Any] = {
+        "crypto_legs": None,
+        "stock_legs": None,
+        "severity": "",
+        "bit": "",
+        "meter_bit": "",
+        "warn": False,
+    }
+    if not isinstance(stats, dict):
+        return empty
+    if "crypto_legs" not in stats and "stock_legs" not in stats:
+        return empty
+    try:
+        crypto_n = int(stats.get("crypto_legs") or 0)
+        stock_n = int(stats.get("stock_legs") or 0)
+    except (TypeError, ValueError):
+        return empty
+    if crypto_n < 0 or stock_n < 0:
+        return empty
+    total = crypto_n + stock_n
+    if total <= 0:
+        return empty
+    if stock_n == 0:
+        severity = "crypto_only"
+        bit = f"A crypto-only · {crypto_n}"
+        meter = f"crypto-only · {crypto_n}"
+        warn = True
+    elif crypto_n == 0:
+        severity = "stock_only"
+        bit = f"A stock-only · {stock_n}"
+        meter = f"stock-only · {stock_n}"
+        warn = False
+    elif crypto_n > stock_n:
+        severity = "crypto_heavy"
+        bit = f"A crypto-heavy · {crypto_n}/{stock_n}"
+        meter = f"crypto-heavy · {crypto_n}/{stock_n}"
+        warn = True
+    elif stock_n > crypto_n:
+        severity = "stock_heavy"
+        bit = f"A stock-heavy · {stock_n}/{crypto_n}"
+        meter = f"stock-heavy · {stock_n}/{crypto_n}"
+        warn = False
+    else:
+        severity = "mixed"
+        bit = f"A mixed · {crypto_n}/{stock_n}"
+        meter = f"mixed · {crypto_n}/{stock_n}"
+        warn = False
+    return {
+        "crypto_legs": crypto_n,
+        "stock_legs": stock_n,
+        "severity": severity,
+        "bit": bit,
+        "meter_bit": meter,
+        "warn": warn,
+    }
+
+
+def format_window_a_sleeve_bit(sample: dict[str, Any] | None) -> str:
+    """Short Window A crypto/stock sleeve bit for promote A/B glance."""
+    if not isinstance(sample, dict):
+        return ""
+    bit = str(sample.get("sleeve_bit") or "").strip()
+    if bit:
+        return bit
+    # Rebuild from raw legs when sample predates sleeve fields.
+    return str(window_a_sleeve_mix(sample).get("bit") or "").strip()
 
 
 def format_window_a_thin_bit(sample: dict[str, Any] | None) -> str:
@@ -6723,7 +6821,9 @@ def format_window_a_fill_progress_bit(sample: dict[str, Any] | None) -> str:
     Days alone mislead — show fill progress while Window A is still running.
     When buy/sell sides are known, append close-floor ``N/M sells`` (not
     ``Nb/Ns`` — sell progress toward the floor is the honest dual meter).
-    Unknown stats → empty (keep summarize). Display only; not a gate.
+    Crypto/stock sleeve mix speaks separately (``format_window_a_sleeve_bit``)
+    so fill meters stay stable. Unknown stats → empty (keep summarize).
+    Display only; not a gate.
     """
     if not isinstance(sample, dict) or not sample.get("known"):
         return ""
