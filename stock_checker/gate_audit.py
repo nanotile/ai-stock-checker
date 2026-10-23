@@ -712,6 +712,51 @@ def soft_allow_short_history_last_lead_vs_ring(
     return f"clash · lead {lead_verb} · ring {ring_verb}", True
 
 
+def soft_allow_short_history_last_share_vs_ring(
+    events: list[dict[str, Any]] | None,
+    *,
+    now: datetime | None = None,
+) -> tuple[str, bool]:
+    """Last/share vs last/ring relationship agreement (display only).
+
+    Returns ``(bit, warn)``. Age↔short÷(short+gap) ≠ age↔short÷ring.
+    When both already spoke: same verb speaks
+    ``align · both align|clash`` — ``both align`` stays calm; ``both
+    clash`` warns (dual-clash agreement ≠ quiet confirm). Crossed verbs
+    speak ``clash · share align|clash · ring align|clash`` (warn).
+    Missing either stays silent — gap lead/share-style meta on pair vs
+    ring after last/share + last/ring; pair ``short share/lean`` and
+    ``short ring/lean`` stay on lean edges and are not transitive with
+    this edge. FinRobot last-row age + portfolio AI speak-both-sides +
+    RyanJHamby severity + xang1234 #668. Side-by-side last/share +
+    last/ring alone hid whether pair ownership heat and ring ownership
+    heat agree. Closes share↔ring↔lean with share/lean + ring/lean and
+    lead↔share↔ring with lead/share + lead/ring. Short-vs-other lean
+    still deferred. Not a gate.
+    """
+    share_bit, _ = soft_allow_short_history_last_vs_share(events, now=now)
+    ring_bit, _ = soft_allow_short_history_last_vs_ring_share(
+        events, now=now
+    )
+    if not share_bit or not ring_bit:
+        return "", False
+
+    def _verb(bit: str) -> str | None:
+        if bit.startswith("align · "):
+            return "align"
+        if bit.startswith("clash · "):
+            return "clash"
+        return None
+
+    share_verb = _verb(share_bit)
+    ring_verb = _verb(ring_bit)
+    if share_verb is None or ring_verb is None:
+        return "", False
+    if share_verb == ring_verb:
+        return f"align · both {share_verb}", share_verb == "clash"
+    return f"clash · share {share_verb} · ring {ring_verb}", True
+
+
 def soft_allow_short_history_last_share_vs_lean(
     events: list[dict[str, Any]] | None,
     *,
@@ -1167,16 +1212,19 @@ def format_soft_allow_short_history_bit(
     freshness extremes + ring share lean already spoke, ``short
     last/ring align|clash`` follows so age labels + ring heat alone
     cannot hide age≠ring (gap last/share on short÷ring; pair last/share
-    stays silent when no gap). When last/lead + last/ring already spoke,
+    stays silent when no gap).     When last/lead + last/ring already spoke,
     ``short lead/ring align|clash`` follows so cursor-vs-owner and ring
     heat cannot hide non-agreement or dual-clash (gap lead/share on
     short÷ring; pair lead/share stays on short÷(short+gap)). When
-    last/ring + last/lean already spoke, ``short ring/lean align|clash``
-    follows so the two age relationships cannot hide non-agreement or
-    dual-clash (gap share/lean on short÷ring; pair share/lean stays on
-    short÷(short+gap)). Closes lead↔ring↔lean with lead/lean +
-    ring/lean. Short-vs-other lean still deferred. Display only; not a
-    gate.
+    last/share + last/ring already spoke, ``short share/ring
+    align|clash`` follows so pair ownership heat and ring heat cannot
+    hide non-agreement or dual-clash (closes share↔ring↔lean with
+    share/lean + ring/lean and lead↔share↔ring with lead/share +
+    lead/ring). When last/ring + last/lean already spoke, ``short
+    ring/lean align|clash`` follows so the two age relationships cannot
+    hide non-agreement or dual-clash (gap share/lean on short÷ring;
+    pair share/lean stays on short÷(short+gap)). Short-vs-other lean
+    still deferred. Display only; not a gate.
     """
     n, ring_share, ring_sev = soft_allow_short_history_share(events)
     if n <= 0 or ring_share is None:
@@ -1299,6 +1347,11 @@ def format_soft_allow_short_history_bit(
             )
             if lead_vs_share:
                 head = f"{head} · short lead/share {lead_vs_share}"
+            share_vs_ring, _ = soft_allow_short_history_last_share_vs_ring(
+                events, now=now
+            )
+            if share_vs_ring:
+                head = f"{head} · short share/ring {share_vs_ring}"
         lean, _ = soft_allow_short_vs_gap_lean(events)
         if lean:
             head = f"{head} · short vs gap {lean}"

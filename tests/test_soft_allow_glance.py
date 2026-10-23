@@ -909,6 +909,8 @@ def test_soft_allow_glance_short_history_count() -> None:
     assert g["short_history_last_share_vs_lean_warn"] is False
     assert g["short_history_last_vs_ring_share"] == "align · fresh · hot"
     assert g["short_history_last_vs_ring_share_warn"] is False
+    assert g["short_history_last_share_vs_ring"] == "align · both align"
+    assert g["short_history_last_share_vs_ring_warn"] is False
     assert g["short_history_last_ring_vs_lean"] == "align · both align"
     assert g["short_history_last_ring_vs_lean_warn"] is False
     assert g["short_history_bit"] == (
@@ -916,6 +918,7 @@ def test_soft_allow_glance_short_history_count() -> None:
         "short last/ring align · fresh · hot · "
         "vs gap · thin · 1 · 33% · "
         "short last/share align · fresh · hot · "
+        "short share/ring align · both align · "
         "short vs gap align · hot|thin · "
         "short last/lean align · fresh · hot|thin · "
         "short share/lean align · both align · "
@@ -923,6 +926,7 @@ def test_soft_allow_glance_short_history_count() -> None:
     )
     assert "vs gap · thin · 1 · 33%" in g["line"]
     assert "short last/share align · fresh · hot" in g["line"]
+    assert "short share/ring align · both align" in g["line"]
     assert "short vs gap align · hot|thin" in g["line"]
     assert "short last/lean align · fresh · hot|thin" in g["line"]
     assert "short share/lean align · both align" in g["line"]
@@ -943,6 +947,7 @@ def test_soft_allow_glance_short_history_count() -> None:
     assert "tied" in g["soft_lean"]
     assert "vs gap · thin · 1 · 33%" in g["soft_lean"]
     assert "short last/share align · fresh · hot" in g["soft_lean"]
+    assert "short share/ring align · both align" in g["soft_lean"]
     assert "short vs gap align · hot|thin" in g["soft_lean"]
     assert "short last/lean align · fresh · hot|thin" in g["soft_lean"]
     assert "short share/lean align · both align" in g["soft_lean"]
@@ -968,24 +973,26 @@ def test_soft_allow_glance_short_history_count() -> None:
         "short last/ring align · fresh · hot · "
         "vs gap · thin · 1 · 33% · "
         "short last/share align · fresh · hot · "
+        "short share/ring align · both align · "
         "short vs gap align · hot|thin · 1 gap · last AAPL · fresh"
     ) == (
-        "quiet · 7 folds · short IPO fresh · tied hot 66.7% · "
-        "short last/ring align fresh hot · vs gap thin 1 33% · +3"
+        "quiet · 8 folds · short IPO fresh · tied hot 66.7% · "
+        "short last/ring align fresh hot · vs gap thin 1 33% · +4"
     )
     assert soft_allow_lean_meta(
         "2 short · last IPO · fresh · tied · hot · 66.7% · "
         "short last/ring align · fresh · hot · "
         "vs gap · thin · 1 · 33% · "
         "short last/share align · fresh · hot · "
+        "short share/ring align · both align · "
         "short vs gap align · hot|thin · "
         "short last/lean align · fresh · hot|thin · "
         "short share/lean align · both align · "
         "short ring/lean align · both align · "
         "1 gap · last AAPL · fresh"
     ) == (
-        "quiet · 10 folds · short IPO fresh · tied hot 66.7% · "
-        "short last/ring align fresh hot · vs gap thin 1 33% · +6"
+        "quiet · 11 folds · short IPO fresh · tied hot 66.7% · "
+        "short last/ring align fresh hot · vs gap thin 1 33% · +7"
     )
     assert soft_allow_lean_meta("3 short · 2 bench · last SPY · fresh") == (
         "quiet · 1 fold · short 2 bench SPY fresh"
@@ -1032,11 +1039,14 @@ def test_soft_allow_glance_short_history_bench_count() -> None:
     assert g["short_history_share_severity"] == "hot"
     assert g["short_history_last_vs_ring_share"] == "align · fresh · hot"
     assert g["short_history_last_vs_ring_share_warn"] is False
+    assert g["short_history_last_share_vs_ring"] == "align · both align"
+    assert g["short_history_last_share_vs_ring_warn"] is False
     assert g["short_history_bit"] == (
         "2 short · 1 bench · last SPY · fresh · tied · hot · 66.7% · "
         "short last/ring align · fresh · hot · "
         "vs gap · thin · "
         "1 · 33% · short last/share align · fresh · hot · "
+        "short share/ring align · both align · "
         "short vs gap align · hot|thin · "
         "short last/lean align · fresh · hot|thin · "
         "short share/lean align · both align · "
@@ -1560,10 +1570,14 @@ def test_soft_allow_glance_short_history_last_vs_lean_clash() -> None:
     assert g["short_history_last_ring_vs_lean"] == "align · both clash"
     assert g["short_history_last_ring_vs_lean_warn"] is True
     assert "short last/share clash · expired · hot" in g["short_history_bit"]
+    assert "short share/ring align · both clash" in g["short_history_bit"]
     assert "short last/lean clash · expired · hot|thin" in g["short_history_bit"]
     assert "short share/lean align · both clash" in g["short_history_bit"]
     assert "short ring/lean align · both clash" in g["short_history_bit"]
+    assert g["short_history_last_share_vs_ring"] == "align · both clash"
+    assert g["short_history_last_share_vs_ring_warn"] is True
     assert "short last/lean clash · expired · hot|thin" in g["line"]
+    assert "short share/ring align · both clash" in g["line"]
     assert "short share/lean align · both clash" in g["line"]
     assert "short ring/lean align · both clash" in g["line"]
     assert g["tone"] == "warn"
@@ -1650,6 +1664,9 @@ def test_soft_allow_glance_short_history_symbol_lead() -> None:
     # last/share + last/lean both align → share/lean both align (gap share/lean).
     assert g["short_history_last_share_vs_lean"] == "align · both align"
     assert g["short_history_last_share_vs_lean_warn"] is False
+    # last/share + last/ring both align → share/ring both align.
+    assert g["short_history_last_share_vs_ring"] == "align · both align"
+    assert g["short_history_last_share_vs_ring_warn"] is False
     # last/ring + last/lean both align → ring/lean both align (gap share/lean on ring).
     assert g["short_history_last_ring_vs_lean"] == "align · both align"
     assert g["short_history_last_ring_vs_lean_warn"] is False
@@ -1665,6 +1682,7 @@ def test_soft_allow_glance_short_history_symbol_lead() -> None:
         "short lead/ring clash · lead clash · ring align · "
         "vs gap · thin · 1 · 25% · short last/share align · fresh · hot · "
         "short lead/share clash · lead clash · share align · "
+        "short share/ring align · both align · "
         "short vs gap align · hot|thin · "
         "short last/lean align · fresh · hot|thin · "
         "short lead/lean clash · lead clash · lean align · "
@@ -1679,6 +1697,8 @@ def test_soft_allow_glance_short_history_symbol_lead() -> None:
     assert "short lead/ring clash · lead clash · ring align" in g["soft_lean"]
     assert "short lead/share clash · lead clash · share align" in g["line"]
     assert "short lead/share clash · lead clash · share align" in g["soft_lean"]
+    assert "short share/ring align · both align" in g["line"]
+    assert "short share/ring align · both align" in g["soft_lean"]
     assert "short lead/lean clash · lead clash · lean align" in g["line"]
     assert "short lead/lean clash · lead clash · lean align" in g["soft_lean"]
     assert "short share/lean align · both align" in g["line"]
@@ -1693,9 +1713,10 @@ def test_soft_allow_glance_short_history_symbol_lead() -> None:
     assert "short vs gap align · hot|thin" in g["line"]
     assert "short NEW fresh" in g["soft_lean_meta"]
     assert "lead IPO" in g["soft_lean_meta"]
-    # short lead/ring + lead/share + lead/lean are in soft_lean; 4-name meta may spill.
+    # short lead/ring + lead/share + share/ring + lead/lean are in soft_lean; 4-name meta may spill.
     assert "short lead/ring" in g["soft_lean"]
     assert "short lead/share" in g["soft_lean"]
+    assert "short share/ring" in g["soft_lean"]
     assert "short lead/lean" in g["soft_lean"]
     assert "short share/lean" in g["soft_lean"]
     assert "short ring/lean" in g["soft_lean"]
