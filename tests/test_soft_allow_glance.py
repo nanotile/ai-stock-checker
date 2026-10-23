@@ -1023,6 +1023,21 @@ def test_soft_allow_glance_short_history_count() -> None:
     )
     assert soft_allow_lean_meta(
         "3 short · 2 bench · hot · 66.7% · vs 1 young · thin · 33.3% · "
+        "short bench vs young align · hot|thin · "
+        "short bench Δ wide · +33.4pp · short bench lean/Δ align · wide · "
+        "last SPY · fresh"
+    ) == (
+        "quiet · 1 fold · short 2 bench hot 66.7% vs 1 young thin 33.3% "
+        "align hot|thin wide +33.4pp align wide SPY fresh"
+    )
+    assert soft_allow_lean_meta(
+        "short bench Δ wide · +33.4pp · short bench lean/Δ align · wide"
+    ) == (
+        "quiet · 2 folds · short bench Δ wide +33.4pp · "
+        "short bench lean/Δ align wide"
+    )
+    assert soft_allow_lean_meta(
+        "3 short · 2 bench · hot · 66.7% · vs 1 young · thin · 33.3% · "
         "short bench vs young align · hot|thin · last SPY · fresh · "
         "short last/bench align · fresh · hot|thin"
     ) == (
@@ -1086,6 +1101,13 @@ def test_soft_allow_glance_short_history_bench_count() -> None:
     # One-lean clash (bench hot · young mid) — gap vs other parity.
     assert g["short_history_bench_vs_young"] == "clash · bench hot · young ok"
     assert g["short_history_bench_vs_young_warn"] is True
+    # 50/50 → mid/0pp silent on Δ bit; lean-spoke → clash · lean · Δ mid.
+    assert g["short_history_bench_vs_young_delta_pp"] is None
+    assert g["short_history_bench_vs_young_delta_severity"] == ""
+    assert g["short_history_bench_vs_young_lean_vs_delta"] == (
+        "clash · lean · Δ mid"
+    )
+    assert g["short_history_bench_vs_young_lean_vs_delta_warn"] is True
     assert g["short_history_last"] == "SPY"
     assert g["short_history_last_freshness"] == "fresh"
     # Fresh + clash lean → last/bench clash (gap last/lean parity).
@@ -1128,6 +1150,7 @@ def test_soft_allow_glance_short_history_bench_count() -> None:
     assert g["short_history_bit"] == (
         "2 short · 1 bench · hot · 50% · vs 1 young · 50% · "
         "short bench vs young clash · bench hot · young ok · "
+        "short bench lean/Δ clash · lean · Δ mid · "
         "last SPY · fresh · "
         "short last/bench clash · fresh · bench hot · young ok · "
         "tied · hot · 66.7% · "

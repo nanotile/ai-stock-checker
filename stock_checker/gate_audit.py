@@ -311,6 +311,70 @@ def soft_allow_short_history_bench_vs_young_lean(
     return "", False
 
 
+def soft_allow_short_history_bench_vs_young_delta(
+    events: list[dict[str, Any]] | None,
+) -> tuple[float | None, str]:
+    """Bench%−young% ownership spread when lean already spoke.
+
+    Returns ``(delta_pp, severity)``. Silent when bench vs young lean did
+    not speak. Wide ≥``SOFT_ALLOW_LEAD_SHARE_DELTA_WIDE_PP`` · thin
+    <``SOFT_ALLOW_LEAD_SHARE_DELTA_THIN_PP`` · mid stays silent on the Δ
+    bit (short vs gap / Screener junk vs ok share Δ parity). Lean labels
+    alone hid how far primary-bench vs young/short ownership sits
+    (portfolio AI count≠share + xang1234 after #679 bench vs young lean).
+    Display only; not a gate.
+    """
+    lean, _ = soft_allow_short_history_bench_vs_young_lean(events)
+    bench_n, bench_share, _bench_sev = soft_allow_short_history_bench_share(
+        events
+    )
+    young_n, young_share, _young_sev = soft_allow_short_history_bench_vs_young(
+        events
+    )
+    if (
+        not lean
+        or bench_n <= 0
+        or bench_share is None
+        or young_share is None
+    ):
+        return None, ""
+    delta_pp = round(float(bench_share) - float(young_share), 1)
+    mag = abs(delta_pp)
+    if mag < 1e-9:
+        return None, ""
+    if mag >= SOFT_ALLOW_LEAD_SHARE_DELTA_WIDE_PP:
+        return delta_pp, "wide"
+    if mag < SOFT_ALLOW_LEAD_SHARE_DELTA_THIN_PP:
+        return delta_pp, "thin"
+    return None, ""
+
+
+def soft_allow_short_history_bench_vs_young_lean_vs_delta(
+    events: list[dict[str, Any]] | None,
+) -> tuple[str, bool]:
+    """Bench vs young lean vs ownership-Δ lean (display only).
+
+    Returns ``(bit, warn)``. When lean already spoke: Δ wide|thin speaks
+    ``align · wide|thin``; Δ mid (lean spoke, spread silent) speaks
+    ``clash · lean · Δ mid`` (warn). Adverse dual-wide confirm
+    (``align · hot|thin`` + Δ wide) warns — short vs gap lean vs Δ /
+    Screener junk vs ok lean vs Δ parity; favorable quiet|strong stays
+    calm. Lean alone hid whether ownership distance agrees with the lean
+    label (portfolio AI + xang1234 after #679 bench vs young lean). Not a
+    gate.
+    """
+    lean, _ = soft_allow_short_history_bench_vs_young_lean(events)
+    if not lean:
+        return "", False
+    delta_pp, delta_sev = soft_allow_short_history_bench_vs_young_delta(
+        events
+    )
+    if delta_sev:
+        warn = delta_sev == "wide" and lean.startswith("align · hot|thin")
+        return f"align · {delta_sev}", warn
+    return "clash · lean · Δ mid", True
+
+
 def soft_allow_short_history_last_vs_bench_young(
     events: list[dict[str, Any]] | None,
     *,
@@ -1546,7 +1610,12 @@ def format_soft_allow_short_history_bit(
     alone cannot hide usable young/short fail-opens (gap vs other /
     Screener junk vs ok sides); when both severities lean, ``short bench
     vs young align|clash`` follows so sides alone cannot hide lean
-    agreement. ``last SYM``
+    agreement; when lean already spoke, ``short bench Δ wide|thin ·
+    ±Npp`` then ``short bench lean/Δ align|clash`` follow so lean labels
+    alone cannot hide how far bench÷short sits vs young÷short (short vs
+    gap / Screener junk vs ok share Δ + lean vs Δ parity; mid Δ silent
+    on the Δ bit; lean-spoke + mid → clash · lean · Δ mid; Δ lead nest
+    deferred). ``last SYM``
     follows so lean cannot clip the cursor (#546).     Cursor age
     (``fresh`` / ``aging`` / ``expired``) follows the name so a live
     ticker ≠ a live fail-open (gap last-freshness parity + RyanJHamby +
@@ -1674,6 +1743,29 @@ def format_soft_allow_short_history_bit(
             )
             if young_lean:
                 head = f"{head} · short bench vs young {young_lean}"
+                # Lean alone hid how far bench÷short sits vs young÷short
+                # (short vs gap / Screener junk vs ok share Δ parity).
+                delta_pp, delta_sev = (
+                    soft_allow_short_history_bench_vs_young_delta(events)
+                )
+                if delta_sev and delta_pp is not None:
+                    sign = (
+                        f"+{delta_pp:g}"
+                        if delta_pp > 0
+                        else f"{delta_pp:g}"
+                    )
+                    head = (
+                        f"{head} · short bench Δ {delta_sev} · {sign}pp"
+                    )
+                lean_vs_delta, _ = (
+                    soft_allow_short_history_bench_vs_young_lean_vs_delta(
+                        events
+                    )
+                )
+                if lean_vs_delta:
+                    head = (
+                        f"{head} · short bench lean/Δ {lean_vs_delta}"
+                    )
     last = soft_allow_short_history_last_symbol(events)
     if last:
         head = f"{head} · last {last}"

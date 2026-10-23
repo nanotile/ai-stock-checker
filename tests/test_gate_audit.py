@@ -51,7 +51,9 @@ def test_soft_allow_short_history_count() -> None:
         soft_allow_short_history_bench_count,
         soft_allow_short_history_bench_share,
         soft_allow_short_history_bench_vs_young,
+        soft_allow_short_history_bench_vs_young_delta,
         soft_allow_short_history_bench_vs_young_lean,
+        soft_allow_short_history_bench_vs_young_lean_vs_delta,
         soft_allow_short_history_count,
         soft_allow_short_history_last_freshness,
         soft_allow_short_history_last_vs_bench_young,
@@ -99,6 +101,16 @@ def test_soft_allow_short_history_count() -> None:
     assert soft_allow_short_history_bench_vs_young([]) == (0, None, "")
     assert soft_allow_short_history_bench_vs_young_lean(None) == ("", False)
     assert soft_allow_short_history_bench_vs_young_lean([]) == ("", False)
+    assert soft_allow_short_history_bench_vs_young_delta(None) == (None, "")
+    assert soft_allow_short_history_bench_vs_young_delta([]) == (None, "")
+    assert soft_allow_short_history_bench_vs_young_lean_vs_delta(None) == (
+        "",
+        False,
+    )
+    assert soft_allow_short_history_bench_vs_young_lean_vs_delta([]) == (
+        "",
+        False,
+    )
     assert soft_allow_short_history_last_vs_bench_young(None) == ("", False)
     assert soft_allow_short_history_last_vs_bench_young([]) == ("", False)
     assert soft_allow_short_history_last_lead_vs_bench_young(None) == (
@@ -360,6 +372,17 @@ def test_soft_allow_short_history_count() -> None:
         "align · hot|thin",
         False,
     )
+    # Lean alone hid how far bench÷short sits (66.7−33.3=+33.4pp wide).
+    assert soft_allow_short_history_bench_vs_young_delta(bench_rows) == (
+        33.4,
+        "wide",
+    )
+    assert soft_allow_short_history_bench_vs_young_lean_vs_delta(
+        bench_rows
+    ) == (
+        "align · wide",
+        True,  # adverse hot|thin + wide
+    )
     # No stamp → last/bench silent (fresh|expired extremes only).
     assert soft_allow_short_history_last_vs_bench_young(bench_rows) == (
         "",
@@ -369,7 +392,9 @@ def test_soft_allow_short_history_count() -> None:
     assert soft_allow_short_history_share(bench_rows) == (3, 75.0, "hot")
     assert format_soft_allow_short_history_bit(bench_rows) == (
         "3 short · 2 bench · hot · 66.7% · vs 1 young · thin · 33.3% · "
-        "short bench vs young align · hot|thin · last SPY · tied · "
+        "short bench vs young align · hot|thin · "
+        "short bench Δ wide · +33.4pp · short bench lean/Δ align · wide · "
+        "last SPY · tied · "
         "hot · 75% · vs gap · thin · 1 · 25% · short vs gap align · hot|thin · "
         "short Δ wide · +50pp · short lean/Δ align · wide · short Δ lead · short"
     )
