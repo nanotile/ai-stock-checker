@@ -201,7 +201,8 @@ def soft_allow_short_history_bench_count(
     listing. xang1234 #679 refuses a warm that stops before the last
     completed session — desk should speak how many short-series
     fail-opens are the primary benchmark (stale/thin SPY or BTC), not
-    an IPO. Zero silent. Display only; not a gate.
+    an IPO. Zero silent. Share via
+    ``soft_allow_short_history_bench_share``. Display only; not a gate.
     """
     n = 0
     for row in events or []:
@@ -211,6 +212,34 @@ def soft_allow_short_history_bench_count(
         if sym and is_primary_rs_bench_label(sym):
             n += 1
     return n
+
+
+def soft_allow_short_history_bench_share(
+    events: list[dict[str, Any]] | None,
+) -> tuple[int, float | None, str]:
+    """Primary-bench short count + share of short rows + severity.
+
+    Returns ``(bench_n, share_pct, severity)``. Zero bench →
+    ``(0, None, "")``. Share is bench÷short (not bench÷ring); hot ≥50% ·
+    quiet ≤25% · mid ``ok``. Absolute ``N bench`` hid whether thin
+    SPY/BTC owns the young/short fail-open sleeve (RyanJHamby
+    fundamentals-cache / daily-scan chore adapted as primary-bench
+    ownership + xang1234 #679 + portfolio AI count≠share after #668
+    ``N bench``). Short÷ring and short÷(short+gap) stay separate bits.
+    Display only; not a gate.
+    """
+    short_n = soft_allow_short_history_count(events)
+    bench_n = soft_allow_short_history_bench_count(events)
+    if bench_n <= 0 or short_n <= 0:
+        return 0, None, ""
+    share = round(100.0 * bench_n / short_n, 1)
+    if share >= SOFT_ALLOW_ANCHOR_GAP_SHARE_HOT:
+        severity = "hot"
+    elif share <= SOFT_ALLOW_ANCHOR_GAP_SHARE_QUIET:
+        severity = "quiet"
+    else:
+        severity = "ok"
+    return bench_n, share, severity
 
 
 def _short_history_symbol_counts(
@@ -1149,10 +1178,12 @@ def format_soft_allow_short_history_bit(
     keep_gap_pin_size: str = "",
     keep_soft_pin_size: str = "",
 ) -> str:
-    """Compact ``N short · N bench · last SYM · fresh|… · clash · short… · lead|… · vs gap``.
+    """Compact ``N short · N bench · hot|quiet · P% · last SYM · … · vs gap``.
 
     Zero silent. When any short row names a primary RS benchmark
-    (SPY/BTC), ``N bench`` sits right after the count so young-listing
+    (SPY/BTC), ``N bench · [hot|quiet ·] P%`` sits right after the count
+    so absolute bench ≠ bench÷short (RyanJHamby cache + #679 + portfolio
+    AI count≠share) and young-listing
     short ≠ a stale/thin primary (xang1234 #679 after #668). ``last SYM``
     follows so lean cannot clip the cursor (#546).     Cursor age
     (``fresh`` / ``aging`` / ``expired``) follows the name so a live
@@ -1230,9 +1261,18 @@ def format_soft_allow_short_history_bit(
     if n <= 0 or ring_share is None:
         return ""
     head = f"{n} short"
-    bench_n = soft_allow_short_history_bench_count(events)
-    if bench_n > 0:
-        head = f"{head} · {bench_n} bench"
+    bench_n, bench_share, bench_sev = soft_allow_short_history_bench_share(
+        events
+    )
+    if bench_n > 0 and bench_share is not None:
+        # Absolute ``N bench`` ≠ bench÷short (RyanJHamby cache chore +
+        # #679 + portfolio AI count≠share after bare primary-bench count).
+        if bench_sev in {"hot", "quiet"}:
+            head = (
+                f"{head} · {bench_n} bench · {bench_sev} · {bench_share:g}%"
+            )
+        else:
+            head = f"{head} · {bench_n} bench · {bench_share:g}%"
     last = soft_allow_short_history_last_symbol(events)
     if last:
         head = f"{head} · last {last}"

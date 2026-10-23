@@ -2203,8 +2203,10 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
     # Young / short-series fail-opens (xang1234 #668) sit before gap so
     # ``N short · N gap`` does not leave the lean chip bare ``quiet`` —
     # absolute short count already spoke; the fold must name it. Primary
-    # bench short (``N bench``) rides before the cursor so SPY/BTC thin
-    # history is not clipped as a young listing (xang1234 #679). Cursor
+    # bench short (``N bench · [hot|quiet ·] P%``) rides before the
+    # cursor so SPY/BTC thin history is not clipped as a young listing
+    # and absolute bench ≠ bench÷short (xang1234 #679 + RyanJHamby
+    # fundamentals-cache chore + portfolio AI count≠share). Cursor
     # ticker + age ride with the count (#546 after #668 + gap
     # last-freshness parity) so ``N short`` does not hide who last
     # failed open or whether that print is still live. Ring share rides
@@ -2212,7 +2214,8 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
     # lean still deferred.
     (
         re.compile(
-            r"^\d+ short(?: · (\d+ bench))?"
+            r"^\d+ short(?: · (\d+ bench)"
+            r"(?: · (hot|quiet))?(?: · (\d+(?:\.\d+)?%))?)?"
             r"(?: · last ([A-Za-z0-9][A-Za-z0-9.\-]{0,14}))?"
             r"(?: · (fresh|aging|expired))?"
             # Ring share when lead/n=1/ahead did not eat it (sole count
@@ -2806,7 +2809,7 @@ def build_soft_allow_glance(
         soft_allow_anchor_gap_vs_cash_clock_clash,
         soft_allow_anchor_gap_vs_memory_clock_clash,
         soft_allow_anchor_gap_vs_scan_clash,
-        soft_allow_short_history_bench_count,
+        soft_allow_short_history_bench_share,
         soft_allow_short_history_share,
         soft_allow_short_history_last_freshness,
         soft_allow_short_history_last_symbol,
@@ -2894,6 +2897,8 @@ def build_soft_allow_glance(
         "sample_gap": "",
         "short_history_count": 0,
         "short_history_bench_count": 0,
+        "short_history_bench_share_pct": None,
+        "short_history_bench_share_severity": "",
         "short_history_share_pct": None,
         "short_history_share_severity": "",
         "short_history_last": "",
@@ -3237,7 +3242,11 @@ def build_soft_allow_glance(
     short_history_n, short_history_share_pct, short_history_share_severity = (
         soft_allow_short_history_share(rows)
     )
-    short_history_bench_n = soft_allow_short_history_bench_count(rows)
+    (
+        short_history_bench_n,
+        short_history_bench_share_pct,
+        short_history_bench_share_severity,
+    ) = soft_allow_short_history_bench_share(rows)
     short_history_last = soft_allow_short_history_last_symbol(rows)
     short_history_last_freshness = soft_allow_short_history_last_freshness(
         rows, now=now
@@ -3924,6 +3933,7 @@ def build_soft_allow_glance(
         or anchor_gap_vs_cash_clock_clash_warn
         or anchor_gap_vs_memory_clock_clash_warn
         or short_history_bench_n > 0
+        or short_history_bench_share_severity == "hot"
         or short_history_share_severity == "hot"
         or short_history_last_freshness == "expired"
         or short_history_vs_scan_clash_warn
@@ -4138,6 +4148,7 @@ def build_soft_allow_glance(
         or short_history_last_share_vs_lean_warn
         or short_history_last_ring_vs_lean_warn
         or short_history_bench_n > 0
+        or short_history_bench_share_severity == "hot"
         or short_history_share_severity == "hot"
         or short_history_last_freshness == "expired"
     )
@@ -4196,6 +4207,8 @@ def build_soft_allow_glance(
         "sample_gap": sample_gap,
         "short_history_count": short_history_n,
         "short_history_bench_count": short_history_bench_n,
+        "short_history_bench_share_pct": short_history_bench_share_pct,
+        "short_history_bench_share_severity": short_history_bench_share_severity,
         "short_history_share_pct": short_history_share_pct,
         "short_history_share_severity": short_history_share_severity,
         "short_history_last": short_history_last,

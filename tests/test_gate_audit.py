@@ -49,6 +49,7 @@ def test_soft_allow_short_history_count() -> None:
     from stock_checker.gate_audit import (
         format_soft_allow_short_history_bit,
         soft_allow_short_history_bench_count,
+        soft_allow_short_history_bench_share,
         soft_allow_short_history_count,
         soft_allow_short_history_last_freshness,
         soft_allow_short_history_last_symbol,
@@ -82,6 +83,8 @@ def test_soft_allow_short_history_count() -> None:
     assert soft_allow_short_history_count([]) == 0
     assert soft_allow_short_history_bench_count(None) == 0
     assert soft_allow_short_history_bench_count([]) == 0
+    assert soft_allow_short_history_bench_share(None) == (0, None, "")
+    assert soft_allow_short_history_bench_share([]) == (0, None, "")
     assert soft_allow_short_history_last_symbol(None) == ""
     assert soft_allow_short_history_last_symbol([]) == ""
     assert soft_allow_short_history_last_freshness(None) == ""
@@ -282,10 +285,15 @@ def test_soft_allow_short_history_count() -> None:
     ]
     assert soft_allow_short_history_count(bench_rows) == 3
     assert soft_allow_short_history_bench_count(bench_rows) == 2
+    assert soft_allow_short_history_bench_share(bench_rows) == (
+        2,
+        66.7,
+        "hot",
+    )
     assert soft_allow_short_history_last_symbol(bench_rows) == "SPY"
     assert soft_allow_short_history_share(bench_rows) == (3, 75.0, "hot")
     assert format_soft_allow_short_history_bit(bench_rows) == (
-        "3 short · 2 bench · last SPY · tied · hot · 75% · "
+        "3 short · 2 bench · hot · 66.7% · last SPY · tied · hot · 75% · "
         "vs gap · thin · 1 · 25% · short vs gap align · hot|thin"
     )
     assert soft_allow_short_history_bench_count(

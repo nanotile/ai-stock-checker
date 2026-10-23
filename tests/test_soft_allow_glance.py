@@ -997,6 +997,9 @@ def test_soft_allow_glance_short_history_count() -> None:
     assert soft_allow_lean_meta("3 short · 2 bench · last SPY · fresh") == (
         "quiet · 1 fold · short 2 bench SPY fresh"
     )
+    assert soft_allow_lean_meta(
+        "3 short · 2 bench · hot · 66.7% · last SPY · fresh"
+    ) == ("quiet · 1 fold · short 2 bench hot 66.7% SPY fresh")
 
 
 def test_soft_allow_glance_short_history_bench_count() -> None:
@@ -1025,6 +1028,8 @@ def test_soft_allow_glance_short_history_bench_count() -> None:
     assert g["ready"] is True
     assert g["short_history_count"] == 2
     assert g["short_history_bench_count"] == 1
+    assert g["short_history_bench_share_pct"] == 50.0
+    assert g["short_history_bench_share_severity"] == "hot"
     assert g["short_history_last"] == "SPY"
     assert g["short_history_last_freshness"] == "fresh"
     assert g["short_history_last_vs_share"] == "align · fresh · hot"
@@ -1042,7 +1047,7 @@ def test_soft_allow_glance_short_history_bench_count() -> None:
     assert g["short_history_last_share_vs_ring"] == "align · both align"
     assert g["short_history_last_share_vs_ring_warn"] is False
     assert g["short_history_bit"] == (
-        "2 short · 1 bench · last SPY · fresh · tied · hot · 66.7% · "
+        "2 short · 1 bench · hot · 50% · last SPY · fresh · tied · hot · 66.7% · "
         "short last/ring align · fresh · hot · "
         "vs gap · thin · "
         "1 · 33% · short last/share align · fresh · hot · "
@@ -1052,10 +1057,10 @@ def test_soft_allow_glance_short_history_bench_count() -> None:
         "short share/lean align · both align · "
         "short ring/lean align · both align"
     )
-    assert "1 bench" in g["line"]
+    assert "1 bench · hot · 50%" in g["line"]
     assert g["tone"] == "warn"
     assert g["soft_lean_warn"] is True
-    assert "short 1 bench SPY fresh" in g["soft_lean_meta"]
+    assert "short 1 bench hot 50% SPY fresh" in g["soft_lean_meta"]
 
 
 def test_soft_allow_glance_short_vs_gap_clock_when_short_matches_scan() -> None:
