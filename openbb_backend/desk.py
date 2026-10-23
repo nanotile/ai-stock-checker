@@ -2207,13 +2207,17 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
     # history is not clipped as a young listing (xang1234 #679). Cursor
     # ticker + age ride with the count (#546 after #668 + gap
     # last-freshness parity) so ``N short`` does not hide who last
-    # failed open or whether that print is still live (share /
-    # short-vs-other lean still deferred).
+    # failed open or whether that print is still live. Ring share rides
+    # on lead/n=1/ahead (or here when those are silent); short-vs-other
+    # lean still deferred.
     (
         re.compile(
             r"^\d+ short(?: · (\d+ bench))?"
             r"(?: · last ([A-Za-z0-9][A-Za-z0-9.\-]{0,14}))?"
             r"(?: · (fresh|aging|expired))?"
+            # Ring share when lead/n=1/ahead did not eat it (sole count
+            # · last · age · hot|quiet · P%; gap share parity + #668).
+            + _SOFT_LEAN_SHARE
         ),
         "short",
     ),
@@ -2325,12 +2329,14 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
     # Lead count + ownership % ride on this stage (``lead AAPL 2 67%``).
     # The runner's ``vs MSFT 1 33%`` is not the owner's row count
     # (count≠share). Count is optional so a share-only bit still names
-    # the owner.
+    # the owner. Ring share (``hot|quiet · P%``) rides here when sole
+    # lead omits ahead (gap/short ÷ring after lead; #539 / #668).
     (
         re.compile(
             r"^lead ([A-Za-z0-9][A-Za-z0-9.\-]{0,14})"
             r"(?: · (\d+))? · (\d+(?:\.\d+)?%)"
             r"(?: · (agree)| · last (vs lead · [A-Za-z0-9][A-Za-z0-9.\-]{0,14}))?"
+            + _SOFT_LEAN_SHARE
         ),
         "lead",
     ),
@@ -2383,12 +2389,14 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
     # parity). Distinct ``short last/lead`` prefix so gate/gap
     # ``last/lead`` is not treated as the young/short relationship.
     # Verb + age + agree|vs ride so ``align`` is not a silent confirm
-    # of a stale name match.
+    # of a stale name match. Ring share rides when sole lead omits
+    # ahead (short÷ring after last/lead; gap share parity + #668).
     (
         re.compile(
             r"^short last/lead (align|clash)"
             r"(?: · (fresh|expired)"
             r"(?: · (agree|vs [A-Za-z0-9][A-Za-z0-9.\-]{0,14}))?)?"
+            + _SOFT_LEAN_SHARE
         ),
         "short last/lead",
     ),
@@ -2749,7 +2757,7 @@ def build_soft_allow_glance(
         soft_allow_anchor_gap_vs_memory_clock_clash,
         soft_allow_anchor_gap_vs_scan_clash,
         soft_allow_short_history_bench_count,
-        soft_allow_short_history_count,
+        soft_allow_short_history_share,
         soft_allow_short_history_last_freshness,
         soft_allow_short_history_last_symbol,
         soft_allow_short_history_symbol_lead,
@@ -2832,6 +2840,8 @@ def build_soft_allow_glance(
         "sample_gap": "",
         "short_history_count": 0,
         "short_history_bench_count": 0,
+        "short_history_share_pct": None,
+        "short_history_share_severity": "",
         "short_history_last": "",
         "short_history_last_freshness": "",
         "short_history_symbol_lead": "",
@@ -3160,8 +3170,11 @@ def build_soft_allow_glance(
     # align|clash`` follows (junk vs ok / gap vs other lean parity);
     # when last freshness extremes + lean already spoke, ``short
     # last/lean align|clash`` follows (gap last/lean parity).
-    # Short÷ring share / short-vs-other lean still deferred.
-    short_history_n = soft_allow_short_history_count(rows)
+    # Short÷ring share follows lead/sides; short-vs-other lean still
+    # deferred.
+    short_history_n, short_history_share_pct, short_history_share_severity = (
+        soft_allow_short_history_share(rows)
+    )
     short_history_bench_n = soft_allow_short_history_bench_count(rows)
     short_history_last = soft_allow_short_history_last_symbol(rows)
     short_history_last_freshness = soft_allow_short_history_last_freshness(
@@ -3833,6 +3846,7 @@ def build_soft_allow_glance(
         or anchor_gap_vs_cash_clock_clash_warn
         or anchor_gap_vs_memory_clock_clash_warn
         or short_history_bench_n > 0
+        or short_history_share_severity == "hot"
         or short_history_last_freshness == "expired"
         or short_history_vs_scan_clash_warn
         or short_history_vs_cash_clock_clash_warn
@@ -4038,6 +4052,7 @@ def build_soft_allow_glance(
         or short_history_last_lead_vs_share_warn
         or short_history_last_share_vs_lean_warn
         or short_history_bench_n > 0
+        or short_history_share_severity == "hot"
         or short_history_last_freshness == "expired"
     )
     soft_lean_meta = soft_allow_lean_meta(soft_lean, warn=soft_lean_warn)
@@ -4095,6 +4110,8 @@ def build_soft_allow_glance(
         "sample_gap": sample_gap,
         "short_history_count": short_history_n,
         "short_history_bench_count": short_history_bench_n,
+        "short_history_share_pct": short_history_share_pct,
+        "short_history_share_severity": short_history_share_severity,
         "short_history_last": short_history_last,
         "short_history_last_freshness": short_history_last_freshness,
         "short_history_symbol_lead": short_history_symbol_lead,

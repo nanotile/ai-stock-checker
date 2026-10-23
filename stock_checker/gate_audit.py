@@ -102,6 +102,32 @@ def soft_allow_short_history_count(
     return n
 
 
+def soft_allow_short_history_share(
+    events: list[dict[str, Any]] | None,
+) -> tuple[int, float | None, str]:
+    """Short-history count + ring share + severity (display only).
+
+    Returns ``(count, share_pct, severity)``. Zero shorts →
+    ``(0, None, "")``. Share is short÷Mapping-rows; hot ≥50% · quiet ≤25% ·
+    mid ``ok`` (portfolio AI count≠share after absolute ``N short``;
+    soft ``N gap`` share parity + xang1234 #668). Short÷(short+gap) pair
+    share stays a separate bit — ring ownership ≠ pair ownership.
+    Short-vs-other lean still deferred. Not a gate.
+    """
+    rows = [r for r in (events or []) if isinstance(r, dict)]
+    short_n = soft_allow_short_history_count(rows)
+    if short_n <= 0 or not rows:
+        return 0, None, ""
+    share = round(100.0 * short_n / len(rows), 1)
+    if share >= SOFT_ALLOW_ANCHOR_GAP_SHARE_HOT:
+        severity = "hot"
+    elif share <= SOFT_ALLOW_ANCHOR_GAP_SHARE_QUIET:
+        severity = "quiet"
+    else:
+        severity = "ok"
+    return short_n, share, severity
+
+
 def _short_history_symbol(reason: str) -> str:
     """First token of a short-history reason (asset / bench label)."""
     text = str(reason or "").strip()
@@ -370,7 +396,8 @@ def soft_allow_short_vs_gap(
     (gap÷(short+gap); strong ≥75 · thin <50 · mid omits severity).
     Screener junk vs ok / soft gap vs other sides parity after #668
     short count + #539 gap count; portfolio AI count≠share. Short÷ring
-    share / freshness / short-vs-other lean still deferred. Not a gate.
+    share shipped beside this pair bit; short-vs-other lean still
+    deferred. Not a gate.
     """
     short_n = soft_allow_short_history_count(events)
     gap_n = soft_allow_anchor_gap_count(events)
@@ -428,7 +455,8 @@ def soft_allow_short_vs_gap_lean(
     ``quiet|strong``; mismatch or one-lean speaks
     ``clash · short … · gap …`` (warn when short hot or gap thin). Sides
     alone hid lean agreement (portfolio AI speak-both-sides). Short÷ring
-    share / short-vs-other lean still deferred. Not a gate.
+    share shipped beside pair ownership; short-vs-other lean still
+    deferred. Not a gate.
     """
     vs = soft_allow_short_vs_gap(events)
     pair = soft_allow_short_pair_share(events)
@@ -1014,11 +1042,13 @@ def format_soft_allow_short_history_bit(
     dual-clash agreement (gap lead/lean parity); when last/share +
     last/lean already spoke, ``short share/lean align|clash`` follows so
     the two age relationships cannot hide non-agreement or dual-clash
-    (gap share/lean parity). Short÷ring share / short-vs-other lean
-    still deferred. Display only; not a gate.
+    (gap share/lean parity). Ring share (``hot|quiet · P%``) sits after
+    lead/sides / ``n=1`` so absolute ``N short`` ≠ short÷ring (gap share
+    parity; short÷pair stays on ``vs gap`` / last/share). Short-vs-other
+    lean still deferred. Display only; not a gate.
     """
-    n = soft_allow_short_history_count(events)
-    if n <= 0:
+    n, ring_share, ring_sev = soft_allow_short_history_share(events)
+    if n <= 0 or ring_share is None:
         return ""
     head = f"{n} short"
     bench_n = soft_allow_short_history_bench_count(events)
@@ -1109,6 +1139,12 @@ def format_soft_allow_short_history_bit(
         sample_gap = soft_allow_short_history_symbol_sample_gap(events)
         if sample_gap:
             head = f"{head} · {sample_gap}"
+    # Ring share after ownership sample so ``N short`` ≠ short÷rows
+    # (gap ``hot|quiet · P%`` parity; pair share stays on ``vs gap``).
+    if ring_sev in {"hot", "quiet"}:
+        head = f"{head} · {ring_sev} · {ring_share:g}%"
+    else:
+        head = f"{head} · {ring_share:g}%"
     vs_gap = soft_allow_short_vs_gap(events)
     if vs_gap is not None:
         head = f"{head} · {vs_gap[0]}"
