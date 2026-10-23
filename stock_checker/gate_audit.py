@@ -311,6 +311,39 @@ def soft_allow_short_history_bench_vs_young_lean(
     return "", False
 
 
+def soft_allow_short_history_last_vs_bench_young(
+    events: list[dict[str, Any]] | None,
+    *,
+    now: datetime | None = None,
+) -> tuple[str, bool]:
+    """Last short freshness vs bench/young lean (display only).
+
+    Returns ``(bit, warn)``. Cursor age ≠ primary-bench vs young lean.
+    Extremes only: ``fresh``↔ lean ``align`` and ``expired``↔ lean
+    ``clash`` speak ``align``; crossed pairs speak ``clash`` (warn).
+    ``aging`` / silent lean stay silent — gap last/lean + short last/lean
+    parity after #679 bench vs young lean + last freshness alone hid
+    age≠bench/young (RyanJHamby triad + FinRobot last-row age +
+    portfolio AI speak-both-sides; xang1234 #668). Not a gate.
+    """
+    last_fresh = soft_allow_short_history_last_freshness(events, now=now)
+    lean, _lean_warn = soft_allow_short_history_bench_vs_young_lean(events)
+    if last_fresh not in {"fresh", "expired"} or not lean:
+        return "", False
+    if lean.startswith("align · "):
+        lean_align = True
+        lean_tail = lean[len("align · ") :]
+    elif lean.startswith("clash · "):
+        lean_align = False
+        lean_tail = lean[len("clash · ") :]
+    else:
+        return "", False
+    live_age = last_fresh == "fresh"
+    if live_age == lean_align:
+        return f"align · {last_fresh} · {lean_tail}", False
+    return f"clash · {last_fresh} · {lean_tail}", True
+
+
 def _short_history_symbol_counts(
     events: list[dict[str, Any]] | None,
 ) -> dict[str, int]:
@@ -1262,7 +1295,11 @@ def format_soft_allow_short_history_bit(
     follows so lean cannot clip the cursor (#546).     Cursor age
     (``fresh`` / ``aging`` / ``expired``) follows the name so a live
     ticker ≠ a live fail-open (gap last-freshness parity + RyanJHamby +
-    FinRobot last-row age; unknown stamp silent). When short clock ≠
+    FinRobot last-row age; unknown stamp silent). When last freshness
+    extremes + bench vs young lean already spoke, ``short last/bench
+    align|clash`` follows so age labels + bench/young lean alone cannot
+    hide age≠lean (gap last/lean + short last/lean parity after #679).
+    When short clock ≠
     scan archive band, ``clash · short … · scan …`` follows age so a
     soft-allow last matching the scan cannot hide a staler young/short
     cursor (xang1234 #549 / e3c84e1 + gap≠scan parity); optional
@@ -1373,6 +1410,11 @@ def format_soft_allow_short_history_bit(
         )
         if last_fresh:
             head = f"{head} · {last_fresh}"
+            last_vs_bench, _ = soft_allow_short_history_last_vs_bench_young(
+                events, now=now
+            )
+            if last_vs_bench:
+                head = f"{head} · short last/bench {last_vs_bench}"
             short_vs_scan, _ = soft_allow_short_history_vs_scan_clash(
                 events,
                 scan_freshness=scan_freshness,

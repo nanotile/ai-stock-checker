@@ -54,6 +54,7 @@ def test_soft_allow_short_history_count() -> None:
         soft_allow_short_history_bench_vs_young_lean,
         soft_allow_short_history_count,
         soft_allow_short_history_last_freshness,
+        soft_allow_short_history_last_vs_bench_young,
         soft_allow_short_history_last_symbol,
         soft_allow_short_history_symbol_last_vs_lead,
         soft_allow_short_history_last_vs_lead_freshness,
@@ -91,6 +92,8 @@ def test_soft_allow_short_history_count() -> None:
     assert soft_allow_short_history_bench_vs_young([]) == (0, None, "")
     assert soft_allow_short_history_bench_vs_young_lean(None) == ("", False)
     assert soft_allow_short_history_bench_vs_young_lean([]) == ("", False)
+    assert soft_allow_short_history_last_vs_bench_young(None) == ("", False)
+    assert soft_allow_short_history_last_vs_bench_young([]) == ("", False)
     assert soft_allow_short_history_last_symbol(None) == ""
     assert soft_allow_short_history_last_symbol([]) == ""
     assert soft_allow_short_history_last_freshness(None) == ""
@@ -305,6 +308,11 @@ def test_soft_allow_short_history_count() -> None:
         "align · hot|thin",
         False,
     )
+    # No stamp → last/bench silent (fresh|expired extremes only).
+    assert soft_allow_short_history_last_vs_bench_young(bench_rows) == (
+        "",
+        False,
+    )
     assert soft_allow_short_history_last_symbol(bench_rows) == "SPY"
     assert soft_allow_short_history_share(bench_rows) == (3, 75.0, "hot")
     assert format_soft_allow_short_history_bit(bench_rows) == (
@@ -312,6 +320,56 @@ def test_soft_allow_short_history_count() -> None:
         "short bench vs young align · hot|thin · last SPY · tied · "
         "hot · 75% · vs gap · thin · 1 · 25% · short vs gap align · hot|thin"
     )
+    # Fresh cursor + align lean → last/bench align (gap last/lean parity).
+    now_bench = datetime(2026, 10, 22, 12, 0, tzinfo=timezone.utc)
+    fresh_bench = [
+        {
+            "at": "2026-10-22T11:00:00Z",
+            "gate": "rs",
+            "reason": "SPY RS unknown — short history — allow",
+        },
+        {
+            "at": "2026-10-22T10:30:00Z",
+            "gate": "rs",
+            "reason": "IPO RS unknown — short history — allow",
+        },
+        {
+            "at": "2026-10-22T10:00:00Z",
+            "gate": "rs",
+            "reason": "BTC RS unknown — short history — allow",
+        },
+        {
+            "at": "2026-10-22T09:30:00Z",
+            "gate": "rs",
+            "reason": "AAPL RS unknown — anchor gap — allow",
+        },
+    ]
+    assert soft_allow_short_history_last_vs_bench_young(
+        fresh_bench, now=now_bench
+    ) == ("align · fresh · hot|thin", False)
+    assert "short last/bench align · fresh · hot|thin" in (
+        format_soft_allow_short_history_bit(fresh_bench, now=now_bench)
+    )
+    # Fresh cursor + clash lean → last/bench clash (warn).
+    clash_bench = [
+        {
+            "at": "2026-10-22T11:00:00Z",
+            "gate": "rs",
+            "reason": "SPY RS unknown — short history — allow",
+        },
+        {
+            "at": "2026-10-22T10:30:00Z",
+            "gate": "rs",
+            "reason": "IPO RS unknown — short history — allow",
+        },
+    ]
+    assert soft_allow_short_history_bench_vs_young_lean(clash_bench) == (
+        "clash · bench hot · young ok",
+        True,
+    )
+    assert soft_allow_short_history_last_vs_bench_young(
+        clash_bench, now=now_bench
+    ) == ("clash · fresh · bench hot · young ok", True)
     assert soft_allow_short_history_bench_count(
         [{"gate": "rs", "reason": "IPO RS unknown — short history — allow"}]
     ) == 0

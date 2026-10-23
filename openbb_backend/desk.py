@@ -2246,6 +2246,22 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
         ),
         "short bench/young",
     ),
+    # Short cursor age vs bench/young lean (gap last/lean + short
+    # last/lean parity after #679). Age labels + bench/young lean alone
+    # hid whether a live cursor still matches the lean. Distinct
+    # ``short last/bench`` so pair ``short last/lean`` (vs gap) is not
+    # treated as primary-bench vs young.
+    (
+        re.compile(
+            r"^short last/bench (align|clash)"
+            r"(?: · (fresh|expired)"
+            r"(?: · ("
+            r"hot\|thin|quiet\|strong"
+            r"|bench (?:hot|quiet|ok) · young (?:strong|thin|ok)"
+            r"))?)?"
+        ),
+        "short last/bench",
+    ),
     # Short cursor vs scan archive (gap/scan parity + xang1234 #549 /
     # e3c84e1). Soft last matching the scan can still hide a staler
     # young/short fail-open — speak both sides on the lean chip.
@@ -2834,6 +2850,7 @@ def build_soft_allow_glance(
         soft_allow_short_history_bench_share,
         soft_allow_short_history_bench_vs_young,
         soft_allow_short_history_bench_vs_young_lean,
+        soft_allow_short_history_last_vs_bench_young,
         soft_allow_short_history_share,
         soft_allow_short_history_last_freshness,
         soft_allow_short_history_last_symbol,
@@ -2928,6 +2945,8 @@ def build_soft_allow_glance(
         "short_history_bench_vs_young_severity": "",
         "short_history_bench_vs_young": "",
         "short_history_bench_vs_young_warn": False,
+        "short_history_last_vs_bench_young": "",
+        "short_history_last_vs_bench_young_warn": False,
         "short_history_share_pct": None,
         "short_history_share_severity": "",
         "short_history_last": "",
@@ -3289,6 +3308,10 @@ def build_soft_allow_glance(
     short_history_last_freshness = soft_allow_short_history_last_freshness(
         rows, now=now
     )
+    (
+        short_history_last_vs_bench_young,
+        short_history_last_vs_bench_young_warn,
+    ) = soft_allow_short_history_last_vs_bench_young(rows, now=now)
     # Soft≠short — soft last matching scan/gap/cash/memory can still hide
     # a staler young/short cursor (soft≠gap / short≠scan parity + #549 /
     # e3c84e1 / #668). Soft-only · short-only ride the clash itself.
@@ -3974,6 +3997,7 @@ def build_soft_allow_glance(
         or short_history_bench_share_severity == "hot"
         or short_history_bench_vs_young_warn
         or short_history_bench_vs_young_severity == "thin"
+        or short_history_last_vs_bench_young_warn
         or short_history_share_severity == "hot"
         or short_history_last_freshness == "expired"
         or short_history_vs_scan_clash_warn
@@ -4191,6 +4215,7 @@ def build_soft_allow_glance(
         or short_history_bench_share_severity == "hot"
         or short_history_bench_vs_young_warn
         or short_history_bench_vs_young_severity == "thin"
+        or short_history_last_vs_bench_young_warn
         or short_history_share_severity == "hot"
         or short_history_last_freshness == "expired"
     )
@@ -4260,6 +4285,10 @@ def build_soft_allow_glance(
         ),
         "short_history_bench_vs_young": short_history_bench_vs_young,
         "short_history_bench_vs_young_warn": short_history_bench_vs_young_warn,
+        "short_history_last_vs_bench_young": short_history_last_vs_bench_young,
+        "short_history_last_vs_bench_young_warn": (
+            short_history_last_vs_bench_young_warn
+        ),
         "short_history_share_pct": short_history_share_pct,
         "short_history_share_severity": short_history_share_severity,
         "short_history_last": short_history_last,
