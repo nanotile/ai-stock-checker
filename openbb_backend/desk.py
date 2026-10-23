@@ -2206,7 +2206,10 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
     # bench short (``N bench · [hot|quiet ·] P%``) rides before the
     # cursor so SPY/BTC thin history is not clipped as a young listing
     # and absolute bench ≠ bench÷short (xang1234 #679 + RyanJHamby
-    # fundamentals-cache chore + portfolio AI count≠share). Cursor
+    # fundamentals-cache chore + portfolio AI count≠share). Young
+    # remainder (``vs N young · [strong|thin ·] P%``) rides after bench
+    # so bench% alone cannot hide usable young/short fail-opens (gap vs
+    # other / Screener junk vs ok sides). Cursor
     # ticker + age ride with the count (#546 after #668 + gap
     # last-freshness parity) so ``N short`` does not hide who last
     # failed open or whether that print is still live. Ring share rides
@@ -2216,6 +2219,12 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
         re.compile(
             r"^\d+ short(?: · (\d+ bench)"
             r"(?: · (hot|quiet))?(?: · (\d+(?:\.\d+)?%))?)?"
+            r"(?: · (vs \d+ young)(?: · (strong|thin|ok))? · (\d+(?:\.\d+)?%))?"
+            # Lean may sit before last SYM (bench% · vs young · lean ·
+            # last); keep cursor on the short chip (#546 + #679).
+            r"(?: · short bench vs young (align|clash)"
+            r"(?: · (hot\|thin|quiet\|strong"
+            r"|bench (?:hot|quiet|ok) · young (?:strong|thin|ok)))?)?"
             r"(?: · last ([A-Za-z0-9][A-Za-z0-9.\-]{0,14}))?"
             r"(?: · (fresh|aging|expired))?"
             # Ring share when lead/n=1/ahead did not eat it (sole count
@@ -2223,6 +2232,19 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
             + _SOFT_LEAN_SHARE
         ),
         "short",
+    ),
+    # Bench vs young lean when inventory starts mid-cascade (junk vs ok /
+    # gap vs other lean parity + #679). Sides alone hid whether
+    # primary-bench heat and young/short remainder agree.
+    (
+        re.compile(
+            r"^short bench vs young (align|clash)"
+            r"(?: · ("
+            r"hot\|thin|quiet\|strong"
+            r"|bench (?:hot|quiet|ok) · young (?:strong|thin|ok)"
+            r"))?"
+        ),
+        "short bench/young",
     ),
     # Short cursor vs scan archive (gap/scan parity + xang1234 #549 /
     # e3c84e1). Soft last matching the scan can still hide a staler
@@ -2810,6 +2832,8 @@ def build_soft_allow_glance(
         soft_allow_anchor_gap_vs_memory_clock_clash,
         soft_allow_anchor_gap_vs_scan_clash,
         soft_allow_short_history_bench_share,
+        soft_allow_short_history_bench_vs_young,
+        soft_allow_short_history_bench_vs_young_lean,
         soft_allow_short_history_share,
         soft_allow_short_history_last_freshness,
         soft_allow_short_history_last_symbol,
@@ -2899,6 +2923,11 @@ def build_soft_allow_glance(
         "short_history_bench_count": 0,
         "short_history_bench_share_pct": None,
         "short_history_bench_share_severity": "",
+        "short_history_bench_vs_young_n": 0,
+        "short_history_bench_vs_young_share_pct": None,
+        "short_history_bench_vs_young_severity": "",
+        "short_history_bench_vs_young": "",
+        "short_history_bench_vs_young_warn": False,
         "short_history_share_pct": None,
         "short_history_share_severity": "",
         "short_history_last": "",
@@ -3247,6 +3276,15 @@ def build_soft_allow_glance(
         short_history_bench_share_pct,
         short_history_bench_share_severity,
     ) = soft_allow_short_history_bench_share(rows)
+    (
+        short_history_bench_vs_young_n,
+        short_history_bench_vs_young_share_pct,
+        short_history_bench_vs_young_severity,
+    ) = soft_allow_short_history_bench_vs_young(rows)
+    (
+        short_history_bench_vs_young,
+        short_history_bench_vs_young_warn,
+    ) = soft_allow_short_history_bench_vs_young_lean(rows)
     short_history_last = soft_allow_short_history_last_symbol(rows)
     short_history_last_freshness = soft_allow_short_history_last_freshness(
         rows, now=now
@@ -3934,6 +3972,8 @@ def build_soft_allow_glance(
         or anchor_gap_vs_memory_clock_clash_warn
         or short_history_bench_n > 0
         or short_history_bench_share_severity == "hot"
+        or short_history_bench_vs_young_warn
+        or short_history_bench_vs_young_severity == "thin"
         or short_history_share_severity == "hot"
         or short_history_last_freshness == "expired"
         or short_history_vs_scan_clash_warn
@@ -4149,6 +4189,8 @@ def build_soft_allow_glance(
         or short_history_last_ring_vs_lean_warn
         or short_history_bench_n > 0
         or short_history_bench_share_severity == "hot"
+        or short_history_bench_vs_young_warn
+        or short_history_bench_vs_young_severity == "thin"
         or short_history_share_severity == "hot"
         or short_history_last_freshness == "expired"
     )
@@ -4209,6 +4251,15 @@ def build_soft_allow_glance(
         "short_history_bench_count": short_history_bench_n,
         "short_history_bench_share_pct": short_history_bench_share_pct,
         "short_history_bench_share_severity": short_history_bench_share_severity,
+        "short_history_bench_vs_young_n": short_history_bench_vs_young_n,
+        "short_history_bench_vs_young_share_pct": (
+            short_history_bench_vs_young_share_pct
+        ),
+        "short_history_bench_vs_young_severity": (
+            short_history_bench_vs_young_severity
+        ),
+        "short_history_bench_vs_young": short_history_bench_vs_young,
+        "short_history_bench_vs_young_warn": short_history_bench_vs_young_warn,
         "short_history_share_pct": short_history_share_pct,
         "short_history_share_severity": short_history_share_severity,
         "short_history_last": short_history_last,

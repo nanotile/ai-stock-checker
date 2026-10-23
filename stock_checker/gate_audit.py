@@ -242,6 +242,75 @@ def soft_allow_short_history_bench_share(
     return bench_n, share, severity
 
 
+def soft_allow_short_history_bench_vs_young(
+    events: list[dict[str, Any]] | None,
+) -> tuple[int, float | None, str]:
+    """Non-bench short remainder when bench already spoke (display only).
+
+    Returns ``(young_n, share_pct, severity)``. No bench →
+    ``(0, None, "")``. Young = short − bench (share of short rows, not
+    ring); strong ≥75% · thin <50% · mid ``ok``. All-bench →
+    ``(0, 0.0, "thin")`` — gap vs other / Screener junk vs ok sides
+    parity after bench% alone hid usable young/short fail-opens
+    (portfolio AI speak-both-sides; RyanJHamby + xang1234 #679 after
+    #668 ``N bench · P%``). Display only; not a gate.
+    """
+    short_n = soft_allow_short_history_count(events)
+    bench_n = soft_allow_short_history_bench_count(events)
+    if bench_n <= 0 or short_n <= 0:
+        return 0, None, ""
+    young_n = short_n - bench_n
+    share = round(100.0 * young_n / short_n, 1)
+    if share >= SOFT_ALLOW_OTHER_SHARE_STRONG:
+        severity = "strong"
+    elif share < SOFT_ALLOW_OTHER_SHARE_THIN:
+        severity = "thin"
+    else:
+        severity = "ok"
+    return young_n, share, severity
+
+
+def soft_allow_short_history_bench_vs_young_lean(
+    events: list[dict[str, Any]] | None,
+) -> tuple[str, bool]:
+    """Bench vs young lean when both sides already spoke (display only).
+
+    Returns ``(lean_bit, warn)``. Silent when bench did not speak or both
+    severities are mid. Screener ``junk_vs_ok`` / gap vs other parity:
+    matched extremes speak ``align · hot|thin`` / ``quiet|strong``;
+    mismatch or one-lean speaks ``clash · bench … · young …`` (warn when
+    bench hot or young thin). Sides alone hid lean agreement (portfolio
+    AI speak-both-sides after #679 bench share). Not a gate.
+    """
+    bench_n, _bench_share, bench_sev = soft_allow_short_history_bench_share(
+        events
+    )
+    young_n, young_share, young_sev = soft_allow_short_history_bench_vs_young(
+        events
+    )
+    if bench_n <= 0 or young_share is None:
+        return "", False
+    bench_lean = bench_sev in {"hot", "quiet"}
+    young_lean = young_sev in {"strong", "thin"}
+    if bench_lean and young_lean:
+        matched = (bench_sev == "hot" and young_sev == "thin") or (
+            bench_sev == "quiet" and young_sev == "strong"
+        )
+        if matched:
+            return f"align · {bench_sev}|{young_sev}", False
+        return (
+            f"clash · bench {bench_sev} · young {young_sev}",
+            True,
+        )
+    if bench_lean != young_lean:
+        warn = bench_sev == "hot" or young_sev == "thin"
+        return (
+            f"clash · bench {bench_sev} · young {young_sev}",
+            warn,
+        )
+    return "", False
+
+
 def _short_history_symbol_counts(
     events: list[dict[str, Any]] | None,
 ) -> dict[str, int]:
@@ -1178,13 +1247,18 @@ def format_soft_allow_short_history_bit(
     keep_gap_pin_size: str = "",
     keep_soft_pin_size: str = "",
 ) -> str:
-    """Compact ``N short · N bench · hot|quiet · P% · last SYM · … · vs gap``.
+    """Compact ``N short · N bench · … · vs N young · … · last SYM · …``.
 
     Zero silent. When any short row names a primary RS benchmark
     (SPY/BTC), ``N bench · [hot|quiet ·] P%`` sits right after the count
     so absolute bench ≠ bench÷short (RyanJHamby cache + #679 + portfolio
     AI count≠share) and young-listing
-    short ≠ a stale/thin primary (xang1234 #679 after #668). ``last SYM``
+    short ≠ a stale/thin primary (xang1234 #679 after #668). When bench
+    already spoke, ``vs N young · [strong|thin ·] P%`` follows so bench%
+    alone cannot hide usable young/short fail-opens (gap vs other /
+    Screener junk vs ok sides); when both severities lean, ``short bench
+    vs young align|clash`` follows so sides alone cannot hide lean
+    agreement. ``last SYM``
     follows so lean cannot clip the cursor (#546).     Cursor age
     (``fresh`` / ``aging`` / ``expired``) follows the name so a live
     ticker ≠ a live fail-open (gap last-freshness parity + RyanJHamby +
@@ -1273,6 +1347,24 @@ def format_soft_allow_short_history_bit(
             )
         else:
             head = f"{head} · {bench_n} bench · {bench_share:g}%"
+        # Bench% alone hid young/short remainder (gap vs other /
+        # Screener junk vs ok sides + portfolio AI speak-both-sides).
+        young_n, young_share, young_sev = (
+            soft_allow_short_history_bench_vs_young(events)
+        )
+        if young_share is not None:
+            if young_sev in {"strong", "thin"}:
+                head = (
+                    f"{head} · vs {young_n} young · {young_sev} · "
+                    f"{young_share:g}%"
+                )
+            else:
+                head = f"{head} · vs {young_n} young · {young_share:g}%"
+            young_lean, _ = soft_allow_short_history_bench_vs_young_lean(
+                events
+            )
+            if young_lean:
+                head = f"{head} · short bench vs young {young_lean}"
     last = soft_allow_short_history_last_symbol(events)
     if last:
         head = f"{head} · last {last}"

@@ -50,6 +50,8 @@ def test_soft_allow_short_history_count() -> None:
         format_soft_allow_short_history_bit,
         soft_allow_short_history_bench_count,
         soft_allow_short_history_bench_share,
+        soft_allow_short_history_bench_vs_young,
+        soft_allow_short_history_bench_vs_young_lean,
         soft_allow_short_history_count,
         soft_allow_short_history_last_freshness,
         soft_allow_short_history_last_symbol,
@@ -85,6 +87,10 @@ def test_soft_allow_short_history_count() -> None:
     assert soft_allow_short_history_bench_count([]) == 0
     assert soft_allow_short_history_bench_share(None) == (0, None, "")
     assert soft_allow_short_history_bench_share([]) == (0, None, "")
+    assert soft_allow_short_history_bench_vs_young(None) == (0, None, "")
+    assert soft_allow_short_history_bench_vs_young([]) == (0, None, "")
+    assert soft_allow_short_history_bench_vs_young_lean(None) == ("", False)
+    assert soft_allow_short_history_bench_vs_young_lean([]) == ("", False)
     assert soft_allow_short_history_last_symbol(None) == ""
     assert soft_allow_short_history_last_symbol([]) == ""
     assert soft_allow_short_history_last_freshness(None) == ""
@@ -290,11 +296,21 @@ def test_soft_allow_short_history_count() -> None:
         66.7,
         "hot",
     )
+    assert soft_allow_short_history_bench_vs_young(bench_rows) == (
+        1,
+        33.3,
+        "thin",
+    )
+    assert soft_allow_short_history_bench_vs_young_lean(bench_rows) == (
+        "align · hot|thin",
+        False,
+    )
     assert soft_allow_short_history_last_symbol(bench_rows) == "SPY"
     assert soft_allow_short_history_share(bench_rows) == (3, 75.0, "hot")
     assert format_soft_allow_short_history_bit(bench_rows) == (
-        "3 short · 2 bench · hot · 66.7% · last SPY · tied · hot · 75% · "
-        "vs gap · thin · 1 · 25% · short vs gap align · hot|thin"
+        "3 short · 2 bench · hot · 66.7% · vs 1 young · thin · 33.3% · "
+        "short bench vs young align · hot|thin · last SPY · tied · "
+        "hot · 75% · vs gap · thin · 1 · 25% · short vs gap align · hot|thin"
     )
     assert soft_allow_short_history_bench_count(
         [{"gate": "rs", "reason": "IPO RS unknown — short history — allow"}]
