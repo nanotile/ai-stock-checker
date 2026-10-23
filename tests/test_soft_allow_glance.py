@@ -1025,16 +1025,18 @@ def test_soft_allow_glance_short_history_count() -> None:
         "3 short · 2 bench · hot · 66.7% · vs 1 young · thin · 33.3% · "
         "short bench vs young align · hot|thin · "
         "short bench Δ wide · +33.4pp · short bench lean/Δ align · wide · "
+        "short bench Δ lead · bench · "
         "last SPY · fresh"
     ) == (
         "quiet · 1 fold · short 2 bench hot 66.7% vs 1 young thin 33.3% "
-        "align hot|thin wide +33.4pp align wide SPY fresh"
+        "align hot|thin wide +33.4pp align wide bench SPY fresh"
     )
     assert soft_allow_lean_meta(
-        "short bench Δ wide · +33.4pp · short bench lean/Δ align · wide"
+        "short bench Δ wide · +33.4pp · short bench lean/Δ align · wide · "
+        "short bench Δ lead · bench"
     ) == (
-        "quiet · 2 folds · short bench Δ wide +33.4pp · "
-        "short bench lean/Δ align wide"
+        "quiet · 3 folds · short bench Δ wide +33.4pp · "
+        "short bench lean/Δ align wide · short bench Δ lead bench"
     )
     assert soft_allow_lean_meta(
         "3 short · 2 bench · hot · 66.7% · vs 1 young · thin · 33.3% · "
@@ -1108,6 +1110,8 @@ def test_soft_allow_glance_short_history_bench_count() -> None:
         "clash · lean · Δ mid"
     )
     assert g["short_history_bench_vs_young_lean_vs_delta_warn"] is True
+    # Mid-Δ clash → no Δ lead (short vs gap Δ lead parity).
+    assert g["short_history_bench_vs_young_delta_lead"] == ""
     assert g["short_history_last"] == "SPY"
     assert g["short_history_last_freshness"] == "fresh"
     # Fresh + clash lean → last/bench clash (gap last/lean parity).

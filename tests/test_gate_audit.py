@@ -52,6 +52,7 @@ def test_soft_allow_short_history_count() -> None:
         soft_allow_short_history_bench_share,
         soft_allow_short_history_bench_vs_young,
         soft_allow_short_history_bench_vs_young_delta,
+        soft_allow_short_history_bench_vs_young_delta_lead,
         soft_allow_short_history_bench_vs_young_lean,
         soft_allow_short_history_bench_vs_young_lean_vs_delta,
         soft_allow_short_history_count,
@@ -111,6 +112,8 @@ def test_soft_allow_short_history_count() -> None:
         "",
         False,
     )
+    assert soft_allow_short_history_bench_vs_young_delta_lead(None) == ""
+    assert soft_allow_short_history_bench_vs_young_delta_lead([]) == ""
     assert soft_allow_short_history_last_vs_bench_young(None) == ("", False)
     assert soft_allow_short_history_last_vs_bench_young([]) == ("", False)
     assert soft_allow_short_history_last_lead_vs_bench_young(None) == (
@@ -383,6 +386,10 @@ def test_soft_allow_short_history_count() -> None:
         "align · wide",
         True,  # adverse hot|thin + wide
     )
+    # Signed +pp → bench owns the spoken Δ (short vs gap Δ lead parity).
+    assert soft_allow_short_history_bench_vs_young_delta_lead(bench_rows) == (
+        "bench"
+    )
     # No stamp → last/bench silent (fresh|expired extremes only).
     assert soft_allow_short_history_last_vs_bench_young(bench_rows) == (
         "",
@@ -394,6 +401,7 @@ def test_soft_allow_short_history_count() -> None:
         "3 short · 2 bench · hot · 66.7% · vs 1 young · thin · 33.3% · "
         "short bench vs young align · hot|thin · "
         "short bench Δ wide · +33.4pp · short bench lean/Δ align · wide · "
+        "short bench Δ lead · bench · "
         "last SPY · tied · "
         "hot · 75% · vs gap · thin · 1 · 25% · short vs gap align · hot|thin · "
         "short Δ wide · +50pp · short lean/Δ align · wide · short Δ lead · short"

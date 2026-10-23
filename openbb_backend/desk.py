@@ -2232,6 +2232,11 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
             r"(?: · ([+-]?\d+(?:\.\d+)?pp))?)?"
             r"(?: · short bench lean/Δ (align|clash)"
             r"(?: · (wide|thin)| · (lean · Δ mid))?)?"
+            # Which bench/young sleeve owns the spoken Δ (short vs gap /
+            # unique vs dup Δ lead parity after #679). Prefixed
+            # ``short bench Δ lead`` so pair ``short Δ lead`` does not
+            # claim primary-bench vs young.
+            r"(?: · short bench Δ lead · (bench|young))?"
             r"(?: · last ([A-Za-z0-9][A-Za-z0-9.\-]{0,14}))?"
             r"(?: · (fresh|aging|expired))?"
             # Ring share when lead/n=1/ahead did not eat it (sole count
@@ -2272,6 +2277,15 @@ _SOFT_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
             r"(?: · (wide|thin)| · (lean · Δ mid))?"
         ),
         "short bench lean/Δ",
+    ),
+    # Which bench/young sleeve owns the spoken Δ (short vs gap /
+    # unique vs dup Δ lead parity after #679). Prefixed
+    # ``short bench Δ lead`` so pair ``short Δ lead`` does not claim
+    # primary-bench vs young. Side name rides so ``lead`` is not a
+    # nameless confirm.
+    (
+        re.compile(r"^short bench Δ lead · (bench|young)"),
+        "short bench Δ lead",
     ),
     # Short cursor age vs bench/young lean (gap last/lean + short
     # last/lean parity after #679). Age labels + bench/young lean alone
@@ -2964,6 +2978,7 @@ def build_soft_allow_glance(
         soft_allow_short_history_bench_share,
         soft_allow_short_history_bench_vs_young,
         soft_allow_short_history_bench_vs_young_delta,
+        soft_allow_short_history_bench_vs_young_delta_lead,
         soft_allow_short_history_bench_vs_young_lean,
         soft_allow_short_history_bench_vs_young_lean_vs_delta,
         soft_allow_short_history_last_vs_bench_young,
@@ -3072,6 +3087,7 @@ def build_soft_allow_glance(
         "short_history_bench_vs_young_delta_severity": "",
         "short_history_bench_vs_young_lean_vs_delta": "",
         "short_history_bench_vs_young_lean_vs_delta_warn": False,
+        "short_history_bench_vs_young_delta_lead": "",
         "short_history_last_vs_bench_young": "",
         "short_history_last_vs_bench_young_warn": False,
         "short_history_last_lead_vs_bench_young": "",
@@ -3452,6 +3468,9 @@ def build_soft_allow_glance(
         short_history_bench_vs_young_lean_vs_delta,
         short_history_bench_vs_young_lean_vs_delta_warn,
     ) = soft_allow_short_history_bench_vs_young_lean_vs_delta(rows)
+    short_history_bench_vs_young_delta_lead = (
+        soft_allow_short_history_bench_vs_young_delta_lead(rows)
+    )
     short_history_last = soft_allow_short_history_last_symbol(rows)
     short_history_last_freshness = soft_allow_short_history_last_freshness(
         rows, now=now
@@ -4480,6 +4499,9 @@ def build_soft_allow_glance(
         ),
         "short_history_bench_vs_young_lean_vs_delta_warn": (
             short_history_bench_vs_young_lean_vs_delta_warn
+        ),
+        "short_history_bench_vs_young_delta_lead": (
+            short_history_bench_vs_young_delta_lead
         ),
         "short_history_last_vs_bench_young": short_history_last_vs_bench_young,
         "short_history_last_vs_bench_young_warn": (

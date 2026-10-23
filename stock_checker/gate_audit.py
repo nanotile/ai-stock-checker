@@ -375,6 +375,37 @@ def soft_allow_short_history_bench_vs_young_lean_vs_delta(
     return "clash · lean · Δ mid", True
 
 
+def soft_allow_short_history_bench_vs_young_delta_lead(
+    events: list[dict[str, Any]] | None,
+) -> str:
+    """Name which sleeve owns a spoken short bench vs young Δ (display only).
+
+    Returns ``bench|young`` / ``\"\"``. When lean vs Δ already spoke with
+    a Δ (wide|thin) and ±pp ≠ 0, positive bench%−young% → ``bench``;
+    negative → ``young``. Mid-Δ clash / 0pp stay silent. Signed pp alone
+    hid which primary-bench vs young/short sleeve owns the spread (short
+    vs gap / Screener unique vs dup / Yahoo mix Δ lead parity after
+    #679 bench vs young share Δ). Not a gate.
+    """
+    lean_vs_delta, _ = soft_allow_short_history_bench_vs_young_lean_vs_delta(
+        events
+    )
+    if not str(lean_vs_delta or "").startswith("align ·"):
+        return ""
+    delta_pp, delta_sev = soft_allow_short_history_bench_vs_young_delta(
+        events
+    )
+    if not delta_sev or delta_pp is None:
+        return ""
+    try:
+        pp = float(delta_pp)
+    except (TypeError, ValueError):
+        return ""
+    if abs(pp) < 1e-9:
+        return ""
+    return "bench" if pp > 0 else "young"
+
+
 def soft_allow_short_history_last_vs_bench_young(
     events: list[dict[str, Any]] | None,
     *,
@@ -1614,8 +1645,11 @@ def format_soft_allow_short_history_bit(
     ±Npp`` then ``short bench lean/Δ align|clash`` follow so lean labels
     alone cannot hide how far bench÷short sits vs young÷short (short vs
     gap / Screener junk vs ok share Δ + lean vs Δ parity; mid Δ silent
-    on the Δ bit; lean-spoke + mid → clash · lean · Δ mid; Δ lead nest
-    deferred). ``last SYM``
+    on the Δ bit; lean-spoke + mid → clash · lean · Δ mid); when lean
+    vs Δ already spoke with a Δ and ±pp ≠ 0, ``short bench Δ lead ·
+    bench|young`` follows so the signed spread alone cannot hide which
+    sleeve owns it (short vs gap / unique vs dup Δ lead parity; lead
+    size still deferred). ``last SYM``
     follows so lean cannot clip the cursor (#546).     Cursor age
     (``fresh`` / ``aging`` / ``expired``) follows the name so a live
     ticker ≠ a live fail-open (gap last-freshness parity + RyanJHamby +
@@ -1765,6 +1799,17 @@ def format_soft_allow_short_history_bit(
                 if lean_vs_delta:
                     head = (
                         f"{head} · short bench lean/Δ {lean_vs_delta}"
+                    )
+                # Signed pp alone hid which sleeve owns the spread
+                # (short vs gap / unique vs dup Δ lead parity).
+                delta_lead = (
+                    soft_allow_short_history_bench_vs_young_delta_lead(
+                        events
+                    )
+                )
+                if delta_lead:
+                    head = (
+                        f"{head} · short bench Δ lead · {delta_lead}"
                     )
     last = soft_allow_short_history_last_symbol(events)
     if last:
