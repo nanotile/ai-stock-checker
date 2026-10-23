@@ -31,6 +31,11 @@ WINDOW_A_TARGET_SELLS = 3
 # Absolute Nc/Ns alone hid half-mix vs a sliver. hot ≥50% · quiet ≤25%.
 WINDOW_A_SLEEVE_CRYPTO_SHARE_HOT_PCT = 50.0
 WINDOW_A_SLEEVE_CRYPTO_SHARE_QUIET_PCT = 25.0
+# Stock÷total sides when crypto share already spoke (Screener junk vs ok /
+# soft-allow gap vs other). Crypto% alone hid usable equity legs.
+# strong ≥75% · thin <50%.
+WINDOW_A_SLEEVE_STOCK_SHARE_STRONG_PCT = 75.0
+WINDOW_A_SLEEVE_STOCK_SHARE_THIN_PCT = 50.0
 # staskh confirm-against-latest-closed → Window A closes must be fresh.
 WINDOW_A_MAX_SELL_STALE_DAYS = 5
 # RyanJHamby fresh/aging/stale — warn before hard stale (display only).
@@ -2385,6 +2390,8 @@ def window_a_sample_readiness(
         "sleeve_warn": False,
         "sleeve_crypto_share_pct": None,
         "sleeve_crypto_share_severity": "",
+        "sleeve_stock_share_pct": None,
+        "sleeve_stock_share_severity": "",
         "stale_closes": False,
         "stale_closes_bit": "",
         "aging_closes": False,
@@ -2779,6 +2786,8 @@ def window_a_sample_readiness(
     sleeve_warn = bool(sleeve.get("warn"))
     sleeve_crypto_share_pct = sleeve.get("crypto_share_pct")
     sleeve_crypto_share_severity = str(sleeve.get("crypto_share_severity") or "")
+    sleeve_stock_share_pct = sleeve.get("stock_share_pct")
+    sleeve_stock_share_severity = str(sleeve.get("stock_share_severity") or "")
 
     last_sell_raw = stats.get("last_sell")
     last_sell_dt = parse_trade_timestamp(last_sell_raw)
@@ -5131,6 +5140,8 @@ def window_a_sample_readiness(
         "sleeve_warn": sleeve_warn,
         "sleeve_crypto_share_pct": sleeve_crypto_share_pct,
         "sleeve_crypto_share_severity": sleeve_crypto_share_severity,
+        "sleeve_stock_share_pct": sleeve_stock_share_pct,
+        "sleeve_stock_share_severity": sleeve_stock_share_severity,
         "stale_closes": stale_closes,
         "stale_closes_bit": stale_closes_bit,
         "aging_closes": aging_closes,
@@ -5720,7 +5731,11 @@ def window_a_sleeve_mix(stats: dict[str, Any] | None) -> dict[str, Any]:
     When the sleeve already spoke, also speak crypto÷total ownership with
     ``hot ≥50%`` · ``quiet ≤25%`` (portfolio AI count≠share + Screener
     junk-share parity). Absolute ``Nc/Ns`` alone hid half-mix vs a sliver.
-    Not a gate.
+
+    When crypto share already spoke, also speak remaining stock legs
+    ``vs N stock · [strong|thin] · P%`` (Screener junk vs ok sides +
+    soft-allow gap vs other + portfolio AI speak-both-sides). Crypto%
+    alone hid usable equity legs in the control. Not a gate.
     """
     empty: dict[str, Any] = {
         "crypto_legs": None,
@@ -5731,6 +5746,8 @@ def window_a_sleeve_mix(stats: dict[str, Any] | None) -> dict[str, Any]:
         "warn": False,
         "crypto_share_pct": None,
         "crypto_share_severity": "",
+        "stock_share_pct": None,
+        "stock_share_severity": "",
     }
     if not isinstance(stats, dict):
         return empty
@@ -5756,6 +5773,16 @@ def window_a_sleeve_mix(stats: dict[str, Any] | None) -> dict[str, Any]:
     else:
         share_sev = ""
         share_tail = f"{share_pct}%"
+    stock_share_pct = round(100.0 * stock_n / total)
+    if stock_share_pct >= WINDOW_A_SLEEVE_STOCK_SHARE_STRONG_PCT:
+        stock_sev = "strong"
+        stock_tail = f"vs {stock_n} stock · strong · {stock_share_pct}%"
+    elif stock_share_pct < WINDOW_A_SLEEVE_STOCK_SHARE_THIN_PCT:
+        stock_sev = "thin"
+        stock_tail = f"vs {stock_n} stock · thin · {stock_share_pct}%"
+    else:
+        stock_sev = ""
+        stock_tail = f"vs {stock_n} stock · {stock_share_pct}%"
     if stock_n == 0:
         severity = "crypto_only"
         core = f"crypto-only · {crypto_n}"
@@ -5776,7 +5803,7 @@ def window_a_sleeve_mix(stats: dict[str, Any] | None) -> dict[str, Any]:
         severity = "mixed"
         core = f"mixed · {crypto_n}/{stock_n}"
         warn = False
-    meter = f"{core} · {share_tail}"
+    meter = f"{core} · {share_tail} · {stock_tail}"
     bit = f"A {meter}"
     return {
         "crypto_legs": crypto_n,
@@ -5787,6 +5814,8 @@ def window_a_sleeve_mix(stats: dict[str, Any] | None) -> dict[str, Any]:
         "warn": warn,
         "crypto_share_pct": share_pct,
         "crypto_share_severity": share_sev,
+        "stock_share_pct": stock_share_pct,
+        "stock_share_severity": stock_sev,
     }
 
 
