@@ -26,6 +26,11 @@ WINDOW_A_TARGET_FILLS = 10
 # Fee-adjusted edge needs closed rounds. All-buy = open-only; 1–2 sells = thin closes.
 # One lucky close after many buys is not a fair control sample (portfolio AI).
 WINDOW_A_TARGET_SELLS = 3
+# Crypto÷(crypto+stock) ownership when sleeve already spoke (portfolio AI
+# count≠share + Screener junk-share / soft-allow gap-share bands).
+# Absolute Nc/Ns alone hid half-mix vs a sliver. hot ≥50% · quiet ≤25%.
+WINDOW_A_SLEEVE_CRYPTO_SHARE_HOT_PCT = 50.0
+WINDOW_A_SLEEVE_CRYPTO_SHARE_QUIET_PCT = 25.0
 # staskh confirm-against-latest-closed → Window A closes must be fresh.
 WINDOW_A_MAX_SELL_STALE_DAYS = 5
 # RyanJHamby fresh/aging/stale — warn before hard stale (display only).
@@ -2378,6 +2383,8 @@ def window_a_sample_readiness(
         "sleeve_severity": "",
         "sleeve_bit": "",
         "sleeve_warn": False,
+        "sleeve_crypto_share_pct": None,
+        "sleeve_crypto_share_severity": "",
         "stale_closes": False,
         "stale_closes_bit": "",
         "aging_closes": False,
@@ -2770,6 +2777,8 @@ def window_a_sample_readiness(
     sleeve_severity = str(sleeve.get("severity") or "")
     sleeve_bit = str(sleeve.get("bit") or "")
     sleeve_warn = bool(sleeve.get("warn"))
+    sleeve_crypto_share_pct = sleeve.get("crypto_share_pct")
+    sleeve_crypto_share_severity = str(sleeve.get("crypto_share_severity") or "")
 
     last_sell_raw = stats.get("last_sell")
     last_sell_dt = parse_trade_timestamp(last_sell_raw)
@@ -5120,6 +5129,8 @@ def window_a_sample_readiness(
         "sleeve_severity": sleeve_severity,
         "sleeve_bit": sleeve_bit,
         "sleeve_warn": sleeve_warn,
+        "sleeve_crypto_share_pct": sleeve_crypto_share_pct,
+        "sleeve_crypto_share_severity": sleeve_crypto_share_severity,
         "stale_closes": stale_closes,
         "stale_closes_bit": stale_closes_bit,
         "aging_closes": aging_closes,
@@ -5705,6 +5716,10 @@ def window_a_sleeve_mix(stats: dict[str, Any] | None) -> dict[str, Any]:
     equity promote sample (A13 fee-model gaps + portfolio AI speak-both-sides
     + xang1234 market-pointer). Missing keys → silent fail-open. Warn on
     ``crypto-only`` / ``crypto-heavy`` only (does not block ready for B).
+
+    When the sleeve already spoke, also speak crypto÷total ownership with
+    ``hot ≥50%`` · ``quiet ≤25%`` (portfolio AI count≠share + Screener
+    junk-share parity). Absolute ``Nc/Ns`` alone hid half-mix vs a sliver.
     Not a gate.
     """
     empty: dict[str, Any] = {
@@ -5714,6 +5729,8 @@ def window_a_sleeve_mix(stats: dict[str, Any] | None) -> dict[str, Any]:
         "bit": "",
         "meter_bit": "",
         "warn": False,
+        "crypto_share_pct": None,
+        "crypto_share_severity": "",
     }
     if not isinstance(stats, dict):
         return empty
@@ -5729,31 +5746,38 @@ def window_a_sleeve_mix(stats: dict[str, Any] | None) -> dict[str, Any]:
     total = crypto_n + stock_n
     if total <= 0:
         return empty
+    share_pct = round(100.0 * crypto_n / total)
+    if share_pct >= WINDOW_A_SLEEVE_CRYPTO_SHARE_HOT_PCT:
+        share_sev = "hot"
+        share_tail = f"hot · {share_pct}%"
+    elif share_pct <= WINDOW_A_SLEEVE_CRYPTO_SHARE_QUIET_PCT:
+        share_sev = "quiet"
+        share_tail = f"quiet · {share_pct}%"
+    else:
+        share_sev = ""
+        share_tail = f"{share_pct}%"
     if stock_n == 0:
         severity = "crypto_only"
-        bit = f"A crypto-only · {crypto_n}"
-        meter = f"crypto-only · {crypto_n}"
+        core = f"crypto-only · {crypto_n}"
         warn = True
     elif crypto_n == 0:
         severity = "stock_only"
-        bit = f"A stock-only · {stock_n}"
-        meter = f"stock-only · {stock_n}"
+        core = f"stock-only · {stock_n}"
         warn = False
     elif crypto_n > stock_n:
         severity = "crypto_heavy"
-        bit = f"A crypto-heavy · {crypto_n}/{stock_n}"
-        meter = f"crypto-heavy · {crypto_n}/{stock_n}"
+        core = f"crypto-heavy · {crypto_n}/{stock_n}"
         warn = True
     elif stock_n > crypto_n:
         severity = "stock_heavy"
-        bit = f"A stock-heavy · {stock_n}/{crypto_n}"
-        meter = f"stock-heavy · {stock_n}/{crypto_n}"
+        core = f"stock-heavy · {stock_n}/{crypto_n}"
         warn = False
     else:
         severity = "mixed"
-        bit = f"A mixed · {crypto_n}/{stock_n}"
-        meter = f"mixed · {crypto_n}/{stock_n}"
+        core = f"mixed · {crypto_n}/{stock_n}"
         warn = False
+    meter = f"{core} · {share_tail}"
+    bit = f"A {meter}"
     return {
         "crypto_legs": crypto_n,
         "stock_legs": stock_n,
@@ -5761,6 +5785,8 @@ def window_a_sleeve_mix(stats: dict[str, Any] | None) -> dict[str, Any]:
         "bit": bit,
         "meter_bit": meter,
         "warn": warn,
+        "crypto_share_pct": share_pct,
+        "crypto_share_severity": share_sev,
     }
 
 
