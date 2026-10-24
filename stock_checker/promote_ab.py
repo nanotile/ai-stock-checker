@@ -2417,6 +2417,10 @@ def window_a_sample_readiness(
         "close_sleeve_stock_share_severity": "",
         "close_sleeve_crypto_vs_stock": "",
         "close_sleeve_crypto_vs_stock_warn": False,
+        "close_sleeve_crypto_vs_stock_delta_pp": None,
+        "close_sleeve_crypto_vs_stock_delta_severity": "",
+        "close_sleeve_crypto_vs_stock_lean_vs_delta": "",
+        "close_sleeve_crypto_vs_stock_lean_vs_delta_warn": False,
         "close_sleeve_lean_bit": "",
         "close_sleeve_bit": "",
         "close_sleeve_warn": False,
@@ -2861,10 +2865,22 @@ def window_a_sample_readiness(
     close_sleeve_crypto_vs_stock_warn = bool(
         close_sleeve.get("crypto_vs_stock_warn")
     )
+    close_sleeve_crypto_vs_stock_delta_pp = close_sleeve.get(
+        "crypto_vs_stock_delta_pp"
+    )
+    close_sleeve_crypto_vs_stock_delta_severity = str(
+        close_sleeve.get("crypto_vs_stock_delta_severity") or ""
+    )
+    close_sleeve_crypto_vs_stock_lean_vs_delta = str(
+        close_sleeve.get("crypto_vs_stock_lean_vs_delta") or ""
+    )
+    close_sleeve_crypto_vs_stock_lean_vs_delta_warn = bool(
+        close_sleeve.get("crypto_vs_stock_lean_vs_delta_warn")
+    )
     close_sleeve_lean_bit = str(close_sleeve.get("lean_bit") or "")
     close_sleeve_bit = str(close_sleeve.get("bit") or "")
     close_sleeve_warn = bool(close_sleeve.get("warn"))
-    # Close lean (vs-fills · share · sides · crypto vs stock) before fill
+    # Close lean (vs-fills · share · sides · crypto vs stock · Δ) before fill
     # share/sides — clash first.
     if close_sleeve_lean_bit:
         if sleeve_lean_bit:
@@ -5270,6 +5286,18 @@ def window_a_sample_readiness(
         "close_sleeve_crypto_vs_stock_warn": (
             close_sleeve_crypto_vs_stock_warn
         ),
+        "close_sleeve_crypto_vs_stock_delta_pp": (
+            close_sleeve_crypto_vs_stock_delta_pp
+        ),
+        "close_sleeve_crypto_vs_stock_delta_severity": (
+            close_sleeve_crypto_vs_stock_delta_severity
+        ),
+        "close_sleeve_crypto_vs_stock_lean_vs_delta": (
+            close_sleeve_crypto_vs_stock_lean_vs_delta
+        ),
+        "close_sleeve_crypto_vs_stock_lean_vs_delta_warn": (
+            close_sleeve_crypto_vs_stock_lean_vs_delta_warn
+        ),
         "close_sleeve_lean_bit": close_sleeve_lean_bit,
         "close_sleeve_bit": close_sleeve_bit,
         "close_sleeve_warn": close_sleeve_warn,
@@ -6102,8 +6130,18 @@ def window_a_close_sleeve_mix(
     Sides alone hid lean agreement. Clash warns when crypto hot or stock
     thin. Prefixed ``closes`` so fill ``crypto vs stock`` stays distinct.
 
-    Warn on crypto-only|heavy closes, fill≠close clash, or lean clash.
-    Not a gate.
+    When close lean already spoke, also speak closes crypto%−stock%
+    ``closes Δ wide|thin · ±Npp`` then ``closes lean/Δ align|clash``
+    (fill sleeve share Δ + Screener junk vs ok / soft-allow short vs gap
+    share Δ + lean vs Δ). Lean alone hid how far close ownership sits.
+    Wide ≥ ``WINDOW_A_EXIT_CONC_SKEW_PP`` · thin <
+    ``WINDOW_A_SHARE_DELTA_THIN_PP``; mid/0 → ``closes lean/Δ clash · lean
+    · Δ mid`` warn; adverse ``align · hot|thin`` + Δ wide warns. Prefixed
+    ``closes`` so fill ``Δ`` / ``lean/Δ`` stay distinct in the lean fold.
+    Close Δ lead nest still deferred.
+
+    Warn on crypto-only|heavy closes, fill≠close clash, lean clash, or
+    lean/Δ mid|adverse. Not a gate.
     """
     empty: dict[str, Any] = {
         "crypto_closes": None,
@@ -6120,6 +6158,10 @@ def window_a_close_sleeve_mix(
         "stock_share_severity": "",
         "crypto_vs_stock": "",
         "crypto_vs_stock_warn": False,
+        "crypto_vs_stock_delta_pp": None,
+        "crypto_vs_stock_delta_severity": "",
+        "crypto_vs_stock_lean_vs_delta": "",
+        "crypto_vs_stock_lean_vs_delta_warn": False,
         "bit": "",
         "warn": False,
     }
@@ -6191,6 +6233,38 @@ def window_a_close_sleeve_mix(
         if crypto_vs_stock
         else ""
     )
+    # Share Δ after lean (fill sleeve / junk vs ok / short vs gap parity).
+    delta_pp: float | None = None
+    delta_sev = ""
+    lean_vs_delta = ""
+    lean_vs_delta_warn = False
+    if crypto_vs_stock:
+        raw_delta = float(share_pct) - float(stock_share_pct)
+        mag = abs(raw_delta)
+        if mag >= 1e-9:
+            if mag >= WINDOW_A_EXIT_CONC_SKEW_PP:
+                delta_sev = "wide"
+                delta_pp = round(raw_delta, 1)
+            elif mag < WINDOW_A_SHARE_DELTA_THIN_PP:
+                delta_sev = "thin"
+                delta_pp = round(raw_delta, 1)
+        if delta_sev and delta_pp is not None:
+            lean_vs_delta = f"align · {delta_sev}"
+            lean_vs_delta_warn = (
+                delta_sev == "wide"
+                and crypto_vs_stock.startswith("align · hot|thin")
+            )
+        else:
+            lean_vs_delta = "clash · lean · Δ mid"
+            lean_vs_delta_warn = True
+    delta_tail = ""
+    if delta_sev and delta_pp is not None:
+        delta_tail = (
+            f"closes Δ {delta_sev} · {_fmt_share_pp_signed(delta_pp)}"
+        )
+    lvd_tail = (
+        f"closes lean/Δ {lean_vs_delta}" if lean_vs_delta else ""
+    )
     fill_sev = str(fill_severity or "").strip()
     vs_fills = ""
     clash_warn = False
@@ -6201,9 +6275,18 @@ def window_a_close_sleeve_mix(
         else:
             vs_fills = f"closes clash · fills {fill_label}"
             clash_warn = True
-    # Clash/agree before share·sides·lean so the 96-char clip keeps fill≠close.
+    # Clash/agree before share·sides·lean·Δ so the 96-char clip keeps fill≠close.
     lean_parts = [
-        p for p in (vs_fills, share_bit, sides_bit, lean_tail) if p
+        p
+        for p in (
+            vs_fills,
+            share_bit,
+            sides_bit,
+            lean_tail,
+            delta_tail,
+            lvd_tail,
+        )
+        if p
     ]
     lean_bit = " · ".join(lean_parts)
     bit_parts = [core_bit]
@@ -6224,8 +6307,17 @@ def window_a_close_sleeve_mix(
         "stock_share_severity": stock_sev,
         "crypto_vs_stock": crypto_vs_stock,
         "crypto_vs_stock_warn": crypto_vs_stock_warn,
+        "crypto_vs_stock_delta_pp": delta_pp,
+        "crypto_vs_stock_delta_severity": delta_sev,
+        "crypto_vs_stock_lean_vs_delta": lean_vs_delta,
+        "crypto_vs_stock_lean_vs_delta_warn": lean_vs_delta_warn,
         "bit": " · ".join(bit_parts),
-        "warn": crypto_warn or clash_warn or crypto_vs_stock_warn,
+        "warn": (
+            crypto_warn
+            or clash_warn
+            or crypto_vs_stock_warn
+            or lean_vs_delta_warn
+        ),
     }
 
 
@@ -6279,9 +6371,25 @@ _SLEEVE_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
     # Close crypto vs stock lean (prefix so fill ``crypto vs stock`` stays lean).
     (
         re.compile(
-            r"closes crypto vs stock .+?(?= · (?:Δ |lean/Δ |crypto vs stock )|$)"
+            r"closes crypto vs stock .+?(?= · (?:closes Δ |closes lean/Δ |"
+            r"Δ |lean/Δ |crypto vs stock )|$)"
         ),
         "closes lean",
+    ),
+    # Close share Δ (prefix so fill ``Δ wide`` stays Δ).
+    (
+        re.compile(
+            r"closes Δ (?:wide|thin) · [+−\-±]?\d+(?:\.\d+)?pp"
+        ),
+        "closes Δ",
+    ),
+    # Close lean vs Δ (prefix so fill ``lean/Δ`` stays lean/Δ).
+    (
+        re.compile(
+            r"closes lean/Δ .+?(?= · (?:closes Δ lead |(?:hot|quiet) · |"
+            r"\d+%|vs \d|crypto vs stock |Δ |lean/Δ )|$)"
+        ),
+        "closes lean/Δ",
     ),
     (re.compile(r"(?:hot|quiet) · \d+%"), "share"),
     (re.compile(r"\d+%"), "share"),
