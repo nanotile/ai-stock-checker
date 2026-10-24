@@ -60,3 +60,15 @@ def test_revolut_min_commission_floor():
     # Second leg pays €1 min on small notional
     small = p.buy("MSFT", price=10.0, quantity=5, timestamp="2026-08-01 11:00:00")
     assert abs(small["transaction"]["commission"] - 1.0) < 1e-6
+
+
+def test_portfolio_currency_default():
+    p = Portfolio(initial_cash=1000, commission_rate=0.0, commission_min=0.0,
+                  enable_risk_management=False)
+    assert p.currency == "EUR"
+
+
+def test_portfolio_currency_usd():
+    p = Portfolio(initial_cash=1000, commission_rate=0.0, commission_min=0.0,
+                  currency="USD", enable_risk_management=False)
+    assert p.currency == "USD"

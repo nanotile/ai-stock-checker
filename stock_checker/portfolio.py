@@ -23,6 +23,7 @@ class Portfolio:
         persistence=None,
         enable_risk_management: bool = True,
         fee_preset: str = DEFAULT_FEE_PRESET,
+        currency: str = "EUR",
     ):
         """
         Initialize portfolio.
@@ -52,6 +53,7 @@ class Portfolio:
                 self.fee_preset = str(
                     loaded.get("fee_preset") or self.fee_preset
                 )
+                self.currency = str(loaded.get("currency", "EUR"))
                 self.holdings = loaded["holdings"]
                 self.avg_buy_price = loaded["avg_buy_price"]
                 self.total_fees_paid = loaded["total_fees_paid"]
@@ -69,6 +71,7 @@ class Portfolio:
         self.cash = initial_cash
         self.commission_rate = commission_rate
         self.commission_min = commission_min
+        self.currency = currency
         self.holdings: Dict[str, float] = {}  # symbol -> quantity
         self.avg_buy_price: Dict[str, float] = {}  # symbol -> avg price
         self.transactions: List[Dict] = []
@@ -325,6 +328,7 @@ class Portfolio:
                 "commission_rate": self.commission_rate,
                 "commission_min": self.commission_min,
                 "fee_preset": self.fee_preset,
+                "currency": self.currency,
                 "holdings": self.holdings,
                 "avg_buy_price": self.avg_buy_price,
                 "total_fees_paid": self.total_fees_paid,
