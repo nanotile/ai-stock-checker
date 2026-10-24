@@ -1044,6 +1044,33 @@ def soft_allow_short_lean_moods(
     )
 
 
+def soft_allow_short_lean_vs_delta_moods(
+    events: list[dict[str, Any]] | None,
+) -> tuple[str, bool]:
+    """Lean moods verb vs Δ moods verb (display only).
+
+    Returns ``(bit, warn)``. When both lean moods and Δ moods already
+    spoke: same → ``align · both align|clash``; crossed →
+    ``clash · lean … · Δ …``. Missing either side silent. Dual-clash +
+    crossed warn; both-align speaks, no warn. Side-by-side lean moods +
+    Δ moods alone hid whether the two *relationships* agree (wide Δ
+    mood align can still sit on lean moods clash — Window A close
+    sleeve lean vs Δ moods + FinRobot + portfolio AI speak-both-sides).
+    Prefixed ``short lean vs Δ moods`` in the glance bit so lean moods
+    and Δ moods stay distinct. Not a gate.
+    """
+    lean_moods, _ = soft_allow_short_lean_moods(events)
+    delta_moods, _ = soft_allow_short_delta_moods(events)
+    lean_v = _short_lean_verb(lean_moods)
+    delta_v = _short_lean_verb(delta_moods)
+    if not lean_v or not delta_v:
+        return "", False
+    if lean_v == delta_v:
+        # Dual-clash agreement ≠ calm confirm (share/lean both-clash).
+        return f"align · both {lean_v}", lean_v == "clash"
+    return f"clash · lean {lean_v} · Δ {delta_v}", True
+
+
 def soft_allow_short_history_last_vs_share(
     events: list[dict[str, Any]] | None,
     *,
@@ -1790,6 +1817,10 @@ def format_soft_allow_short_history_bit(
     pair and bench lean already spoke, ``short lean moods align|clash``
     follows so Δ mood match alone cannot hide lean *verb* mismatch
     (Window A close sleeve lean moods + FinRobot + portfolio AI
+    speak-both-sides); when lean moods + Δ moods already spoke,
+    ``short lean vs Δ moods align|clash`` follows so side-by-side
+    relationship verbs alone cannot hide whether they agree (Window A
+    close sleeve lean vs Δ moods + FinRobot + portfolio AI
     speak-both-sides).
     When last freshness extremes + lean already spoke, ``short last/lean
     align|clash`` follows so age labels + lean labels alone cannot hide
@@ -2068,6 +2099,16 @@ def format_soft_allow_short_history_bit(
             lean_moods, _ = soft_allow_short_lean_moods(events)
             if lean_moods:
                 head = f"{head} · short lean moods {lean_moods}"
+            # Side-by-side lean moods + Δ moods alone hid whether the
+            # two relationships agree (Window A close sleeve lean vs Δ
+            # moods + FinRobot + portfolio AI speak-both-sides).
+            lean_vs_delta_moods, _ = soft_allow_short_lean_vs_delta_moods(
+                events
+            )
+            if lean_vs_delta_moods:
+                head = (
+                    f"{head} · short lean vs Δ moods {lean_vs_delta_moods}"
+                )
             last_vs_lean, _ = soft_allow_short_history_last_vs_lean(
                 events, now=now
             )

@@ -84,6 +84,7 @@ def test_soft_allow_short_history_count() -> None:
         soft_allow_short_vs_gap_delta_lead,
         soft_allow_short_delta_moods,
         soft_allow_short_lean_moods,
+        soft_allow_short_lean_vs_delta_moods,
         soft_allow_short_history_last_vs_share,
         soft_allow_short_history_last_vs_ring_share,
         soft_allow_short_history_last_vs_lean,
@@ -264,6 +265,9 @@ def test_soft_allow_short_history_count() -> None:
     assert soft_allow_short_lean_moods(None) == ("", False)
     assert soft_allow_short_lean_moods([]) == ("", False)
     assert soft_allow_short_lean_moods(mixed) == ("", False)
+    assert soft_allow_short_lean_vs_delta_moods(None) == ("", False)
+    assert soft_allow_short_lean_vs_delta_moods([]) == ("", False)
+    assert soft_allow_short_lean_vs_delta_moods(mixed) == ("", False)
     # No freshness stamp → last/lean silent (age extremes required).
     assert soft_allow_short_history_last_vs_lean(mixed) == ("", False)
     # Absolute N short ≠ short÷ring (2/3 ≈ 66.7% hot; gap share parity).
@@ -409,6 +413,11 @@ def test_soft_allow_short_history_count() -> None:
         "align · both align",
         False,
     )
+    # Lean moods align + Δ moods align → lean vs Δ moods both align.
+    assert soft_allow_short_lean_vs_delta_moods(bench_rows) == (
+        "align · both align",
+        False,
+    )
     # Pair wide + bench/young thin → Δ moods clash (Yahoo share vs gap).
     mood_clash = (
         [{"gate": "rs", "reason": "SPY RS unknown — short history — allow"}]
@@ -433,6 +442,11 @@ def test_soft_allow_short_history_count() -> None:
         "align · both align",
         False,
     )
+    # Lean moods align + Δ moods clash → lean vs Δ moods clash (warns).
+    assert soft_allow_short_lean_vs_delta_moods(mood_clash) == (
+        "clash · lean align · Δ clash",
+        True,
+    )
     # Pair one-sided lean clash + bench lean align → lean moods clash.
     # short=4 gap=4 → short 50% hot · gap 50% mid → clash · short hot · gap ok
     # bench=3/4=75% hot · young=1/4=25% thin → align hot|thin
@@ -454,6 +468,12 @@ def test_soft_allow_short_history_count() -> None:
         "clash · short/gap clash · bench/young align",
         True,
     )
+    # Mid-Δ clash → no Δ moods → lean vs Δ moods silent (need both).
+    assert soft_allow_short_delta_moods(lean_mood_clash) == ("", False)
+    assert soft_allow_short_lean_vs_delta_moods(lean_mood_clash) == (
+        "",
+        False,
+    )
     # No stamp → last/bench silent (fresh|expired extremes only).
     assert soft_allow_short_history_last_vs_bench_young(bench_rows) == (
         "",
@@ -469,7 +489,8 @@ def test_soft_allow_short_history_count() -> None:
         "last SPY · tied · "
         "hot · 75% · vs gap · thin · 1 · 25% · short vs gap align · hot|thin · "
         "short Δ wide · +50pp · short lean/Δ align · wide · short Δ lead · short · "
-        "short Δ moods align · both wide · short lean moods align · both align"
+        "short Δ moods align · both wide · short lean moods align · both align · "
+        "short lean vs Δ moods align · both align"
     )
     # Fresh cursor + align lean → last/bench align (gap last/lean parity).
     now_bench = datetime(2026, 10, 22, 12, 0, tzinfo=timezone.utc)
