@@ -180,6 +180,7 @@ app.add_middleware(
         "https://pro.openbb.dev",
         "http://localhost:7779",
         "http://127.0.0.1:7779",
+        "https://desk.kentbenson.net",
     ],
     allow_origin_regex=r"https://.*\.openbb\.co",
     allow_credentials=True,
