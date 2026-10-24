@@ -235,6 +235,15 @@
     <span class="pretrade-sep" aria-hidden="true">·</span>
     <a class="calm-streak-glance-link" href="{{ link_href }}">{{ link_label }}</a>
   </p>
+  {% set sleeve_lean = glance.window_a_sleeve_lean|default('') %}
+  {% if sleeve_lean %}
+  {% set sleeve_warn = glance.window_a_sleeve_warn|default(false) %}
+  {% set sleeve_meta = glance.window_a_sleeve_lean_meta|default('quiet') %}
+  <details class="promote-sleeve-lean{% if sleeve_warn %} warn{% endif %}"{% if sleeve_warn %} open{% endif %}>
+    <summary>sleeve lean <span class="meta">{{ sleeve_meta }}</span></summary>
+    <p class="promote-sleeve-lean-body{% if sleeve_warn %} warn{% endif %}">{{ sleeve_lean }}</p>
+  </details>
+  {% endif %}
   <p class="sub">{{ sub }}</p>
 </section>
 {% endif %}
@@ -260,6 +269,15 @@
     <span class="pretrade-sep" aria-hidden="true">·</span>
     <a class="promote-ab-glance-link" href="{{ link_href }}">{{ link_label }}</a>
   </p>
+  {% set sleeve_lean = glance.a_sleeve_lean|default('') %}
+  {% if sleeve_lean %}
+  {% set sleeve_warn = glance.a_sleeve_warn|default(false) %}
+  {% set sleeve_meta = glance.a_sleeve_lean_meta|default('quiet') %}
+  <details class="promote-sleeve-lean{% if sleeve_warn %} warn{% endif %}"{% if sleeve_warn %} open{% endif %}>
+    <summary>sleeve lean <span class="meta">{{ sleeve_meta }}</span></summary>
+    <p class="promote-sleeve-lean-body{% if sleeve_warn %} warn{% endif %}">{{ sleeve_lean }}</p>
+  </details>
+  {% endif %}
   {% if glance.honesty_line %}
   {% set warns = glance.honesty_warns if glance.honesty_warns else [] %}
   <details class="promote-honesty" id="promote-honesty"{% if warns %} open{% endif %}>

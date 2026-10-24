@@ -7,6 +7,7 @@ Calm streak unlocks compose default — A/B measures fee-adjusted live edge.
 from __future__ import annotations
 
 import json
+import re
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterable
@@ -16,6 +17,7 @@ from stock_checker.risk_halts import (
     DEFAULT_MAX_NAME_PCT,
 )
 from stock_checker.trader_config import DEFAULTS as TRADER_DEFAULTS
+from stock_checker.yahoo_universe_discovery import _quiet_inventory_chip
 
 # Window A control (promote OFF) — started 2026-08-12 ~15:22 UTC
 WINDOW_A_START = date(2026, 8, 12)
@@ -2387,6 +2389,9 @@ def window_a_sample_readiness(
         "stock_legs": None,
         "sleeve_severity": "",
         "sleeve_bit": "",
+        "sleeve_core_bit": "",
+        "sleeve_lean_bit": "",
+        "sleeve_lean_meta": "quiet",
         "sleeve_warn": False,
         "sleeve_crypto_share_pct": None,
         "sleeve_crypto_share_severity": "",
@@ -2790,7 +2795,12 @@ def window_a_sample_readiness(
     stock_legs = sleeve.get("stock_legs")
     sleeve_severity = str(sleeve.get("severity") or "")
     sleeve_bit = str(sleeve.get("bit") or "")
+    sleeve_core_bit = str(sleeve.get("core_bit") or "")
+    sleeve_lean_bit = str(sleeve.get("lean_bit") or "")
     sleeve_warn = bool(sleeve.get("warn"))
+    sleeve_lean_meta = window_a_sleeve_lean_meta(
+        sleeve_lean_bit, warn=sleeve_warn
+    )
     sleeve_crypto_share_pct = sleeve.get("crypto_share_pct")
     sleeve_crypto_share_severity = str(sleeve.get("crypto_share_severity") or "")
     sleeve_stock_share_pct = sleeve.get("stock_share_pct")
@@ -5159,6 +5169,9 @@ def window_a_sample_readiness(
         "stock_legs": stock_legs,
         "sleeve_severity": sleeve_severity,
         "sleeve_bit": sleeve_bit,
+        "sleeve_core_bit": sleeve_core_bit,
+        "sleeve_lean_bit": sleeve_lean_bit,
+        "sleeve_lean_meta": sleeve_lean_meta,
         "sleeve_warn": sleeve_warn,
         "sleeve_crypto_share_pct": sleeve_crypto_share_pct,
         "sleeve_crypto_share_severity": sleeve_crypto_share_severity,
@@ -5792,13 +5805,20 @@ def window_a_sleeve_mix(stats: dict[str, Any] | None) -> dict[str, Any]:
     ``Δ lead · crypto|stock`` (soft-allow short vs gap / Screener unique
     vs dup / Yahoo mix Δ lead parity). Signed pp alone hid which sleeve
     owns the spread. Mid-Δ clash / 0pp stay silent. Δ lead size nest
-    still deferred. Not a gate.
+    still deferred.
+
+    Desk shows ``core_bit`` on the primary line and share/sides/lean/Δ/lead
+    under a sleeve lean fold (``lean_bit``) — Yahoo mix / soft-allow /
+    Screener weight lean fold parity after the cascade buried fill meters
+    on the 96-char calm clip. Full ``bit`` join kept for tests. Not a gate.
     """
     empty: dict[str, Any] = {
         "crypto_legs": None,
         "stock_legs": None,
         "severity": "",
         "bit": "",
+        "core_bit": "",
+        "lean_bit": "",
         "meter_bit": "",
         "warn": False,
         "crypto_share_pct": None,
@@ -5930,21 +5950,26 @@ def window_a_sleeve_mix(stats: dict[str, Any] | None) -> dict[str, Any]:
         delta_tail = f"Δ {delta_sev} · {_fmt_share_pp_signed(delta_pp)}"
     lvd_tail = f"lean/Δ {lean_vs_delta}" if lean_vs_delta else ""
     lead_tail = f"Δ lead · {delta_lead}" if delta_lead else ""
-    meter = f"{core} · {share_tail} · {stock_tail}"
+    lean_parts = [share_tail, stock_tail]
     if lean_tail:
-        meter = f"{meter} · {lean_tail}"
+        lean_parts.append(lean_tail)
     if delta_tail:
-        meter = f"{meter} · {delta_tail}"
+        lean_parts.append(delta_tail)
     if lvd_tail:
-        meter = f"{meter} · {lvd_tail}"
+        lean_parts.append(lvd_tail)
     if lead_tail:
-        meter = f"{meter} · {lead_tail}"
+        lean_parts.append(lead_tail)
+    lean_bit = " · ".join(p for p in lean_parts if p)
+    meter = f"{core} · {lean_bit}" if lean_bit else core
+    core_bit = f"A {core}"
     bit = f"A {meter}"
     return {
         "crypto_legs": crypto_n,
         "stock_legs": stock_n,
         "severity": severity,
         "bit": bit,
+        "core_bit": core_bit,
+        "lean_bit": lean_bit,
         "meter_bit": meter,
         "warn": warn or crypto_vs_stock_warn or lean_vs_delta_warn,
         "crypto_share_pct": share_pct,
@@ -5961,8 +5986,56 @@ def window_a_sleeve_mix(stats: dict[str, Any] | None) -> dict[str, Any]:
     }
 
 
+# Quiet sleeve-lean chip names spoken stages (Yahoo mix / Screener weight).
+_SLEEVE_LEAN_QUIET_NAME_CAP = 4
+_SLEEVE_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
+    (re.compile(r"(?:hot|quiet) · \d+%"), "share"),
+    (re.compile(r"\d+%"), "share"),
+    (re.compile(r"vs \d+ stock(?: · (?:strong|thin))? · \d+%"), "sides"),
+    (re.compile(r"crypto vs stock .+?(?= · (?:Δ |lean/Δ )|$)"), "lean"),
+    (re.compile(r"Δ (?:wide|thin) · [+−\-±]?\d+(?:\.\d+)?pp"), "Δ"),
+    (re.compile(r"lean/Δ .+?(?= · Δ lead |$)"), "lean/Δ"),
+    (re.compile(r"Δ lead · (?:crypto|stock)"), "Δ lead"),
+)
+
+
+def window_a_sleeve_lean_meta(lean_bit: str, *, warn: bool = False) -> str:
+    """Summary chip for Window A sleeve lean fold — why open / which stages.
+
+    Quiet names spoken stages (``quiet · N folds · share · sides · lean · Δ``).
+    Warned speaks ``clash`` / ``align · wide`` / ``warn`` plus clipped stages
+    (Yahoo mix / Screener weight lean meta parity). Empty stays ``quiet``.
+    Display only; not a gate.
+    """
+    lean = str(lean_bit or "").strip()
+    if not lean:
+        return "quiet"
+    if warn:
+        low = lean.lower()
+        if "clash" in low:
+            sev = "clash"
+        elif "align · wide" in lean or "align · hot|thin" in lean:
+            sev = "align · wide"
+        elif " · hot ·" in f" · {low} · " or low.startswith("hot ·"):
+            sev = "hot"
+        else:
+            sev = "warn"
+        stage_tail = _quiet_inventory_chip(
+            lean,
+            _SLEEVE_LEAN_STAGE_RES,
+            cap=_SLEEVE_LEAN_QUIET_NAME_CAP,
+            quiet=False,
+        )
+        if stage_tail:
+            return f"{sev} · {stage_tail}"
+        return sev
+    return _quiet_inventory_chip(
+        lean, _SLEEVE_LEAN_STAGE_RES, cap=_SLEEVE_LEAN_QUIET_NAME_CAP
+    )
+
+
 def format_window_a_sleeve_bit(sample: dict[str, Any] | None) -> str:
-    """Short Window A crypto/stock sleeve bit for promote A/B glance."""
+    """Full Window A crypto/stock sleeve bit (core + lean join) for tests."""
     if not isinstance(sample, dict):
         return ""
     bit = str(sample.get("sleeve_bit") or "").strip()
@@ -5970,6 +6043,52 @@ def format_window_a_sleeve_bit(sample: dict[str, Any] | None) -> str:
         return bit
     # Rebuild from raw legs when sample predates sleeve fields.
     return str(window_a_sleeve_mix(sample).get("bit") or "").strip()
+
+
+def format_window_a_sleeve_core_bit(sample: dict[str, Any] | None) -> str:
+    """Primary-line Window A sleeve core (severity · Nc/Ns) — lean is folded."""
+    if not isinstance(sample, dict):
+        return ""
+    core = str(sample.get("sleeve_core_bit") or "").strip()
+    if core:
+        return core
+    mix = window_a_sleeve_mix(
+        {
+            "crypto_legs": sample.get("crypto_legs"),
+            "stock_legs": sample.get("stock_legs"),
+        }
+        if "crypto_legs" in sample or "stock_legs" in sample
+        else sample
+    )
+    core = str(mix.get("core_bit") or "").strip()
+    if core:
+        return core
+    # Predates core_bit: strip lean from full bit when possible.
+    bit = str(sample.get("sleeve_bit") or mix.get("bit") or "").strip()
+    if not bit:
+        return ""
+    lean = str(sample.get("sleeve_lean_bit") or mix.get("lean_bit") or "").strip()
+    if lean and bit.endswith(f" · {lean}"):
+        return bit[: -len(lean) - 3].strip()
+    return bit
+
+
+def format_window_a_sleeve_lean_bit(sample: dict[str, Any] | None) -> str:
+    """Fold body: share · sides · lean · Δ · lead (empty when only core)."""
+    if not isinstance(sample, dict):
+        return ""
+    lean = str(sample.get("sleeve_lean_bit") or "").strip()
+    if lean:
+        return lean
+    mix = window_a_sleeve_mix(
+        {
+            "crypto_legs": sample.get("crypto_legs"),
+            "stock_legs": sample.get("stock_legs"),
+        }
+        if "crypto_legs" in sample or "stock_legs" in sample
+        else sample
+    )
+    return str(mix.get("lean_bit") or "").strip()
 
 
 def format_window_a_thin_bit(sample: dict[str, Any] | None) -> str:

@@ -5216,6 +5216,9 @@ def build_calm_streak_glance(
         "window_a_target_sells": None,
         "window_a_sample_status": "",
         "window_a_sleeve_bit": "",
+        "window_a_sleeve_core": "",
+        "window_a_sleeve_lean": "",
+        "window_a_sleeve_lean_meta": "quiet",
         "window_a_sleeve_warn": False,
         "window_a_fee_net_bit": "",
         "window_a_fee_mood_bit": "",
@@ -5550,6 +5553,9 @@ def build_calm_streak_glance(
     window_a_target_sells: int | None = None
     window_a_sample_status = ""
     window_a_sleeve_bit = ""
+    window_a_sleeve_core = ""
+    window_a_sleeve_lean = ""
+    window_a_sleeve_lean_meta = "quiet"
     window_a_sleeve_warn = False
     window_a_fee_net_bit = ""
     window_a_fee_mood_bit = ""
@@ -6106,16 +6112,27 @@ def build_calm_streak_glance(
                 status = f"{status} · {status_bit}"
             # Sleeve before fee cascade — fill count alone hid BTC-churn
             # control (A13 + portfolio AI + xang1234 market-pointer).
+            # Core on the 96-char line; share/sides/lean/Δ/lead under fold
+            # (Yahoo mix / soft-allow lean fold parity).
             sleeve_raw = str(sample.get("sleeve_bit") or "").strip()
-            if sleeve_raw:
-                window_a_sleeve_bit = sleeve_raw
-                window_a_sleeve_warn = bool(sample.get("sleeve_warn"))
-                compact_sleeve = (
+            sleeve_core_raw = str(sample.get("sleeve_core_bit") or "").strip()
+            sleeve_lean_raw = str(sample.get("sleeve_lean_bit") or "").strip()
+            if sleeve_raw or sleeve_core_raw:
+                window_a_sleeve_bit = sleeve_raw or sleeve_core_raw
+                window_a_sleeve_core = sleeve_core_raw or (
                     sleeve_raw[2:].strip()
                     if sleeve_raw.startswith("A ")
                     else sleeve_raw
                 )
-                status = f"{status} · {compact_sleeve}"
+                if window_a_sleeve_core.startswith("A "):
+                    window_a_sleeve_core = window_a_sleeve_core[2:].strip()
+                window_a_sleeve_lean = sleeve_lean_raw
+                window_a_sleeve_warn = bool(sample.get("sleeve_warn"))
+                window_a_sleeve_lean_meta = str(
+                    sample.get("sleeve_lean_meta") or ""
+                ).strip() or ("warn" if window_a_sleeve_warn else "quiet")
+                if window_a_sleeve_core:
+                    status = f"{status} · {window_a_sleeve_core}"
                 if window_a_sleeve_warn:
                     tone = "warn"
             if sample.get("known") and isinstance(stats, dict):
@@ -18066,6 +18083,9 @@ def build_calm_streak_glance(
         "window_a_target_sells": window_a_target_sells,
         "window_a_sample_status": window_a_sample_status,
         "window_a_sleeve_bit": window_a_sleeve_bit,
+        "window_a_sleeve_core": window_a_sleeve_core,
+        "window_a_sleeve_lean": window_a_sleeve_lean,
+        "window_a_sleeve_lean_meta": window_a_sleeve_lean_meta,
         "window_a_sleeve_warn": window_a_sleeve_warn,
         "window_a_fee_net_bit": window_a_fee_net_bit,
         "window_a_fee_mood_bit": window_a_fee_mood_bit,
@@ -19502,6 +19522,9 @@ def build_promote_ab_glance(
         format_window_a_fresh_closes_bit,
         format_window_a_open_only_bit,
         format_window_a_sleeve_bit,
+        format_window_a_sleeve_core_bit,
+        format_window_a_sleeve_lean_bit,
+        window_a_sleeve_lean_meta,
         format_window_a_stale_closes_bit,
         format_window_a_thin_bit,
         format_window_a_thin_closes_bit,
@@ -19770,6 +19793,9 @@ def build_promote_ab_glance(
         "closes_net_profit_factor_eats_edge": False,
         "a_fill_progress_bit": "",
         "a_sleeve_bit": "",
+        "a_sleeve_core": "",
+        "a_sleeve_lean": "",
+        "a_sleeve_lean_meta": "quiet",
         "a_sleeve_warn": False,
         "a_thin_bit": "",
         "a_open_only_bit": "",
@@ -20518,7 +20544,24 @@ def build_promote_ab_glance(
         format_window_a_fill_progress_bit(sample) if window == "A" else ""
     )
     a_sleeve_bit = format_window_a_sleeve_bit(sample) if window == "A" else ""
+    a_sleeve_core = (
+        format_window_a_sleeve_core_bit(sample) if window == "A" else ""
+    )
+    a_sleeve_lean = (
+        format_window_a_sleeve_lean_bit(sample) if window == "A" else ""
+    )
     a_sleeve_warn = bool(sample.get("sleeve_warn")) if window == "A" else False
+    a_sleeve_lean_meta = (
+        str(sample.get("sleeve_lean_meta") or "").strip()
+        if window == "A"
+        else "quiet"
+    )
+    if window == "A" and a_sleeve_lean and not a_sleeve_lean_meta:
+        a_sleeve_lean_meta = window_a_sleeve_lean_meta(
+            a_sleeve_lean, warn=a_sleeve_warn
+        )
+    elif window == "A" and not a_sleeve_lean_meta:
+        a_sleeve_lean_meta = "quiet"
     a_thin_bit = format_window_a_thin_bit(sample) if window == "A" else ""
     a_open_only_bit = (
         format_window_a_open_only_bit(sample) if window == "A" else ""
@@ -20957,11 +21000,13 @@ def build_promote_ab_glance(
     )
 
     def _honesty_bits() -> list[str]:
-        """Close-stat bits. The short line stays the decision; these fold under details."""
+        """Close-stat bits. The short line stays the decision; these fold under details.
+
+        Sleeve lean has its own fold (``a_sleeve_lean``) — not Close honesty.
+        """
         return [
             b
             for b in (
-                a_sleeve_bit,
                 a_fee_status_bit,
                 a_closes_polarity_bit,
                 a_closes_win_rate_bit,
@@ -21657,7 +21702,10 @@ def build_promote_ab_glance(
     ]
     if a_fill_progress_bit:
         parts.append(a_fill_progress_bit)
-    if a_sleeve_bit:
+    # Core on the primary line; lean cascade sits under sleeve fold.
+    if a_sleeve_core:
+        parts.append(a_sleeve_core)
+    elif a_sleeve_bit:
         parts.append(a_sleeve_bit)
     if stats_bit and protocol_ok:
         parts.append(stats_bit)
@@ -22481,6 +22529,9 @@ def build_promote_ab_glance(
         ),
         "a_fill_progress_bit": a_fill_progress_bit,
         "a_sleeve_bit": a_sleeve_bit,
+        "a_sleeve_core": a_sleeve_core,
+        "a_sleeve_lean": a_sleeve_lean,
+        "a_sleeve_lean_meta": a_sleeve_lean_meta,
         "a_sleeve_warn": a_sleeve_warn,
         "a_thin_bit": a_thin_bit,
         "a_open_only_bit": a_open_only_bit,

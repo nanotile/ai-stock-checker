@@ -899,6 +899,57 @@ a:active {
   margin: 0.35rem 0 0;
 }
 
+.calm-streak-glance .promote-sleeve-lean,
+.promote-ab-glance .promote-sleeve-lean {
+  margin: 0.45rem 0 0;
+  font-size: 0.85rem;
+}
+
+.calm-streak-glance .promote-sleeve-lean > summary,
+.promote-ab-glance .promote-sleeve-lean > summary {
+  cursor: pointer;
+  font-family: var(--font-data);
+  color: var(--muted);
+  list-style: none;
+}
+
+.calm-streak-glance .promote-sleeve-lean > summary::-webkit-details-marker,
+.promote-ab-glance .promote-sleeve-lean > summary::-webkit-details-marker {
+  display: none;
+}
+
+.calm-streak-glance .promote-sleeve-lean > summary .meta,
+.promote-ab-glance .promote-sleeve-lean > summary .meta {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.calm-streak-glance .promote-sleeve-lean.warn > summary,
+.calm-streak-glance .promote-sleeve-lean.warn > summary .meta,
+.promote-ab-glance .promote-sleeve-lean.warn > summary,
+.promote-ab-glance .promote-sleeve-lean.warn > summary .meta {
+  color: var(--down);
+}
+
+.calm-streak-glance .promote-sleeve-lean[open] > summary,
+.promote-ab-glance .promote-sleeve-lean[open] > summary {
+  margin-bottom: 0.25rem;
+}
+
+.calm-streak-glance .promote-sleeve-lean-body,
+.promote-ab-glance .promote-sleeve-lean-body {
+  margin: 0;
+  font-family: var(--font-data);
+  font-size: 0.85rem;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.calm-streak-glance .promote-sleeve-lean-body.warn,
+.promote-ab-glance .promote-sleeve-lean-body.warn {
+  color: var(--down);
+}
+
 .promote-ab-glance {
   margin: 0 0 2.25rem;
   padding: 0 0 1rem;

@@ -1570,6 +1570,28 @@
     link.textContent = "Ops calm →";
     line.appendChild(link);
     wrap.appendChild(line);
+    if (glance.window_a_sleeve_lean) {
+      var sleeveWarn = !!glance.window_a_sleeve_warn;
+      var sleeveFold = document.createElement("details");
+      sleeveFold.className =
+        "promote-sleeve-lean" + (sleeveWarn ? " warn" : "");
+      if (sleeveWarn) sleeveFold.open = true;
+      var sleeveSummary = document.createElement("summary");
+      sleeveSummary.appendChild(document.createTextNode("sleeve lean "));
+      var sleeveMeta = document.createElement("span");
+      sleeveMeta.className = "meta";
+      sleeveMeta.textContent = glance.window_a_sleeve_lean_meta
+        ? String(glance.window_a_sleeve_lean_meta)
+        : "quiet";
+      sleeveSummary.appendChild(sleeveMeta);
+      sleeveFold.appendChild(sleeveSummary);
+      var sleeveBody = document.createElement("p");
+      sleeveBody.className =
+        "promote-sleeve-lean-body" + (sleeveWarn ? " warn" : "");
+      sleeveBody.textContent = String(glance.window_a_sleeve_lean);
+      sleeveFold.appendChild(sleeveBody);
+      wrap.appendChild(sleeveFold);
+    }
     var sub = document.createElement("p");
     sub.className = "sub";
     sub.textContent =
@@ -1705,6 +1727,28 @@
     link.textContent = "Ops promote →";
     line.appendChild(link);
     wrap.appendChild(line);
+    if (glance.a_sleeve_lean) {
+      var abSleeveWarn = !!glance.a_sleeve_warn;
+      var abSleeveFold = document.createElement("details");
+      abSleeveFold.className =
+        "promote-sleeve-lean" + (abSleeveWarn ? " warn" : "");
+      if (abSleeveWarn) abSleeveFold.open = true;
+      var abSleeveSummary = document.createElement("summary");
+      abSleeveSummary.appendChild(document.createTextNode("sleeve lean "));
+      var abSleeveMeta = document.createElement("span");
+      abSleeveMeta.className = "meta";
+      abSleeveMeta.textContent = glance.a_sleeve_lean_meta
+        ? String(glance.a_sleeve_lean_meta)
+        : "quiet";
+      abSleeveSummary.appendChild(abSleeveMeta);
+      abSleeveFold.appendChild(abSleeveSummary);
+      var abSleeveBody = document.createElement("p");
+      abSleeveBody.className =
+        "promote-sleeve-lean-body" + (abSleeveWarn ? " warn" : "");
+      abSleeveBody.textContent = String(glance.a_sleeve_lean);
+      abSleeveFold.appendChild(abSleeveBody);
+      wrap.appendChild(abSleeveFold);
+    }
     if (glance.honesty_line) {
       var details = document.createElement("details");
       details.className = "promote-honesty";
