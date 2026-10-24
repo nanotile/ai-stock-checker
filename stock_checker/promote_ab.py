@@ -2398,6 +2398,7 @@ def window_a_sample_readiness(
         "sleeve_crypto_vs_stock_delta_severity": "",
         "sleeve_crypto_vs_stock_lean_vs_delta": "",
         "sleeve_crypto_vs_stock_lean_vs_delta_warn": False,
+        "sleeve_crypto_vs_stock_delta_lead": "",
         "stale_closes": False,
         "stale_closes_bit": "",
         "aging_closes": False,
@@ -2805,6 +2806,9 @@ def window_a_sample_readiness(
     )
     sleeve_crypto_vs_stock_lean_vs_delta_warn = bool(
         sleeve.get("crypto_vs_stock_lean_vs_delta_warn")
+    )
+    sleeve_crypto_vs_stock_delta_lead = str(
+        sleeve.get("crypto_vs_stock_delta_lead") or ""
     )
 
     last_sell_raw = stats.get("last_sell")
@@ -5172,6 +5176,9 @@ def window_a_sample_readiness(
         "sleeve_crypto_vs_stock_lean_vs_delta_warn": (
             sleeve_crypto_vs_stock_lean_vs_delta_warn
         ),
+        "sleeve_crypto_vs_stock_delta_lead": (
+            sleeve_crypto_vs_stock_delta_lead
+        ),
         "stale_closes": stale_closes,
         "stale_closes_bit": stale_closes_bit,
         "aging_closes": aging_closes,
@@ -5779,7 +5786,13 @@ def window_a_sleeve_mix(stats: dict[str, Any] | None) -> dict[str, Any]:
     Δ). Lean alone hid how far sleeve ownership sits. Wide ≥
     ``WINDOW_A_EXIT_CONC_SKEW_PP`` · thin < ``WINDOW_A_SHARE_DELTA_THIN_PP``;
     mid silent on Δ; lean-spoke + mid/0 → ``clash · lean · Δ mid``;
-    adverse ``align · hot|thin`` + Δ wide warns. Not a gate.
+    adverse ``align · hot|thin`` + Δ wide warns.
+
+    When lean vs Δ already spoke with a Δ and ±pp ≠ 0, also speak
+    ``Δ lead · crypto|stock`` (soft-allow short vs gap / Screener unique
+    vs dup / Yahoo mix Δ lead parity). Signed pp alone hid which sleeve
+    owns the spread. Mid-Δ clash / 0pp stay silent. Δ lead size nest
+    still deferred. Not a gate.
     """
     empty: dict[str, Any] = {
         "crypto_legs": None,
@@ -5798,6 +5811,7 @@ def window_a_sleeve_mix(stats: dict[str, Any] | None) -> dict[str, Any]:
         "crypto_vs_stock_delta_severity": "",
         "crypto_vs_stock_lean_vs_delta": "",
         "crypto_vs_stock_lean_vs_delta_warn": False,
+        "crypto_vs_stock_delta_lead": "",
     }
     if not isinstance(stats, dict):
         return empty
@@ -5903,10 +5917,19 @@ def window_a_sleeve_mix(stats: dict[str, Any] | None) -> dict[str, Any]:
         else:
             lean_vs_delta = "clash · lean · Δ mid"
             lean_vs_delta_warn = True
+    delta_lead = ""
+    if (
+        lean_vs_delta.startswith("align ·")
+        and delta_sev
+        and delta_pp is not None
+        and abs(float(delta_pp)) >= 1e-9
+    ):
+        delta_lead = "crypto" if float(delta_pp) > 0 else "stock"
     delta_tail = ""
     if delta_sev and delta_pp is not None:
         delta_tail = f"Δ {delta_sev} · {_fmt_share_pp_signed(delta_pp)}"
     lvd_tail = f"lean/Δ {lean_vs_delta}" if lean_vs_delta else ""
+    lead_tail = f"Δ lead · {delta_lead}" if delta_lead else ""
     meter = f"{core} · {share_tail} · {stock_tail}"
     if lean_tail:
         meter = f"{meter} · {lean_tail}"
@@ -5914,6 +5937,8 @@ def window_a_sleeve_mix(stats: dict[str, Any] | None) -> dict[str, Any]:
         meter = f"{meter} · {delta_tail}"
     if lvd_tail:
         meter = f"{meter} · {lvd_tail}"
+    if lead_tail:
+        meter = f"{meter} · {lead_tail}"
     bit = f"A {meter}"
     return {
         "crypto_legs": crypto_n,
@@ -5932,6 +5957,7 @@ def window_a_sleeve_mix(stats: dict[str, Any] | None) -> dict[str, Any]:
         "crypto_vs_stock_delta_severity": delta_sev,
         "crypto_vs_stock_lean_vs_delta": lean_vs_delta,
         "crypto_vs_stock_lean_vs_delta_warn": lean_vs_delta_warn,
+        "crypto_vs_stock_delta_lead": delta_lead,
     }
 
 
