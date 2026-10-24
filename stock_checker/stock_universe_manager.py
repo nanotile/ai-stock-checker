@@ -12,6 +12,7 @@ from pathlib import Path
 
 from stock_checker.german_universe import GERMAN_XETRA_SEED
 from stock_checker.listed_funds import LISTED_FUND_SEED
+from stock_checker.canadian_universe import CANADIAN_TSX_SEED
 
 # Yahoo US screens are not a Xetra listing file. Compare prune baselines
 # as MIC-lite venues (xang1234 ae9c507), not raw NYSE vs "US" strings.
@@ -30,19 +31,24 @@ _US_VENUE_EXCHANGES = frozenset(
     }
 )
 _XETR_VENUE_EXCHANGES = frozenset({"XETRA", "XETR", "FRA", "GER", "DE"})
+_TSX_VENUE_EXCHANGES = frozenset({"TSX", "XTSE", "TO", "TORONTO"})
 YAHOO_MOVER_SNAPSHOT_VENUE = "US"
 
 
 def listing_venue(symbol: str, exchange: str = "") -> str:
-    """Normalize listing to US / XETR / other (MIC-lite).
+    """Normalize listing to US / XETR / TSX / other (MIC-lite).
 
     ``.DE`` suffix wins over a stamped US tag so a Yahoo US snapshot cannot
     deactivate a Xetra row. Unknown exchanges stay distinct from US.
     """
     sym = str(symbol or "").strip().upper()
+    if sym.endswith(".TO"):
+        return "TSX"
     if sym.endswith(".DE"):
         return "XETR"
     ex = str(exchange or "").strip().upper()
+    if ex in _TSX_VENUE_EXCHANGES:
+        return "TSX"
     if ex in _XETR_VENUE_EXCHANGES:
         return "XETR"
     if not ex or ex in _US_VENUE_EXCHANGES:
@@ -225,6 +231,7 @@ class StockUniverseManager:
 
             # German Xetra (.DE) + a few other EU / ADR names
             **GERMAN_XETRA_SEED,
+            **CANADIAN_TSX_SEED,
             "SAP": {"sector": "technology", "exchange": "NYSE"},
             "AIR.PA": {"sector": "aerospace", "exchange": "EURONEXT"},
             "OR.PA": {"sector": "luxury", "exchange": "EURONEXT"},
@@ -320,6 +327,7 @@ class StockUniverseManager:
             "ARM": {"sector": "semiconductor", "exchange": "NASDAQ"},
             "SMCI": {"sector": "technology", "exchange": "NASDAQ"},
             **GERMAN_XETRA_SEED,
+            **CANADIAN_TSX_SEED,
             **LISTED_FUND_SEED,
         }
         added = 0

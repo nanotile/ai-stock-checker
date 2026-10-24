@@ -323,3 +323,12 @@ def test_discover_yahoo_movers_empty_does_not_prune_movers(
     assert "ZZZZOLD" in mgr.universe["stocks"]
     assert mgr.universe["meta"].get("last_yahoo_dropped") is None
 
+
+def test_listing_venue_tsx():
+    from stock_checker.stock_universe_manager import listing_venue
+    assert listing_venue("RY.TO") == "TSX"
+    assert listing_venue("SHOP.TO") == "TSX"
+    assert listing_venue("RY.TO", "TSX") == "TSX"
+    assert listing_venue("RY", "TSX") == "TSX"
+    assert listing_venue("RY", "XTSE") == "TSX"
+
