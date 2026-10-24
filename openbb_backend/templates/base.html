@@ -43,6 +43,12 @@
           {% endfor %}
         </ul>
       </nav>
+      {% if user %}
+      <div class="user-bar">
+        <span class="user-name">{{ user.username }}</span>
+        <a class="user-logout" href="/desk/logout">Sign out</a>
+      </div>
+      {% endif %}
     </header>
 
     <main id="main" class="stage" tabindex="-1">

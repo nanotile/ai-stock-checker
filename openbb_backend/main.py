@@ -126,10 +126,12 @@ def _desk_nav() -> list[dict[str, str]]:
 def _desk_page_context(request: Request, screen: str) -> dict:
     meta = _DESK_SCREENS[screen]
     path = "/desk" if screen == "overview" else f"/desk/{screen}"
+    user = get_current_user(request)
     return {
         "snap": load_desk_snapshot(DATA_DIR),
         "nav": _desk_nav(),
         "repo": load_repo_meta(),
+        "user": user,
         "page": {
             "screen": screen,
             "title": meta["title"],
@@ -616,6 +618,7 @@ def desk_scan_log(request: Request, day: str):
             "snap": snap,
             "nav": _desk_nav(),
             "repo": load_repo_meta(),
+            "user": get_current_user(request),
             "day": day,
             "day_meta": day_meta,
             "archive_file": path.name,

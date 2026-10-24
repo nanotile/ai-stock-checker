@@ -190,6 +190,33 @@ a:active {
   font-weight: 500; /* same as idle — avoid brand/nav reflow */
 }
 
+/* ── user bar (auth) ── */
+.user-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.03em;
+}
+.user-name {
+  color: var(--muted);
+  text-transform: uppercase;
+  font-weight: 500;
+}
+.user-logout {
+  color: var(--muted);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  opacity: 0.7;
+  transition: opacity 0.15s, border-color 0.15s;
+}
+.user-logout:hover {
+  opacity: 1;
+  color: var(--ink);
+  border-bottom-color: var(--accent);
+}
+
 .stage {
   outline: none;
 }
