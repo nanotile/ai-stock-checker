@@ -5220,6 +5220,8 @@ def build_calm_streak_glance(
         "window_a_sleeve_lean": "",
         "window_a_sleeve_lean_meta": "quiet",
         "window_a_sleeve_warn": False,
+        "window_a_close_sleeve_core": "",
+        "window_a_close_sleeve_warn": False,
         "window_a_fee_net_bit": "",
         "window_a_fee_mood_bit": "",
         "window_a_fee_drag": False,
@@ -5557,6 +5559,8 @@ def build_calm_streak_glance(
     window_a_sleeve_lean = ""
     window_a_sleeve_lean_meta = "quiet"
     window_a_sleeve_warn = False
+    window_a_close_sleeve_core = ""
+    window_a_close_sleeve_warn = False
     window_a_fee_net_bit = ""
     window_a_fee_mood_bit = ""
     window_a_fee_drag = False
@@ -6135,6 +6139,19 @@ def build_calm_streak_glance(
                     status = f"{status} · {window_a_sleeve_core}"
                 if window_a_sleeve_warn:
                     tone = "warn"
+            # Close sleeve (sells only) — fill legs include buys.
+            close_core_raw = str(
+                sample.get("close_sleeve_core_bit") or ""
+            ).strip()
+            if close_core_raw:
+                window_a_close_sleeve_core = close_core_raw
+                window_a_close_sleeve_warn = bool(
+                    sample.get("close_sleeve_warn")
+                )
+                status = f"{status} · {window_a_close_sleeve_core}"
+                if window_a_close_sleeve_warn:
+                    tone = "warn"
+                    window_a_sleeve_warn = True
             if sample.get("known") and isinstance(stats, dict):
                 fee_net = format_window_stats_bit(
                     stats, include_fills=False
@@ -18087,6 +18104,8 @@ def build_calm_streak_glance(
         "window_a_sleeve_lean": window_a_sleeve_lean,
         "window_a_sleeve_lean_meta": window_a_sleeve_lean_meta,
         "window_a_sleeve_warn": window_a_sleeve_warn,
+        "window_a_close_sleeve_core": window_a_close_sleeve_core,
+        "window_a_close_sleeve_warn": window_a_close_sleeve_warn,
         "window_a_fee_net_bit": window_a_fee_net_bit,
         "window_a_fee_mood_bit": window_a_fee_mood_bit,
         "window_a_fee_drag": window_a_fee_drag,
@@ -19521,6 +19540,7 @@ def build_promote_ab_glance(
         format_window_a_fill_progress_bit,
         format_window_a_fresh_closes_bit,
         format_window_a_open_only_bit,
+        format_window_a_close_sleeve_core_bit,
         format_window_a_sleeve_bit,
         format_window_a_sleeve_core_bit,
         format_window_a_sleeve_lean_bit,
@@ -19797,6 +19817,8 @@ def build_promote_ab_glance(
         "a_sleeve_lean": "",
         "a_sleeve_lean_meta": "quiet",
         "a_sleeve_warn": False,
+        "a_close_sleeve_core": "",
+        "a_close_sleeve_warn": False,
         "a_thin_bit": "",
         "a_open_only_bit": "",
         "a_thin_closes_bit": "",
@@ -20555,6 +20577,12 @@ def build_promote_ab_glance(
         str(sample.get("sleeve_lean_meta") or "").strip()
         if window == "A"
         else "quiet"
+    )
+    a_close_sleeve_core = (
+        format_window_a_close_sleeve_core_bit(sample) if window == "A" else ""
+    )
+    a_close_sleeve_warn = (
+        bool(sample.get("close_sleeve_warn")) if window == "A" else False
     )
     if window == "A" and a_sleeve_lean and not a_sleeve_lean_meta:
         a_sleeve_lean_meta = window_a_sleeve_lean_meta(
@@ -21707,6 +21735,11 @@ def build_promote_ab_glance(
         parts.append(a_sleeve_core)
     elif a_sleeve_bit:
         parts.append(a_sleeve_bit)
+    # Close sleeve (sells only) — fill legs ≠ edge sample.
+    if a_close_sleeve_core:
+        parts.append(a_close_sleeve_core)
+    if a_close_sleeve_warn:
+        a_sleeve_warn = True
     if stats_bit and protocol_ok:
         parts.append(stats_bit)
     parts.append(status)
@@ -22533,6 +22566,8 @@ def build_promote_ab_glance(
         "a_sleeve_lean": a_sleeve_lean,
         "a_sleeve_lean_meta": a_sleeve_lean_meta,
         "a_sleeve_warn": a_sleeve_warn,
+        "a_close_sleeve_core": a_close_sleeve_core,
+        "a_close_sleeve_warn": a_close_sleeve_warn,
         "a_thin_bit": a_thin_bit,
         "a_open_only_bit": a_open_only_bit,
         "a_thin_closes_bit": a_thin_closes_bit,

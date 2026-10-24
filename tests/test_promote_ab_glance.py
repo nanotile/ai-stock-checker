@@ -411,6 +411,92 @@ def test_format_window_a_fill_progress_bit() -> None:
     assert format_window_a_fill_progress_bit(sided) == "12/10 fills · 5/3 sells"
 
 
+def test_window_a_close_sleeve_vs_fills() -> None:
+    """Fill legs include buys; close sleeve must speak sells-only mix."""
+    from stock_checker.promote_ab import (
+        format_window_a_close_sleeve_core_bit,
+        format_window_a_close_sleeve_vs_fills_bit,
+        window_a_close_sleeve_mix,
+        window_a_sample_readiness,
+    )
+
+    assert window_a_close_sleeve_mix(None)["bit"] == ""
+    assert window_a_close_sleeve_mix({"crypto_legs": 4})["bit"] == ""
+    # Stock closes while fills were crypto-heavy → clash.
+    clash = window_a_close_sleeve_mix(
+        {"crypto_closes": 0, "stock_closes": 4},
+        fill_severity="crypto_heavy",
+    )
+    assert clash["severity"] == "stock_only"
+    assert clash["core_bit"] == "closes stock-only · 4"
+    assert clash["vs_fills_bit"] == "closes clash · fills crypto-heavy"
+    assert clash["warn"] is True
+    # Matching fill+close → speak-both-sides agree (not silent confirm).
+    agree = window_a_close_sleeve_mix(
+        {"crypto_closes": 6, "stock_closes": 0},
+        fill_severity="crypto_only",
+    )
+    assert agree["core_bit"] == "closes crypto-only · 6"
+    assert agree["vs_fills_bit"] == "closes agree"
+    assert agree["warn"] is True  # crypto-only closes still warn
+    sample = window_a_sample_readiness(
+        {
+            "trades": 10,
+            "buys": 6,
+            "sells": 4,
+            "crypto_legs": 8,
+            "stock_legs": 2,
+            "crypto_closes": 0,
+            "stock_closes": 4,
+            "wins": 2,
+            "losses": 2,
+            "avg_win": 20.0,
+            "avg_loss": 10.0,
+            "last_sell": "2026-09-08 12:00:00",
+        }
+    )
+    assert sample["close_sleeve_core_bit"] == "closes stock-only · 4"
+    assert sample["close_sleeve_vs_fills_bit"] == (
+        "closes clash · fills crypto-heavy"
+    )
+    assert sample["close_sleeve_warn"] is True
+    assert sample["sleeve_lean_bit"].startswith(
+        "closes clash · fills crypto-heavy ·"
+    )
+    assert format_window_a_close_sleeve_core_bit(sample) == (
+        "closes stock-only · 4"
+    )
+    assert format_window_a_close_sleeve_vs_fills_bit(sample) == (
+        "closes clash · fills crypto-heavy"
+    )
+    g = build_promote_ab_glance(
+        {"promote_experiment_strategy": False},
+        as_of=date(2026, 9, 9),
+        window_stats={
+            "trades": 10,
+            "buys": 6,
+            "sells": 4,
+            "fees": 50.0,
+            "realized_pnl": 20.0,
+            "net_after_all_fees": -30.0,
+            "crypto_legs": 8,
+            "stock_legs": 2,
+            "crypto_closes": 0,
+            "stock_closes": 4,
+            "wins": 2,
+            "losses": 2,
+            "avg_win": 20.0,
+            "avg_loss": 10.0,
+            "last_sell": "2026-09-08 12:00:00",
+        },
+    )
+    assert g["a_close_sleeve_core"] == "closes stock-only · 4"
+    assert g["a_close_sleeve_warn"] is True
+    assert "closes stock-only · 4" in g["line"]
+    assert "closes clash · fills crypto-heavy" in g["a_sleeve_lean"]
+    assert "closes clash · fills crypto-heavy" not in g["line"]
+
+
 def test_window_a_sleeve_mix_crypto_vs_stock() -> None:
     """Summarize already counts legs; glance must speak crypto-churn control."""
     from stock_checker.promote_ab import (
@@ -668,6 +754,9 @@ def test_summarize_window_trades_filters_and_fees() -> None:
     assert s["net_after_all_fees"] == 82.0
     assert s["crypto_legs"] == 1
     assert s["stock_legs"] == 2
+    # Only JPM sell closed — BTC buy is a fill leg, not a close.
+    assert s["crypto_closes"] == 0
+    assert s["stock_closes"] == 1
     assert s["wins"] == 1
     assert s["losses"] == 0
     assert s["avg_win"] == 100.0

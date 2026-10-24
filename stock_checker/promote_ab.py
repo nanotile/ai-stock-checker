@@ -2404,6 +2404,13 @@ def window_a_sample_readiness(
         "sleeve_crypto_vs_stock_lean_vs_delta": "",
         "sleeve_crypto_vs_stock_lean_vs_delta_warn": False,
         "sleeve_crypto_vs_stock_delta_lead": "",
+        "crypto_closes": None,
+        "stock_closes": None,
+        "close_sleeve_severity": "",
+        "close_sleeve_core_bit": "",
+        "close_sleeve_vs_fills_bit": "",
+        "close_sleeve_bit": "",
+        "close_sleeve_warn": False,
         "stale_closes": False,
         "stale_closes_bit": "",
         "aging_closes": False,
@@ -2820,6 +2827,30 @@ def window_a_sample_readiness(
     sleeve_crypto_vs_stock_delta_lead = str(
         sleeve.get("crypto_vs_stock_delta_lead") or ""
     )
+    # Close sleeve (sells only) — fill legs include buys; edge needs closes.
+    close_sleeve = window_a_close_sleeve_mix(
+        stats, fill_severity=sleeve_severity
+    )
+    crypto_closes = close_sleeve.get("crypto_closes")
+    stock_closes = close_sleeve.get("stock_closes")
+    close_sleeve_severity = str(close_sleeve.get("severity") or "")
+    close_sleeve_core_bit = str(close_sleeve.get("core_bit") or "")
+    close_sleeve_vs_fills_bit = str(close_sleeve.get("vs_fills_bit") or "")
+    close_sleeve_bit = str(close_sleeve.get("bit") or "")
+    close_sleeve_warn = bool(close_sleeve.get("warn"))
+    if close_sleeve_vs_fills_bit:
+        if sleeve_lean_bit:
+            sleeve_lean_bit = (
+                f"{close_sleeve_vs_fills_bit} · {sleeve_lean_bit}"
+            )
+        else:
+            sleeve_lean_bit = close_sleeve_vs_fills_bit
+        sleeve_warn = sleeve_warn or close_sleeve_warn
+        sleeve_lean_meta = window_a_sleeve_lean_meta(
+            sleeve_lean_bit, warn=sleeve_warn
+        )
+    elif close_sleeve_warn:
+        sleeve_warn = True
 
     last_sell_raw = stats.get("last_sell")
     last_sell_dt = parse_trade_timestamp(last_sell_raw)
@@ -5192,6 +5223,13 @@ def window_a_sample_readiness(
         "sleeve_crypto_vs_stock_delta_lead": (
             sleeve_crypto_vs_stock_delta_lead
         ),
+        "crypto_closes": crypto_closes,
+        "stock_closes": stock_closes,
+        "close_sleeve_severity": close_sleeve_severity,
+        "close_sleeve_core_bit": close_sleeve_core_bit,
+        "close_sleeve_vs_fills_bit": close_sleeve_vs_fills_bit,
+        "close_sleeve_bit": close_sleeve_bit,
+        "close_sleeve_warn": close_sleeve_warn,
         "stale_closes": stale_closes,
         "stale_closes_bit": stale_closes_bit,
         "aging_closes": aging_closes,
@@ -5769,6 +5807,30 @@ def window_a_sample_readiness(
 
 
 
+def _sleeve_severity_from_counts(
+    crypto_n: int, stock_n: int
+) -> tuple[str, str, bool]:
+    """Return ``(severity, core_without_prefix, crypto_warn)`` for a sleeve mix."""
+    if stock_n == 0:
+        return "crypto_only", f"crypto-only · {crypto_n}", True
+    if crypto_n == 0:
+        return "stock_only", f"stock-only · {stock_n}", False
+    if crypto_n > stock_n:
+        return "crypto_heavy", f"crypto-heavy · {crypto_n}/{stock_n}", True
+    if stock_n > crypto_n:
+        return "stock_heavy", f"stock-heavy · {stock_n}/{crypto_n}", False
+    return "mixed", f"mixed · {crypto_n}/{stock_n}", False
+
+
+_SLEEVE_SEV_LABEL = {
+    "crypto_only": "crypto-only",
+    "crypto_heavy": "crypto-heavy",
+    "stock_only": "stock-only",
+    "stock_heavy": "stock-heavy",
+    "mixed": "mixed",
+}
+
+
 def window_a_sleeve_mix(stats: dict[str, Any] | None) -> dict[str, Any]:
     """Crypto vs stock fill mix for Window A (display / ops honesty).
 
@@ -5867,26 +5929,7 @@ def window_a_sleeve_mix(stats: dict[str, Any] | None) -> dict[str, Any]:
     else:
         stock_sev = ""
         stock_tail = f"vs {stock_n} stock · {stock_share_pct}%"
-    if stock_n == 0:
-        severity = "crypto_only"
-        core = f"crypto-only · {crypto_n}"
-        warn = True
-    elif crypto_n == 0:
-        severity = "stock_only"
-        core = f"stock-only · {stock_n}"
-        warn = False
-    elif crypto_n > stock_n:
-        severity = "crypto_heavy"
-        core = f"crypto-heavy · {crypto_n}/{stock_n}"
-        warn = True
-    elif stock_n > crypto_n:
-        severity = "stock_heavy"
-        core = f"stock-heavy · {stock_n}/{crypto_n}"
-        warn = False
-    else:
-        severity = "mixed"
-        core = f"mixed · {crypto_n}/{stock_n}"
-        warn = False
+    severity, core, warn = _sleeve_severity_from_counts(crypto_n, stock_n)
     # Lean after sides (junk_vs_ok / gap vs other parity). Mid stock → "ok".
     crypto_vs_stock = ""
     crypto_vs_stock_warn = False
@@ -5986,9 +6029,106 @@ def window_a_sleeve_mix(stats: dict[str, Any] | None) -> dict[str, Any]:
     }
 
 
+def window_a_close_sleeve_mix(
+    stats: dict[str, Any] | None,
+    *,
+    fill_severity: str = "",
+) -> dict[str, Any]:
+    """Crypto vs stock **close** mix for Window A (display / ops honesty).
+
+    Fill sleeve counts all legs (buys+sells). Fee-adjusted edge needs
+    closes — a crypto-buy / stock-sell control can look equity-heavy on
+    fills while closes are crypto-only (portfolio AI speak-both-sides +
+    xang1234 fill≠close meters). Missing keys / zero sells → silent.
+    Warn on crypto-only|heavy closes or fill≠close clash. Not a gate.
+    """
+    empty: dict[str, Any] = {
+        "crypto_closes": None,
+        "stock_closes": None,
+        "severity": "",
+        "core_bit": "",
+        "vs_fills_bit": "",
+        "bit": "",
+        "warn": False,
+    }
+    if not isinstance(stats, dict):
+        return empty
+    if "crypto_closes" not in stats and "stock_closes" not in stats:
+        return empty
+    try:
+        crypto_n = int(stats.get("crypto_closes") or 0)
+        stock_n = int(stats.get("stock_closes") or 0)
+    except (TypeError, ValueError):
+        return empty
+    if crypto_n < 0 or stock_n < 0:
+        return empty
+    total = crypto_n + stock_n
+    if total <= 0:
+        return empty
+    severity, core, crypto_warn = _sleeve_severity_from_counts(crypto_n, stock_n)
+    core_bit = f"closes {core}"
+    fill_sev = str(fill_severity or "").strip()
+    vs_fills = ""
+    clash_warn = False
+    if fill_sev and fill_sev in _SLEEVE_SEV_LABEL:
+        fill_label = _SLEEVE_SEV_LABEL[fill_sev]
+        if fill_sev == severity:
+            vs_fills = "closes agree"
+        else:
+            vs_fills = f"closes clash · fills {fill_label}"
+            clash_warn = True
+    bit_parts = [core_bit]
+    if vs_fills:
+        bit_parts.append(vs_fills)
+    return {
+        "crypto_closes": crypto_n,
+        "stock_closes": stock_n,
+        "severity": severity,
+        "core_bit": core_bit,
+        "vs_fills_bit": vs_fills,
+        "bit": " · ".join(bit_parts),
+        "warn": crypto_warn or clash_warn,
+    }
+
+
+def format_window_a_close_sleeve_core_bit(sample: dict[str, Any] | None) -> str:
+    """Primary-line Window A close sleeve core (``closes crypto-only · N``)."""
+    if not isinstance(sample, dict):
+        return ""
+    core = str(sample.get("close_sleeve_core_bit") or "").strip()
+    if core:
+        return core
+    return str(
+        window_a_close_sleeve_mix(
+            sample,
+            fill_severity=str(sample.get("sleeve_severity") or ""),
+        ).get("core_bit")
+        or ""
+    ).strip()
+
+
+def format_window_a_close_sleeve_vs_fills_bit(
+    sample: dict[str, Any] | None,
+) -> str:
+    """Fold bit: ``closes agree`` / ``closes clash · fills …``."""
+    if not isinstance(sample, dict):
+        return ""
+    bit = str(sample.get("close_sleeve_vs_fills_bit") or "").strip()
+    if bit:
+        return bit
+    return str(
+        window_a_close_sleeve_mix(
+            sample,
+            fill_severity=str(sample.get("sleeve_severity") or ""),
+        ).get("vs_fills_bit")
+        or ""
+    ).strip()
+
+
 # Quiet sleeve-lean chip names spoken stages (Yahoo mix / Screener weight).
 _SLEEVE_LEAN_QUIET_NAME_CAP = 4
 _SLEEVE_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
+    (re.compile(r"closes (?:agree|clash · fills \S+)"), "closes"),
     (re.compile(r"(?:hot|quiet) · \d+%"), "share"),
     (re.compile(r"\d+%"), "share"),
     (re.compile(r"vs \d+ stock(?: · (?:strong|thin))? · \d+%"), "sides"),
@@ -7664,6 +7804,9 @@ def summarize_window_trades(
     crypto_legs = sum(
         1 for t in window if is_crypto_symbol(str(t.get("symbol") or ""))
     )
+    crypto_closes = sum(
+        1 for t in sells if is_crypto_symbol(str(t.get("symbol") or ""))
+    )
     wins = sum(1 for t in sells if float(t.get("profit_loss") or 0) > 0)
     losses = sum(1 for t in sells if float(t.get("profit_loss") or 0) < 0)
     flat_closes = sum(1 for t in sells if float(t.get("profit_loss") or 0) == 0)
@@ -7777,6 +7920,8 @@ def summarize_window_trades(
         ),
         "crypto_legs": crypto_legs,
         "stock_legs": len(window) - crypto_legs,
+        "crypto_closes": crypto_closes,
+        "stock_closes": len(sells) - crypto_closes,
         "first": first_ts,
         "last": last_ts,
         "last_sell": last_sell_ts,

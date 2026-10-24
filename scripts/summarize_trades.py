@@ -88,6 +88,9 @@ def main() -> None:
     print(f"  Net after all fees: €{s['net_after_all_fees']:,.2f}")
     print(f"  Wins/Losses: {s['wins']}/{s['losses']}")
     print(f"  Legs: stock={s['stock_legs']} crypto={s['crypto_legs']}")
+    print(
+        f"  Closes: stock={s.get('stock_closes', 0)} crypto={s.get('crypto_closes', 0)}"
+    )
 
 
 if __name__ == "__main__":
