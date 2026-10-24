@@ -144,8 +144,10 @@ def clear_yahoo_fail_streak(meta: dict[str, Any]) -> None:
 
 # Compact fail reasons for desk (xang1234 #639 last-error chip — not a full
 # Manage Sources tooltip). Allowlist only so junk meta cannot inflate the line.
+# ``plan`` = payment/plan entitlement (FinRobot FMP 402), not a transient HTTP
+# outage — friends must not read a billing wall as Yahoo flake.
 YAHOO_FAIL_ERROR_CLASSES: frozenset[str] = frozenset(
-    ("timeout", "inflight", "http", "empty", "thin", "error")
+    ("timeout", "inflight", "plan", "http", "empty", "thin", "error")
 )
 # Hidden spend side of a timeout↔inflight mix (count flag ≠ ownership).
 YAHOO_FAIL_ALSO_SHARE_HOT = 50
@@ -173,7 +175,10 @@ def classify_yahoo_discovery_error(
     some answered. Transport timeouts own the class when they are the
     majority of failed screens (hung ≠ quiet empty). A still-live worker
     that refused a second ``yf.screen`` is ``inflight`` (held ≠ a new hang).
-    Exception path: ``inflight`` / ``timeout`` / ``http`` / ``error``.
+    Exception path: ``inflight`` / ``timeout`` / ``plan`` / ``http`` /
+    ``error``. FinRobot #119: HTTP 402 / payment-required is account plan
+    access, not a retryable provider outage — keep it out of the generic
+    ``http`` bucket so the Universe glance speaks ``plan``.
     """
     try:
         timed_out = max(0, int(timeout_fails))
@@ -213,6 +218,15 @@ def classify_yahoo_discovery_error(
         or "timeout" in msg
     ):
         return "timeout"
+    # Payment/plan before generic http (FinRobot ProviderPlanError / 402).
+    if (
+        "402" in msg
+        or "payment required" in msg
+        or "payment/plan" in msg
+        or "plan access" in msg
+        or "providerplan" in name
+    ):
+        return "plan"
     if (
         "http" in name
         or "403" in msg
@@ -1002,8 +1016,9 @@ def yahoo_fail_cascade_lean_meta(
 def yahoo_fail_error_vs_seed(error: str, seed_freshness: str) -> str:
     """Typed last-error vs reused-seed extremes (xang1234 #639 + portfolio AI).
 
-    Allowlisted ``empty|thin|timeout|http|error`` alone hid a still-fresh
-    reused list on the *first* fail (N× / streak/seed stay silent until ≥2).
+    Allowlisted ``empty|thin|timeout|inflight|plan|http|error`` alone hid a
+    still-fresh reused list on the *first* fail (N× / streak/seed stay silent
+    until ≥2).
     Same polarity as ``yahoo_fail_streak_vs_seed``: fresh seed clashes with a
     typed dead Yahoo; stale seed aligns. Mid ``aging`` / missing class /
     never|unknown stay silent. Returns ``clash · fresh`` / ``align · stale``

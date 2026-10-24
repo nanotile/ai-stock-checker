@@ -94,8 +94,30 @@ def test_classify_yahoo_discovery_error_bundle_and_exc():
         == "inflight"
     )
     assert classify_yahoo_discovery_error(RuntimeError("HTTP 403")) == "http"
+    # FinRobot #119: 402 / payment-required is plan entitlement, not http flake.
+    assert classify_yahoo_discovery_error(RuntimeError("HTTP 402")) == "plan"
+    assert (
+        classify_yahoo_discovery_error(
+            RuntimeError("HTTP Error 402: Payment Required")
+        )
+        == "plan"
+    )
+    assert (
+        classify_yahoo_discovery_error(
+            RuntimeError("FMP account payment/plan access required")
+        )
+        == "plan"
+    )
     assert classify_yahoo_discovery_error(YahooScreenEmptyError("empty")) == "empty"
     assert classify_yahoo_discovery_error(RuntimeError("boom")) == "error"
+
+
+def test_set_yahoo_discovery_error_allows_plan():
+    """plan is allowlisted so desk can speak it (not coerced to error)."""
+    meta: dict = {}
+    assert set_yahoo_discovery_error(meta, "plan") == "plan"
+    assert meta["last_yahoo_discovery_error"] == "plan"
+    assert yahoo_discovery_error_class(meta) == "plan"
 
 
 def test_yahoo_fail_error_also_bit_timeout_inflight_mix():
