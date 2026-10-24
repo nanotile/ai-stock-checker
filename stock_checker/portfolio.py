@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional
 from .risk_manager import RiskManager
 from .fees import (
     DEFAULT_FEE_PRESET,
-    REVOLUT_STANDARD_MIN_EUR,
+    REVOLUT_STANDARD_MIN,
     REVOLUT_STANDARD_RATE,
     FeeAllowanceLedger,
     free_legs_for_preset,
@@ -19,7 +19,7 @@ class Portfolio:
         self,
         initial_cash: float = 10000.0,
         commission_rate: float = REVOLUT_STANDARD_RATE,
-        commission_min_eur: float = REVOLUT_STANDARD_MIN_EUR,
+        commission_min: float = REVOLUT_STANDARD_MIN,
         persistence=None,
         enable_risk_management: bool = True,
         fee_preset: str = DEFAULT_FEE_PRESET,
@@ -30,7 +30,7 @@ class Portfolio:
         Args:
             initial_cash: Starting cash in EUR
             commission_rate: Commission rate per side (default Revolut 0.25%)
-            commission_min_eur: Minimum commission per side in EUR (default €1)
+            commission_min: Minimum commission per side (default 1)
             persistence: DataPersistence instance for saving state
             fee_preset: Named preset label stored for Ops/desk honesty
         """
@@ -46,8 +46,8 @@ class Portfolio:
                 self.commission_rate = float(
                     loaded.get("commission_rate", commission_rate)
                 )
-                self.commission_min_eur = float(
-                    loaded.get("commission_min_eur", commission_min_eur)
+                self.commission_min = float(
+                    loaded.get("commission_min", commission_min)
                 )
                 self.fee_preset = str(
                     loaded.get("fee_preset") or self.fee_preset
@@ -68,7 +68,7 @@ class Portfolio:
         self.initial_cash = initial_cash
         self.cash = initial_cash
         self.commission_rate = commission_rate
-        self.commission_min_eur = commission_min_eur
+        self.commission_min = commission_min
         self.holdings: Dict[str, float] = {}  # symbol -> quantity
         self.avg_buy_price: Dict[str, float] = {}  # symbol -> avg price
         self.transactions: List[Dict] = []
@@ -105,7 +105,7 @@ class Portfolio:
             notional,
             timestamp,
             rate=self.commission_rate,
-            min_eur=self.commission_min_eur,
+            min_amount=self.commission_min,
         )
 
     def fee_allowance_remaining(self) -> int:
@@ -115,14 +115,14 @@ class Portfolio:
         self,
         *,
         rate: float,
-        min_eur: float,
+        min_amount: float,
         preset: str = "custom",
         free_legs_per_month: Optional[int] = None,
         persist: bool = True,
     ) -> None:
         """Update live fee schedule (Ops hot-reload). Affects future fills only."""
         self.commission_rate = float(rate)
-        self.commission_min_eur = max(0.0, float(min_eur))
+        self.commission_min = max(0.0, float(min_amount))
         self.fee_preset = str(preset or "custom")
         if free_legs_per_month is not None:
             self._fee_allowance.free_legs_per_month = max(0, int(free_legs_per_month))
@@ -132,10 +132,10 @@ class Portfolio:
             self._save_state()
 
     def apply_fee_preset(self, preset: str, *, persist: bool = True) -> None:
-        rate, min_eur = rates_for_preset(preset)
+        rate, min_amount = rates_for_preset(preset)
         self.set_fee_schedule(
             rate=rate,
-            min_eur=min_eur,
+            min_amount=min_amount,
             preset=preset,
             free_legs_per_month=free_legs_for_preset(preset),
             persist=persist,
@@ -323,7 +323,7 @@ class Portfolio:
                 "initial_cash": self.initial_cash,
                 "cash": self.cash,
                 "commission_rate": self.commission_rate,
-                "commission_min_eur": self.commission_min_eur,
+                "commission_min": self.commission_min,
                 "fee_preset": self.fee_preset,
                 "holdings": self.holdings,
                 "avg_buy_price": self.avg_buy_price,

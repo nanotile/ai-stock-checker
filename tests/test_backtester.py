@@ -92,7 +92,7 @@ def test_commission_min_floor_applied():
     bt = Backtester(
         initial_capital=1_000,
         commission_rate=0.0001,
-        commission_min_eur=5.0,
+        commission_min=5.0,
         slippage_pct=0.0,
         position_fraction=0.1,
         free_legs_per_month=0,

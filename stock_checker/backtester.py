@@ -212,14 +212,14 @@ class Backtester:
         commission_rate: float = 0.001,
         slippage_pct: float = 0.001,
         position_fraction: float = 0.2,
-        commission_min_eur: float = 0.0,
+        commission_min: float = 0.0,
         max_positions: int = 0,
         min_hold_bars: int = 0,
         free_legs_per_month: int = 0,
     ):
         self.initial_capital = initial_capital
         self.commission_rate = commission_rate
-        self.commission_min_eur = float(commission_min_eur or 0.0)
+        self.commission_min = float(commission_min or 0.0)
         self.free_legs_per_month = max(0, int(free_legs_per_month or 0))
         self.slippage_pct = slippage_pct
         self.position_fraction = position_fraction
@@ -239,7 +239,7 @@ class Backtester:
             notional,
             ts_str,
             rate=self.commission_rate,
-            min_eur=self.commission_min_eur,
+            min_amount=self.commission_min,
         )
 
     def backtest(

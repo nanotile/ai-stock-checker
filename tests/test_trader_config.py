@@ -23,7 +23,7 @@ def test_normalize_rejects_coder_model_and_bad_mode():
         "rs_gate": True,
         "fee_preset": "revolut_standard",
         "commission_rate": 0.0025,
-        "commission_min_eur": 1.0,
+        "commission_min": 1.0,
     }
     out = normalize_config(
         {
@@ -137,7 +137,7 @@ def test_trader_config_would_change_detects_noop(tmp_path: Path):
     assert trader_config_changed_keys(tmp_path, {"ai_mode": "off"}) == ["ai_mode"]
     assert format_config_changed_bit(["ai_mode", "min_hold_hours"]) == "Δ hot · AI · hold"
     assert format_config_changed_bit(
-        ["fee_preset", "commission_rate", "commission_min_eur"]
+        ["fee_preset", "commission_rate", "commission_min"]
     ) == "Δ hot · fees"
     assert format_config_changed_bit(["ai_mode", "rs_gate"]) == "Δ quiet · AI · RS"
     # Missing file always acts (first write materializes Ops precedence).
@@ -183,7 +183,7 @@ def test_fee_preset_revolut_standard_default(tmp_path: Path, monkeypatch):
     cfg = load_trader_config(tmp_path)
     assert cfg["fee_preset"] == "revolut_standard"
     assert abs(cfg["commission_rate"] - 0.0025) < 1e-9
-    assert abs(cfg["commission_min_eur"] - 1.0) < 1e-9
+    assert abs(cfg["commission_min"] - 1.0) < 1e-9
     assert cfg["max_positions"] == 5
     assert cfg["min_hold_hours"] == 24
     assert cfg["promote_experiment_strategy"] is False

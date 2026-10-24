@@ -15,34 +15,34 @@ from typing import Any
 
 # Paid-plan tiers after free monthly quota (Revolut Trading Ltd disclosure).
 REVOLUT_STANDARD_RATE = 0.0025
-REVOLUT_STANDARD_MIN_EUR = 1.0
+REVOLUT_STANDARD_MIN = 1.0
 REVOLUT_ULTRA_RATE = 0.0012
-REVOLUT_ULTRA_MIN_EUR = 1.0
+REVOLUT_ULTRA_MIN = 1.0
 BINANCE_LIKE_RATE = 0.001
-BINANCE_LIKE_MIN_EUR = 0.0
+BINANCE_LIKE_MIN = 0.0
 
 FEE_PRESETS: dict[str, dict[str, Any]] = {
     "revolut_standard": {
         "commission_rate": REVOLUT_STANDARD_RATE,
-        "commission_min_eur": REVOLUT_STANDARD_MIN_EUR,
+        "commission_min": REVOLUT_STANDARD_MIN,
         "free_legs_per_month": 1,
-        "label": "Revolut Standard · 0.25% · €1 min · 1 free/mo",
+        "label": "Revolut Standard · 0.25% · 1 min · 1 free/mo",
     },
     "revolut_plus": {
         "commission_rate": REVOLUT_STANDARD_RATE,
-        "commission_min_eur": REVOLUT_STANDARD_MIN_EUR,
+        "commission_min": REVOLUT_STANDARD_MIN,
         "free_legs_per_month": 3,
-        "label": "Revolut Plus · 0.25% · €1 min · 3 free/mo",
+        "label": "Revolut Plus · 0.25% · 1 min · 3 free/mo",
     },
     "revolut_ultra": {
         "commission_rate": REVOLUT_ULTRA_RATE,
-        "commission_min_eur": REVOLUT_ULTRA_MIN_EUR,
+        "commission_min": REVOLUT_ULTRA_MIN,
         "free_legs_per_month": 10,
-        "label": "Revolut Ultra / Trading Pro · 0.12% · €1 min · 10 free/mo",
+        "label": "Revolut Ultra / Trading Pro · 0.12% · 1 min · 10 free/mo",
     },
     "binance_like": {
         "commission_rate": BINANCE_LIKE_RATE,
-        "commission_min_eur": BINANCE_LIKE_MIN_EUR,
+        "commission_min": BINANCE_LIKE_MIN,
         "free_legs_per_month": 0,
         "label": "Spot-like · 0.1% · no floor",
     },
@@ -55,13 +55,13 @@ def calc_commission(
     notional: float,
     *,
     rate: float,
-    min_eur: float = 0.0,
+    min_amount: float = 0.0,
 ) -> float:
-    """Commission for one side: max(notional × rate, min_eur)."""
+    """Commission for one side: max(notional × rate, min_amount)."""
     try:
         notion = float(notional)
         r = float(rate)
-        floor = float(min_eur)
+        floor = float(min_amount)
     except (TypeError, ValueError):
         return 0.0
     if notion <= 0 or r < 0:
@@ -79,7 +79,7 @@ def _preset_spec(preset: str) -> dict[str, Any]:
 
 def rates_for_preset(preset: str) -> tuple[float, float]:
     spec = _preset_spec(preset)
-    return float(spec["commission_rate"]), float(spec["commission_min_eur"])
+    return float(spec["commission_rate"]), float(spec["commission_min"])
 
 
 def free_legs_for_preset(preset: str) -> int:
@@ -122,14 +122,14 @@ class FeeAllowanceLedger:
         timestamp: str,
         *,
         rate: float,
-        min_eur: float,
+        min_amount: float,
     ) -> float:
         month = month_key_from_timestamp(timestamp)
         self._roll_month(month)
         if self.free_legs_per_month > 0 and self.used < self.free_legs_per_month:
             self.used += 1
             return 0.0
-        return calc_commission(notional, rate=rate, min_eur=min_eur)
+        return calc_commission(notional, rate=rate, min_amount=min_amount)
 
     @classmethod
     def reconcile_from_transactions(

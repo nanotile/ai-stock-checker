@@ -83,7 +83,7 @@ def _env_defaults() -> dict[str, Any]:
         "breadth_gate": _as_bool(os.getenv("BREADTH_GATE"), True),
         "fee_preset": fee_preset,
         "commission_rate": rate,
-        "commission_min_eur": min_eur,
+        "commission_min": min_eur,
         "free_legs_per_month": free_legs_for_preset(fee_preset),
         "max_positions": max(1, min(12, max_pos)),
         "min_hold_hours": max(4.0, min(168.0, min_hold_h)),
@@ -100,7 +100,7 @@ def normalize_config(raw: dict[str, Any] | None, *, base: Optional[dict[str, Any
         preset = str(out.get("fee_preset") or DEFAULT_FEE_PRESET)
         rate, min_eur = rates_for_preset(preset)
         out["commission_rate"] = rate
-        out["commission_min_eur"] = min_eur
+        out["commission_min"] = min_eur
         out["free_legs_per_month"] = free_legs_for_preset(preset)
         return out
 
@@ -144,18 +144,18 @@ def normalize_config(raw: dict[str, Any] | None, *, base: Optional[dict[str, Any
                     out["commission_rate"] = r
             except (TypeError, ValueError):
                 pass
-        if "commission_min_eur" in raw:
+        if "commission_min" in raw:
             try:
-                m = float(raw.get("commission_min_eur"))
+                m = float(raw.get("commission_min"))
                 if 0 <= m <= 50:
-                    out["commission_min_eur"] = m
+                    out["commission_min"] = m
             except (TypeError, ValueError):
                 pass
     else:
         preset = str(out.get("fee_preset") or DEFAULT_FEE_PRESET)
         rate, min_eur = rates_for_preset(preset)
         out["commission_rate"] = rate
-        out["commission_min_eur"] = min_eur
+        out["commission_min"] = min_eur
         out["free_legs_per_month"] = free_legs_for_preset(preset)
 
     if "max_positions" in raw:
@@ -240,7 +240,7 @@ _PRECEDENCE_SHORT: dict[str, str] = {
 _CHANGE_SHORT: dict[str, str] = {
     **_PRECEDENCE_SHORT,
     "commission_rate": "fee%",
-    "commission_min_eur": "fee min",
+    "commission_min": "fee min",
     "free_legs_per_month": "free legs",
 }
 
@@ -250,7 +250,7 @@ _CHANGE_HOT_KEYS: frozenset[str] = frozenset(
     {
         "fee_preset",
         "commission_rate",
-        "commission_min_eur",
+        "commission_min",
         "free_legs_per_month",
         "max_positions",
         "min_hold_hours",
@@ -851,7 +851,7 @@ def disk_config_payload(cfg: dict[str, Any]) -> dict[str, Any]:
         "breadth_gate": bool(cfg.get("breadth_gate", True)),
         "fee_preset": fee_preset,
         "commission_rate": float(cfg["commission_rate"]),
-        "commission_min_eur": float(cfg["commission_min_eur"]),
+        "commission_min": float(cfg["commission_min"]),
         "free_legs_per_month": int(
             cfg.get("free_legs_per_month") or free_legs_for_preset(fee_preset)
         ),
@@ -1084,7 +1084,7 @@ def format_config_changed_bit(keys: list[str] | None, *, limit: int = 4) -> str:
     for key in clean:
         if key in {
             "commission_rate",
-            "commission_min_eur",
+            "commission_min",
             "free_legs_per_month",
         }:
             if "fee_preset" in clean or seen_fees:

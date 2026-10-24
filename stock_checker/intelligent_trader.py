@@ -106,7 +106,7 @@ class IntelligentTrader:
         self.portfolio = Portfolio(
             initial_cash,
             commission_rate=rate,
-            commission_min_eur=min_eur,
+            commission_min=min_eur,
             fee_preset=DEFAULT_FEE_PRESET,
             persistence=self.persistence,
         )
@@ -1514,7 +1514,7 @@ class IntelligentTrader:
         breadth_gate = bool(cfg.get("breadth_gate", True))
         fee_preset = str(cfg.get("fee_preset") or DEFAULT_FEE_PRESET)
         fee_rate = float(cfg.get("commission_rate") or rates_for_preset(fee_preset)[0])
-        fee_min = float(cfg.get("commission_min_eur") or rates_for_preset(fee_preset)[1])
+        fee_min = float(cfg.get("commission_min") or rates_for_preset(fee_preset)[1])
 
         os.environ["AI_MULTI_ROLE"] = "1" if multi else "0"
         os.environ["REGIME_GATE"] = "1" if regime else "0"
@@ -1527,7 +1527,7 @@ class IntelligentTrader:
 
         fee_changed = (
             abs(float(self.portfolio.commission_rate) - fee_rate) > 1e-12
-            or abs(float(getattr(self.portfolio, "commission_min_eur", 0.0)) - fee_min)
+            or abs(float(getattr(self.portfolio, "commission_min", 0.0)) - fee_min)
             > 1e-12
             or str(getattr(self.portfolio, "fee_preset", "")) != fee_preset
         )

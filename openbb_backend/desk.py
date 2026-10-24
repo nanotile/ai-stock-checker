@@ -28213,7 +28213,7 @@ def _trader_runtime_view() -> dict[str, Any]:
         ),
         "fee_preset": str(cfg.get("fee_preset") or "revolut_standard"),
         "commission_rate": float(cfg.get("commission_rate") or 0.0025),
-        "commission_min_eur": float(cfg.get("commission_min_eur") or 1.0),
+        "commission_min": float(cfg.get("commission_min") or 1.0),
         "free_legs_per_month": free_legs,
         "fee_allowance_used": allowance_used,
         "fee_allowance_remaining": allowance_remaining,
@@ -31169,14 +31169,14 @@ def load_desk_snapshot(
     except (TypeError, ValueError):
         commission_rate = 0.0025
     try:
-        commission_min_eur = float(
-            portfolio.get("commission_min_eur")
-            if portfolio.get("commission_min_eur") is not None
-            else cfg_fees.get("commission_min_eur")
+        commission_min = float(
+            portfolio.get("commission_min")
+            if portfolio.get("commission_min") is not None
+            else cfg_fees.get("commission_min")
             or 1.0
         )
     except (TypeError, ValueError):
-        commission_min_eur = 1.0
+        commission_min = 1.0
     fee_preset = str(
         portfolio.get("fee_preset")
         or cfg_fees.get("fee_preset")
@@ -32010,7 +32010,7 @@ def load_desk_snapshot(
         "cash": cash,
         "fees": fees,
         "commission_rate_pct": commission_rate * 100,
-        "commission_min_eur": commission_min_eur,
+        "commission_min": commission_min,
         "fee_preset": fee_preset,
         "cost_basis_total": cost,
         "market_value": market_value,

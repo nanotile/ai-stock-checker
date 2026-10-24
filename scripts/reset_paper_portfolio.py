@@ -185,7 +185,7 @@ def main() -> None:
         "initial_cash": args.capital,
         "cash": cash,
         "commission_rate": 0.0025,
-        "commission_min_eur": 1.0,
+        "commission_min": 1.0,
         "fee_preset": "revolut_standard",
         "holdings": holdings,
         "avg_buy_price": avg_buy,

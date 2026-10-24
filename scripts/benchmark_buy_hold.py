@@ -20,7 +20,7 @@ if str(_ROOT) not in sys.path:
 
 from scripts.run_experiment import (  # noqa: E402
     COMMISSION,
-    COMMISSION_MIN_EUR,
+    COMMISSION_MIN,
     DEFAULT_SYMBOLS,
     FEE_PRESET,
     FREE_LEGS_PER_MONTH,
@@ -134,7 +134,7 @@ def run_equal_weight_buy_hold(data: Dict[str, List[Dict]]) -> dict:
         shares = alloc / px
         cost = shares * px
         commission = ledger.commission_for_leg(
-            cost, entry_ts, rate=COMMISSION, min_eur=COMMISSION_MIN_EUR
+            cost, entry_ts, rate=COMMISSION, min_eur=COMMISSION_MIN
         )
         fees += commission
         cash -= cost + commission
@@ -155,7 +155,7 @@ def run_equal_weight_buy_hold(data: Dict[str, List[Dict]]) -> dict:
         exit_px = float(data[symbol][last_i]["close"]) * (1 - SLIPPAGE)
         proceeds = pos["shares"] * exit_px
         commission = ledger.commission_for_leg(
-            proceeds, exit_ts, rate=COMMISSION, min_eur=COMMISSION_MIN_EUR
+            proceeds, exit_ts, rate=COMMISSION, min_eur=COMMISSION_MIN
         )
         fees += commission
         cash += proceeds - commission
@@ -198,7 +198,7 @@ def _run(
     bt = Backtester(
         initial_capital=INITIAL_CAPITAL,
         commission_rate=COMMISSION,
-        commission_min_eur=COMMISSION_MIN_EUR,
+        commission_min=COMMISSION_MIN,
         slippage_pct=SLIPPAGE,
         position_fraction=position_fraction,
         max_positions=max_positions,
@@ -283,7 +283,7 @@ def main() -> int:
 
     print("--- benchmark ---")
     print(
-        f"harness: fee_preset={FEE_PRESET} rate={COMMISSION} min_eur={COMMISSION_MIN_EUR} "
+        f"harness: fee_preset={FEE_PRESET} rate={COMMISSION} min_eur={COMMISSION_MIN} "
         f"free_legs={FREE_LEGS_PER_MONTH} "
         f"max_positions={MAX_POSITIONS} min_hold_bars={MIN_HOLD_BARS}"
     )

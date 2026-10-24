@@ -8,7 +8,7 @@ def test_buy_applies_commission_and_reduces_cash():
     p = Portfolio(
         initial_cash=10000.0,
         commission_rate=0.001,
-        commission_min_eur=0.0,
+        commission_min=0.0,
         fee_preset="binance_like",
         enable_risk_management=False,
     )
@@ -24,7 +24,7 @@ def test_sell_computes_pnl_and_fees():
     p = Portfolio(
         initial_cash=10000.0,
         commission_rate=0.001,
-        commission_min_eur=0.0,
+        commission_min=0.0,
         fee_preset="binance_like",
         enable_risk_management=False,
     )
@@ -38,18 +38,18 @@ def test_sell_computes_pnl_and_fees():
 
 
 def test_insufficient_funds_fails():
-    p = Portfolio(initial_cash=50.0, commission_rate=0.001, commission_min_eur=0.0, enable_risk_management=False)
+    p = Portfolio(initial_cash=50.0, commission_rate=0.001, commission_min=0.0, enable_risk_management=False)
     result = p.buy("AAPL", price=100.0, quantity=10, timestamp="t1")
     assert result["success"] is False
 
 
 def test_revolut_min_commission_floor():
-    from stock_checker.fees import REVOLUT_STANDARD_MIN_EUR, REVOLUT_STANDARD_RATE
+    from stock_checker.fees import REVOLUT_STANDARD_MIN, REVOLUT_STANDARD_RATE
 
     p = Portfolio(
         initial_cash=10000.0,
         commission_rate=REVOLUT_STANDARD_RATE,
-        commission_min_eur=REVOLUT_STANDARD_MIN_EUR,
+        commission_min=REVOLUT_STANDARD_MIN,
         fee_preset="revolut_standard",
         enable_risk_management=False,
     )

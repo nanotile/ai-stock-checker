@@ -8,11 +8,14 @@ import os
 from pathlib import Path
 from typing import Any, Optional, Tuple
 
+from stock_checker.currency import currency_symbol
+
 
 def fee_burn_facts(
     data_dir: str = os.getenv("DATA_DIR", "/data"),
     *,
     fee_pct_of_capital: float = 0.02,
+    currency: str = "EUR",
 ) -> Optional[dict[str, Any]]:
     """
     Return fee drag vs start capital when both are positive.
@@ -39,6 +42,7 @@ def fee_burn_facts(
         "ratio": ratio,
         "threshold": float(fee_pct_of_capital),
         "high": ratio >= float(fee_pct_of_capital),
+        "currency": currency,
     }
 
 
@@ -46,25 +50,27 @@ def fee_burn_warning(
     data_dir: str = os.getenv("DATA_DIR", "/data"),
     *,
     fee_pct_of_capital: float = 0.02,
+    currency: str = "EUR",
 ) -> Optional[str]:
     """
     Return a warning string if fees paid exceed fee_pct_of_capital of initial cash.
     """
-    facts = fee_burn_facts(data_dir, fee_pct_of_capital=fee_pct_of_capital)
+    facts = fee_burn_facts(data_dir, fee_pct_of_capital=fee_pct_of_capital, currency=currency)
     if not facts or not facts["high"]:
         return None
 
     fees = float(facts["fees"])
     initial = float(facts["initial"])
     ratio = float(facts["ratio"])
+    sym = currency_symbol(currency)
     return (
-        f"High fee burn: €{fees:,.2f} fees on €{initial:,.2f} capital "
+        f"High fee burn: {sym}{fees:,.2f} fees on {sym}{initial:,.2f} capital "
         f"({ratio*100:.1f}%). Consider resetting paper book or raising min-hold-time."
     )
 
 
-def maybe_print_fee_burn_warning(data_dir: str = "/data") -> Tuple[bool, str]:
-    msg = fee_burn_warning(data_dir)
+def maybe_print_fee_burn_warning(data_dir: str = "/data", currency: str = "EUR") -> Tuple[bool, str]:
+    msg = fee_burn_warning(data_dir, currency=currency)
     if msg:
         print(f"⚠️  {msg}")
         return True, msg

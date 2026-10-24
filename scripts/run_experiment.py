@@ -45,7 +45,7 @@ DATA_DIR = Path("data/experiment_bars")
 DEFAULT_SYMBOLS = ["SPY", "QQQ", "IWM", "GLD", "AAPL", "MSFT", "NVDA", "JNJ"]
 INITIAL_CAPITAL = 100_000.0
 FEE_PRESET = DEFAULT_FEE_PRESET  # revolut_standard
-COMMISSION, COMMISSION_MIN_EUR = rates_for_preset(FEE_PRESET)
+COMMISSION, COMMISSION_MIN = rates_for_preset(FEE_PRESET)
 FREE_LEGS_PER_MONTH = free_legs_for_preset(FEE_PRESET)
 SLIPPAGE = 0.0005
 MAX_POSITIONS = 5
@@ -59,7 +59,7 @@ def make_backtester() -> Backtester:
     return Backtester(
         initial_capital=INITIAL_CAPITAL,
         commission_rate=COMMISSION,
-        commission_min_eur=COMMISSION_MIN_EUR,
+        commission_min=COMMISSION_MIN,
         slippage_pct=SLIPPAGE,
         position_fraction=POSITION_FRACTION,
         max_positions=MAX_POSITIONS,
@@ -88,15 +88,15 @@ def estimate_fees_pct(trades, *, capital: float = INITIAL_CAPITAL) -> float:
         entry_ts = t.entry_time.strftime("%Y-%m-%d") if hasattr(t, "entry_time") else ""
         exit_ts = t.exit_time.strftime("%Y-%m-%d") if hasattr(t, "exit_time") else entry_ts
         fees += ledger.commission_for_leg(
-            entry, entry_ts, rate=COMMISSION, min_eur=COMMISSION_MIN_EUR
+            entry, entry_ts, rate=COMMISSION, min_eur=COMMISSION_MIN
         )
         if exit_px == exit_px and exit_ > 0:
             fees += ledger.commission_for_leg(
-                exit_, exit_ts, rate=COMMISSION, min_eur=COMMISSION_MIN_EUR
+                exit_, exit_ts, rate=COMMISSION, min_eur=COMMISSION_MIN
             )
         else:
             fees += ledger.commission_for_leg(
-                entry, exit_ts, rate=COMMISSION, min_eur=COMMISSION_MIN_EUR
+                entry, exit_ts, rate=COMMISSION, min_eur=COMMISSION_MIN
             )
     pct = fees / capital * 100.0
     return pct if pct == pct else 0.0
@@ -255,7 +255,7 @@ def _spy_walkforward_blend(data: Dict[str, List[Dict]]) -> float:
     bt = Backtester(
         initial_capital=INITIAL_CAPITAL,
         commission_rate=COMMISSION,
-        commission_min_eur=COMMISSION_MIN_EUR,
+        commission_min=COMMISSION_MIN,
         slippage_pct=SLIPPAGE,
         position_fraction=0.99,
         max_positions=0,
@@ -321,7 +321,7 @@ def run() -> int:
     print(f"fees_pct:             {full_metrics.get('fees_pct', 0):.6f}")
     print(f"fee_preset:           {FEE_PRESET}")
     print(f"commission_rate:      {COMMISSION}")
-    print(f"commission_min_eur:   {COMMISSION_MIN_EUR}")
+    print(f"commission_min:   {COMMISSION_MIN}")
     print(f"free_legs_per_month:  {FREE_LEGS_PER_MONTH}")
     print(f"max_positions:        {MAX_POSITIONS}")
     print(f"min_hold_bars:        {MIN_HOLD_BARS}")
