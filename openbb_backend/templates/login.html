@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Desk — Login</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0a0a0a;
+            color: #e0e0e0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .login-box {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 2rem;
+            width: 100%;
+            max-width: 360px;
+        }
+        h1 {
+            font-size: 1.4rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            color: #fff;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        label {
+            display: block;
+            font-size: 0.85rem;
+            margin-bottom: 0.3rem;
+            color: #999;
+        }
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 0.6rem 0.8rem;
+            background: #0a0a0a;
+            border: 1px solid #444;
+            border-radius: 4px;
+            color: #e0e0e0;
+            font-size: 0.95rem;
+        }
+        input:focus {
+            outline: none;
+            border-color: #4a9eff;
+        }
+        button {
+            width: 100%;
+            padding: 0.7rem;
+            background: #4a9eff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 0.5rem;
+        }
+        button:hover { background: #3a8eef; }
+        .error {
+            background: #3a1a1a;
+            border: 1px solid #662222;
+            color: #ff6b6b;
+            padding: 0.5rem 0.8rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+            font-size: 0.85rem;
+        }
+        .branding {
+            text-align: center;
+            margin-top: 1rem;
+            font-size: 0.75rem;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-box">
+        <h1>Stock Desk</h1>
+        {% if error %}
+        <div class="error">{{ error }}</div>
+        {% endif %}
+        <form method="POST" action="/desk/auth/login">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required autofocus>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <button type="submit">Sign In</button>
+        </form>
+        <div class="branding">AI Stock Checker</div>
+    </div>
+</body>
+</html>

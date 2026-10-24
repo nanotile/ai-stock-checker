@@ -23,6 +23,16 @@ from fastapi.responses import (
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request as StarletteRequest
+
+from openbb_backend.auth import (
+    clear_auth_cookie,
+    create_token,
+    get_current_user,
+    requires_auth,
+    set_auth_cookie,
+    verify_password,
+)
 
 from openbb_backend.charts import load_chart_payload
 from openbb_backend.desk import (
@@ -37,6 +47,7 @@ from openbb_backend.desk import (
 )
 from openbb_backend.desk_logs import LOG_SOURCES, follow_log, list_log_sources, read_log_tail
 from openbb_backend.repo_meta import load_repo_meta
+from stock_checker.persistence import DataPersistence
 
 DATA_DIR = Path(os.getenv("DATA_DIR", "/data"))
 API_KEY = os.getenv("OPENBB_BACKEND_API_KEY", "").strip()
@@ -145,6 +156,24 @@ class DeskSecurityHeaders(BaseHTTPMiddleware):
         return response
 
 
+class DeskAuthMiddleware:
+    """Redirect unauthenticated users to login for /desk routes."""
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "http":
+            request = StarletteRequest(scope, receive)
+            if requires_auth(request):
+                user = get_current_user(request)
+                if user is None:
+                    response = RedirectResponse(url="/desk/login", status_code=302)
+                    await response(scope, receive, send)
+                    return
+        await self.app(scope, receive, send)
+
+
 app = FastAPI(
     title="AI Stock Checker → OpenBB",
     description="Paper portfolio, trades, and opportunities for OpenBB Workspace",
@@ -187,6 +216,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(DeskAuthMiddleware)
 
 
 def _check_key(x_api_key: Optional[str]) -> None:
@@ -533,6 +563,52 @@ def desk_scan_log(request: Request, day: str):
             },
         },
     )
+
+
+@app.get("/desk/login")
+async def desk_login(request: Request, error: str = ""):
+    """Render login page."""
+    return templates.TemplateResponse("login.html", {"request": request, "error": error})
+
+
+@app.post("/desk/auth/login")
+async def desk_auth_login(request: Request):
+    """Authenticate user and set JWT cookie."""
+    form = await request.form()
+    username = str(form.get("username", "")).strip()
+    password = str(form.get("password", ""))
+
+    if not username or not password:
+        return templates.TemplateResponse(
+            "login.html", {"request": request, "error": "Username and password required"}
+        )
+
+    data_dir = os.getenv("DATA_DIR", "data")
+    persistence = DataPersistence(data_dir=data_dir)
+    user = persistence.get_user_by_username(username)
+
+    if not user or not verify_password(password, user["pw_hash"]):
+        return templates.TemplateResponse(
+            "login.html", {"request": request, "error": "Invalid credentials"}
+        )
+
+    if not user.get("is_active", True):
+        return templates.TemplateResponse(
+            "login.html", {"request": request, "error": "Account disabled"}
+        )
+
+    token = create_token(user["id"], user["username"])
+    response = RedirectResponse(url="/desk", status_code=302)
+    set_auth_cookie(response, token)
+    return response
+
+
+@app.get("/desk/logout")
+async def desk_logout():
+    """Clear auth cookie and redirect to login."""
+    response = RedirectResponse(url="/desk/login", status_code=302)
+    clear_auth_cookie(response)
+    return response
 
 
 @app.get("/desk", response_class=HTMLResponse)
