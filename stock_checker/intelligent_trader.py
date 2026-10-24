@@ -68,6 +68,7 @@ from .crypto_policy import (
     crypto_slot_available,
     is_crypto_symbol,
 )
+from .currency import exchanges_for_currency, currency_symbol
 from .fees import DEFAULT_FEE_PRESET, free_legs_for_preset, rates_for_preset
 from .trader_config import DEFAULTS as TRADER_DEFAULTS
 from .trade_context import buy_note_from_opportunity, sell_note_from_exit
@@ -79,6 +80,19 @@ AI_FULL_TOP_N = 10
 
 _DEFAULT_MAX_POSITIONS = int(TRADER_DEFAULTS["max_positions"])
 _DEFAULT_MIN_HOLD_SECONDS = int(float(TRADER_DEFAULTS["min_hold_hours"]) * 3600)
+
+
+class _PortfolioSlot:
+    """Per-portfolio state carried across cycles."""
+    __slots__ = ("portfolio_id", "portfolio", "currency", "entry_times", "exit_times")
+
+    def __init__(self, portfolio_id, portfolio, currency, entry_times, exit_times):
+        self.portfolio_id = portfolio_id
+        self.portfolio = portfolio
+        self.currency = currency
+        self.entry_times = entry_times
+        self.exit_times = exit_times
+
 
 class IntelligentTrader:
     """
@@ -102,14 +116,29 @@ class IntelligentTrader:
         self.max_crypto_positions = int(DEFAULT_MAX_CRYPTO_POSITIONS)
         self.scanner = MarketScanner(top_crypto_count=self.top_crypto_count)
         self.persistence = DataPersistence()
-        rate, min_eur = rates_for_preset(DEFAULT_FEE_PRESET)
-        self.portfolio = Portfolio(
-            initial_cash,
-            commission_rate=rate,
-            commission_min=min_eur,
-            fee_preset=DEFAULT_FEE_PRESET,
-            persistence=self.persistence,
-        )
+
+        # Load all active portfolios from SQLite
+        self._portfolio_slots: dict[int, _PortfolioSlot] = {}
+        self._load_portfolios()
+
+        # Set initial active portfolio (first one, or None)
+        if self._portfolio_slots:
+            first_slot = next(iter(self._portfolio_slots.values()))
+            self.portfolio = first_slot.portfolio
+            self.position_entry_times = first_slot.entry_times
+            self.position_exit_times = first_slot.exit_times
+        else:
+            # No portfolios yet — create a bare Portfolio for backward compat
+            rate, min_amt = rates_for_preset(DEFAULT_FEE_PRESET)
+            self.portfolio = Portfolio(
+                initial_cash,
+                commission_rate=rate,
+                commission_min=min_amt,
+                fee_preset=DEFAULT_FEE_PRESET,
+                persistence=self.persistence,
+            )
+            self.position_entry_times = self.persistence.load_entry_times()
+            self.position_exit_times = self.persistence.load_exit_times()
 
         self.scan_interval = scan_interval
         self.trade_interval = trade_interval
@@ -146,16 +175,19 @@ class IntelligentTrader:
         self._btc_closes: List[float] = []
         self.promote_experiment_strategy = False
 
-        # Load position entry times from disk (survives restarts)
-        self.position_entry_times = self.persistence.load_entry_times()
+        # Position entry/exit times now loaded per-portfolio in _load_portfolios()
+        # but we print summary here if we have data
         if self.position_entry_times:
             print(f"   Loaded {len(self.position_entry_times)} position entry times from disk")
-        self.position_exit_times = self.persistence.load_exit_times()
         if self.position_exit_times:
             print(f"   Loaded {len(self.position_exit_times)} exit cooldowns from disk")
 
         print(f"🤖 Intelligent Trader initialized")
-        print(f"   Capital: €{initial_cash:,.2f}")
+        n_portfolios = len(self._portfolio_slots)
+        if n_portfolios:
+            print(f"   Portfolios: {n_portfolios} active")
+        else:
+            print(f"   Capital: {initial_cash:,.2f} (no portfolios loaded)")
         print(f"   Max positions: {max_positions}")
         print(f"   Position size: {position_size*100}%")
         print(f"   Scan interval: {scan_interval}s")
@@ -177,6 +209,56 @@ class IntelligentTrader:
         from stock_checker.fee_burn import maybe_print_fee_burn_warning
 
         maybe_print_fee_burn_warning(str(self.persistence.data_dir))
+
+    def _load_portfolios(self) -> None:
+        """Load all active portfolios from SQLite into _portfolio_slots."""
+        active = self.persistence.list_active_portfolios()
+        if not active:
+            if not self._portfolio_slots:
+                print("⚠️  No active portfolios. Create users/portfolios first.")
+                print("   Run: python -m stock_checker.create_user --help")
+            return
+
+        seen_ids = set()
+        for row in active:
+            pid = row["id"]
+            seen_ids.add(pid)
+            if pid in self._portfolio_slots:
+                continue  # Already loaded
+
+            rate, min_amt = rates_for_preset(row.get("fee_preset", DEFAULT_FEE_PRESET))
+            portfolio = Portfolio(
+                initial_cash=float(row.get("initial_cash", 10000.0)),
+                commission_rate=rate,
+                commission_min=min_amt,
+                fee_preset=row.get("fee_preset", DEFAULT_FEE_PRESET),
+                persistence=self.persistence,
+                currency=row.get("currency", "EUR"),
+            )
+            entry_times = self.persistence.load_entry_times(portfolio_id=pid)
+            exit_times = self.persistence.load_exit_times(portfolio_id=pid)
+
+            self._portfolio_slots[pid] = _PortfolioSlot(
+                portfolio_id=pid,
+                portfolio=portfolio,
+                currency=row.get("currency", "EUR"),
+                entry_times=entry_times,
+                exit_times=exit_times,
+            )
+            sym = currency_symbol(row.get("currency", "EUR"))
+            print(f"   Loaded portfolio #{pid}: {row.get('name', '?')} "
+                  f"({sym}{float(row.get('initial_cash', 0)):,.0f} {row.get('currency', 'EUR')})")
+
+        # Remove deactivated portfolios
+        for pid in list(self._portfolio_slots):
+            if pid not in seen_ids:
+                del self._portfolio_slots[pid]
+
+    def _activate_portfolio(self, slot: _PortfolioSlot) -> None:
+        """Swap the active portfolio and per-portfolio state."""
+        self.portfolio = slot.portfolio
+        self.position_entry_times = slot.entry_times
+        self.position_exit_times = slot.exit_times
 
     def begin_trade_cycle(self) -> None:
         """Reset per-cycle flags (called from trader_cycle.run_one_cycle)."""
@@ -1607,7 +1689,23 @@ class IntelligentTrader:
             print(f"⏰  Iteration #{iteration} - {timestamp}")
             print(f"{'='*70}")
 
-            result = run_one_cycle(self)
+            # Refresh portfolio list every 10 cycles
+            if iteration % 10 == 1:
+                self._load_portfolios()
+
+            if not self._portfolio_slots:
+                print("⚠️  No active portfolios — sleeping...")
+                time.sleep(60)
+                continue
+
+            for slot in self._portfolio_slots.values():
+                self._activate_portfolio(slot)
+                try:
+                    result = run_one_cycle(self)
+                except Exception:
+                    traceback.print_exc()
+                    continue
+
             if result.scanned and self.current_opportunities:
                 print(f"\n🎯 Top 5 Opportunities:")
                 for i, opp in enumerate(self.current_opportunities[:5], 1):
