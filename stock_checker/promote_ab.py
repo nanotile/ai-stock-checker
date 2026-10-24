@@ -2409,6 +2409,10 @@ def window_a_sample_readiness(
         "close_sleeve_severity": "",
         "close_sleeve_core_bit": "",
         "close_sleeve_vs_fills_bit": "",
+        "close_sleeve_share_bit": "",
+        "close_sleeve_crypto_share_pct": None,
+        "close_sleeve_crypto_share_severity": "",
+        "close_sleeve_lean_bit": "",
         "close_sleeve_bit": "",
         "close_sleeve_warn": False,
         "stale_closes": False,
@@ -2836,15 +2840,22 @@ def window_a_sample_readiness(
     close_sleeve_severity = str(close_sleeve.get("severity") or "")
     close_sleeve_core_bit = str(close_sleeve.get("core_bit") or "")
     close_sleeve_vs_fills_bit = str(close_sleeve.get("vs_fills_bit") or "")
+    close_sleeve_share_bit = str(close_sleeve.get("share_bit") or "")
+    close_sleeve_crypto_share_pct = close_sleeve.get("crypto_share_pct")
+    close_sleeve_crypto_share_severity = str(
+        close_sleeve.get("crypto_share_severity") or ""
+    )
+    close_sleeve_lean_bit = str(close_sleeve.get("lean_bit") or "")
     close_sleeve_bit = str(close_sleeve.get("bit") or "")
     close_sleeve_warn = bool(close_sleeve.get("warn"))
-    if close_sleeve_vs_fills_bit:
+    # Close lean (vs-fills · share) before fill share/sides — clash clip first.
+    if close_sleeve_lean_bit:
         if sleeve_lean_bit:
             sleeve_lean_bit = (
-                f"{close_sleeve_vs_fills_bit} · {sleeve_lean_bit}"
+                f"{close_sleeve_lean_bit} · {sleeve_lean_bit}"
             )
         else:
-            sleeve_lean_bit = close_sleeve_vs_fills_bit
+            sleeve_lean_bit = close_sleeve_lean_bit
         sleeve_warn = sleeve_warn or close_sleeve_warn
         sleeve_lean_meta = window_a_sleeve_lean_meta(
             sleeve_lean_bit, warn=sleeve_warn
@@ -5228,6 +5239,12 @@ def window_a_sample_readiness(
         "close_sleeve_severity": close_sleeve_severity,
         "close_sleeve_core_bit": close_sleeve_core_bit,
         "close_sleeve_vs_fills_bit": close_sleeve_vs_fills_bit,
+        "close_sleeve_share_bit": close_sleeve_share_bit,
+        "close_sleeve_crypto_share_pct": close_sleeve_crypto_share_pct,
+        "close_sleeve_crypto_share_severity": (
+            close_sleeve_crypto_share_severity
+        ),
+        "close_sleeve_lean_bit": close_sleeve_lean_bit,
         "close_sleeve_bit": close_sleeve_bit,
         "close_sleeve_warn": close_sleeve_warn,
         "stale_closes": stale_closes,
@@ -6040,6 +6057,12 @@ def window_a_close_sleeve_mix(
     closes — a crypto-buy / stock-sell control can look equity-heavy on
     fills while closes are crypto-only (portfolio AI speak-both-sides +
     xang1234 fill≠close meters). Missing keys / zero sells → silent.
+
+    When close sleeve already spoke, also speak closes crypto÷total with
+    ``closes hot ≥50%`` · ``closes quiet ≤25%`` (fill sleeve share parity +
+    portfolio AI count≠share). Absolute ``Nc/Ns`` alone hid half-mix vs a
+    sliver on the edge sample. Share sits in the lean fold after vs-fills.
+
     Warn on crypto-only|heavy closes or fill≠close clash. Not a gate.
     """
     empty: dict[str, Any] = {
@@ -6048,6 +6071,10 @@ def window_a_close_sleeve_mix(
         "severity": "",
         "core_bit": "",
         "vs_fills_bit": "",
+        "share_bit": "",
+        "lean_bit": "",
+        "crypto_share_pct": None,
+        "crypto_share_severity": "",
         "bit": "",
         "warn": False,
     }
@@ -6067,6 +6094,16 @@ def window_a_close_sleeve_mix(
         return empty
     severity, core, crypto_warn = _sleeve_severity_from_counts(crypto_n, stock_n)
     core_bit = f"closes {core}"
+    share_pct = round(100.0 * crypto_n / total)
+    if share_pct >= WINDOW_A_SLEEVE_CRYPTO_SHARE_HOT_PCT:
+        share_sev = "hot"
+        share_bit = f"closes hot · {share_pct}%"
+    elif share_pct <= WINDOW_A_SLEEVE_CRYPTO_SHARE_QUIET_PCT:
+        share_sev = "quiet"
+        share_bit = f"closes quiet · {share_pct}%"
+    else:
+        share_sev = ""
+        share_bit = f"closes · {share_pct}%"
     fill_sev = str(fill_severity or "").strip()
     vs_fills = ""
     clash_warn = False
@@ -6077,15 +6114,22 @@ def window_a_close_sleeve_mix(
         else:
             vs_fills = f"closes clash · fills {fill_label}"
             clash_warn = True
+    # Clash/agree before share so the 96-char lean clip keeps fill≠close.
+    lean_parts = [p for p in (vs_fills, share_bit) if p]
+    lean_bit = " · ".join(lean_parts)
     bit_parts = [core_bit]
-    if vs_fills:
-        bit_parts.append(vs_fills)
+    if lean_bit:
+        bit_parts.append(lean_bit)
     return {
         "crypto_closes": crypto_n,
         "stock_closes": stock_n,
         "severity": severity,
         "core_bit": core_bit,
         "vs_fills_bit": vs_fills,
+        "share_bit": share_bit,
+        "lean_bit": lean_bit,
+        "crypto_share_pct": share_pct,
+        "crypto_share_severity": share_sev,
         "bit": " · ".join(bit_parts),
         "warn": crypto_warn or clash_warn,
     }
@@ -6129,6 +6173,8 @@ def format_window_a_close_sleeve_vs_fills_bit(
 _SLEEVE_LEAN_QUIET_NAME_CAP = 4
 _SLEEVE_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"closes (?:agree|clash · fills \S+)"), "closes"),
+    # Close crypto÷sells ownership (prefix so fill ``hot · N%`` stays share).
+    (re.compile(r"closes (?:hot|quiet) · \d+%|closes · \d+%"), "closes%"),
     (re.compile(r"(?:hot|quiet) · \d+%"), "share"),
     (re.compile(r"\d+%"), "share"),
     (re.compile(r"vs \d+ stock(?: · (?:strong|thin))? · \d+%"), "sides"),

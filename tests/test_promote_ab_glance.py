@@ -418,18 +418,25 @@ def test_window_a_close_sleeve_vs_fills() -> None:
         format_window_a_close_sleeve_vs_fills_bit,
         window_a_close_sleeve_mix,
         window_a_sample_readiness,
+        window_a_sleeve_lean_meta,
     )
 
     assert window_a_close_sleeve_mix(None)["bit"] == ""
     assert window_a_close_sleeve_mix({"crypto_legs": 4})["bit"] == ""
-    # Stock closes while fills were crypto-heavy → clash.
+    # Stock closes while fills were crypto-heavy → clash + quiet close share.
     clash = window_a_close_sleeve_mix(
         {"crypto_closes": 0, "stock_closes": 4},
         fill_severity="crypto_heavy",
     )
     assert clash["severity"] == "stock_only"
     assert clash["core_bit"] == "closes stock-only · 4"
+    assert clash["crypto_share_pct"] == 0
+    assert clash["crypto_share_severity"] == "quiet"
+    assert clash["share_bit"] == "closes quiet · 0%"
     assert clash["vs_fills_bit"] == "closes clash · fills crypto-heavy"
+    assert clash["lean_bit"] == (
+        "closes clash · fills crypto-heavy · closes quiet · 0%"
+    )
     assert clash["warn"] is True
     # Matching fill+close → speak-both-sides agree (not silent confirm).
     agree = window_a_close_sleeve_mix(
@@ -437,8 +444,22 @@ def test_window_a_close_sleeve_vs_fills() -> None:
         fill_severity="crypto_only",
     )
     assert agree["core_bit"] == "closes crypto-only · 6"
+    assert agree["crypto_share_pct"] == 100
+    assert agree["crypto_share_severity"] == "hot"
+    assert agree["share_bit"] == "closes hot · 100%"
     assert agree["vs_fills_bit"] == "closes agree"
+    assert agree["lean_bit"] == "closes agree · closes hot · 100%"
     assert agree["warn"] is True  # crypto-only closes still warn
+    # Half-mix closes: absolute 3/3 alone hid ownership — speak mid %.
+    mid = window_a_close_sleeve_mix(
+        {"crypto_closes": 3, "stock_closes": 3},
+        fill_severity="mixed",
+    )
+    assert mid["severity"] == "mixed"
+    assert mid["crypto_share_pct"] == 50
+    assert mid["crypto_share_severity"] == "hot"
+    assert mid["share_bit"] == "closes hot · 50%"
+    assert mid["lean_bit"] == "closes agree · closes hot · 50%"
     sample = window_a_sample_readiness(
         {
             "trades": 10,
@@ -459,9 +480,18 @@ def test_window_a_close_sleeve_vs_fills() -> None:
     assert sample["close_sleeve_vs_fills_bit"] == (
         "closes clash · fills crypto-heavy"
     )
+    assert sample["close_sleeve_share_bit"] == "closes quiet · 0%"
+    assert sample["close_sleeve_crypto_share_pct"] == 0
+    assert sample["close_sleeve_crypto_share_severity"] == "quiet"
+    assert sample["close_sleeve_lean_bit"] == (
+        "closes clash · fills crypto-heavy · closes quiet · 0%"
+    )
     assert sample["close_sleeve_warn"] is True
     assert sample["sleeve_lean_bit"].startswith(
-        "closes clash · fills crypto-heavy ·"
+        "closes clash · fills crypto-heavy · closes quiet · 0% ·"
+    )
+    assert "closes%" in window_a_sleeve_lean_meta(
+        sample["sleeve_lean_bit"], warn=True
     )
     assert format_window_a_close_sleeve_core_bit(sample) == (
         "closes stock-only · 4"
@@ -494,6 +524,8 @@ def test_window_a_close_sleeve_vs_fills() -> None:
     assert g["a_close_sleeve_warn"] is True
     assert "closes stock-only · 4" in g["line"]
     assert "closes clash · fills crypto-heavy" in g["a_sleeve_lean"]
+    assert "closes quiet · 0%" in g["a_sleeve_lean"]
+    assert "closes quiet · 0%" not in g["line"]
     assert "closes clash · fills crypto-heavy" not in g["line"]
 
 
