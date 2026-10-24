@@ -2428,6 +2428,8 @@ def window_a_sample_readiness(
         "close_sleeve_delta_moods_warn": False,
         "close_sleeve_lean_moods_bit": "",
         "close_sleeve_lean_moods_warn": False,
+        "close_sleeve_lean_vs_delta_moods_bit": "",
+        "close_sleeve_lean_vs_delta_moods_warn": False,
         "close_sleeve_lean_bit": "",
         "close_sleeve_bit": "",
         "close_sleeve_warn": False,
@@ -2908,6 +2910,12 @@ def window_a_sample_readiness(
     )
     close_sleeve_lean_moods_warn = bool(
         close_sleeve.get("lean_moods_warn")
+    )
+    close_sleeve_lean_vs_delta_moods_bit = str(
+        close_sleeve.get("lean_vs_delta_moods_bit") or ""
+    )
+    close_sleeve_lean_vs_delta_moods_warn = bool(
+        close_sleeve.get("lean_vs_delta_moods_warn")
     )
     close_sleeve_lean_bit = str(close_sleeve.get("lean_bit") or "")
     close_sleeve_bit = str(close_sleeve.get("bit") or "")
@@ -5343,6 +5351,12 @@ def window_a_sample_readiness(
         "close_sleeve_delta_moods_warn": close_sleeve_delta_moods_warn,
         "close_sleeve_lean_moods_bit": close_sleeve_lean_moods_bit,
         "close_sleeve_lean_moods_warn": close_sleeve_lean_moods_warn,
+        "close_sleeve_lean_vs_delta_moods_bit": (
+            close_sleeve_lean_vs_delta_moods_bit
+        ),
+        "close_sleeve_lean_vs_delta_moods_warn": (
+            close_sleeve_lean_vs_delta_moods_warn
+        ),
         "close_sleeve_lean_bit": close_sleeve_lean_bit,
         "close_sleeve_bit": close_sleeve_bit,
         "close_sleeve_warn": close_sleeve_warn,
@@ -6155,6 +6169,17 @@ def _sleeve_lean_verb(crypto_vs_stock: str) -> str:
     return ""
 
 
+def _sleeve_moods_verb(bit: str) -> str:
+    """``align`` / ``clash`` verb from a close sleeve moods bit (else ``""``)."""
+    raw = str(bit or "").strip()
+    # Clash before align — bits never carry both.
+    if " moods clash ·" in raw:
+        return "clash"
+    if " moods align ·" in raw:
+        return "align"
+    return ""
+
+
 def window_a_close_sleeve_mix(
     stats: dict[str, Any] | None,
     *,
@@ -6230,9 +6255,21 @@ def window_a_close_sleeve_mix(
     Prefixed ``closes`` so fill ``crypto vs stock`` stays distinct.
     Δ lead size nest still deferred.
 
+    When lean moods + Δ moods already spoke, also speak
+    ``closes lean vs Δ moods align · both align|clash`` /
+    ``closes lean vs Δ moods clash · lean clash · Δ align`` (soft-allow
+    share/lean + FinRobot last-row + portfolio AI speak-both-sides). Side-
+    by-side lean moods + Δ moods alone hid whether the two *relationships*
+    agree (wide Δ mood align can still sit on a lean moods clash).
+    ``both clash`` + crossed warn; ``both align`` speaks and does not warn.
+    Missing either side silent. Prefixed ``closes lean vs Δ moods`` so
+    ``closes lean/Δ`` ownership stays distinct. Δ lead size nest still
+    deferred.
+
     Warn on crypto-only|heavy closes, fill≠close clash, lean clash,
     lean/Δ mid|adverse, Δ lead vs fills clash, Δ moods dual-wide|clash,
-    or lean moods both-clash|crossed. Not a gate.
+    lean moods both-clash|crossed, or lean vs Δ moods both-clash|crossed.
+    Not a gate.
     """
     empty: dict[str, Any] = {
         "crypto_closes": None,
@@ -6260,6 +6297,8 @@ def window_a_close_sleeve_mix(
         "delta_moods_warn": False,
         "lean_moods_bit": "",
         "lean_moods_warn": False,
+        "lean_vs_delta_moods_bit": "",
+        "lean_vs_delta_moods_warn": False,
         "bit": "",
         "warn": False,
     }
@@ -6439,9 +6478,28 @@ def window_a_close_sleeve_mix(
                 f" · closes {close_lean_verb}"
             )
             lean_moods_warn = True
+    # Lean moods vs Δ moods (after lean moods) — side-by-side alone hid
+    # whether the two relationships agree (soft-allow share/lean parity).
+    lean_vs_delta_moods = ""
+    lean_vs_delta_moods_warn = False
+    lean_mv = _sleeve_moods_verb(lean_moods)
+    delta_mv = _sleeve_moods_verb(delta_moods)
+    if lean_mv and delta_mv:
+        if lean_mv == delta_mv:
+            lean_vs_delta_moods = (
+                f"closes lean vs Δ moods align · both {lean_mv}"
+            )
+            # Dual-clash agreement ≠ calm confirm (share/lean both-clash).
+            lean_vs_delta_moods_warn = lean_mv == "clash"
+        else:
+            lean_vs_delta_moods = (
+                f"closes lean vs Δ moods clash · lean {lean_mv}"
+                f" · Δ {delta_mv}"
+            )
+            lean_vs_delta_moods_warn = True
     # Clash/agree before share·sides·lean·Δ·lead so the 96-char clip
     # keeps fill≠close. Δ lead vs fills sits after close Δ lead; Δ moods
-    # after lead vs fills; lean moods after Δ moods.
+    # after lead vs fills; lean moods after Δ moods; lean vs Δ moods last.
     lean_parts = [
         p
         for p in (
@@ -6455,6 +6513,7 @@ def window_a_close_sleeve_mix(
             lead_vs_fills,
             delta_moods,
             lean_moods,
+            lean_vs_delta_moods,
         )
         if p
     ]
@@ -6488,6 +6547,8 @@ def window_a_close_sleeve_mix(
         "delta_moods_warn": delta_moods_warn,
         "lean_moods_bit": lean_moods,
         "lean_moods_warn": lean_moods_warn,
+        "lean_vs_delta_moods_bit": lean_vs_delta_moods,
+        "lean_vs_delta_moods_warn": lean_vs_delta_moods_warn,
         "bit": " · ".join(bit_parts),
         "warn": (
             crypto_warn
@@ -6497,6 +6558,7 @@ def window_a_close_sleeve_mix(
             or lead_vs_fills_warn
             or delta_moods_warn
             or lean_moods_warn
+            or lean_vs_delta_moods_warn
         ),
     }
 
@@ -6617,6 +6679,14 @@ _SLEEVE_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
             r"clash · fills (?:align|clash) · closes (?:align|clash))"
         ),
         "closes lean moods",
+    ),
+    # Lean moods vs Δ moods (after lean moods; side-by-side ≠ relationship).
+    (
+        re.compile(
+            r"closes lean vs Δ moods (?:align · both (?:align|clash)|"
+            r"clash · lean (?:align|clash) · Δ (?:align|clash))"
+        ),
+        "closes lean vs Δ moods",
     ),
     (re.compile(r"(?:hot|quiet) · \d+%"), "share"),
     (re.compile(r"\d+%"), "share"),
