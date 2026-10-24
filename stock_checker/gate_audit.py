@@ -1004,6 +1004,46 @@ def soft_allow_short_delta_moods(
     )
 
 
+def _short_lean_verb(lean: str) -> str:
+    """``align`` / ``clash`` verb from a short lean bit (else ``\"\"``)."""
+    raw = str(lean or "").strip()
+    if raw.startswith("align ·"):
+        return "align"
+    if raw.startswith("clash ·"):
+        return "clash"
+    return ""
+
+
+def soft_allow_short_lean_moods(
+    events: list[dict[str, Any]] | None,
+) -> tuple[str, bool]:
+    """Pair lean verb vs bench/young lean verb (display only).
+
+    Returns ``(bit, warn)``. When both short vs gap lean and bench vs
+    young lean already spoke: same → ``align · both align|clash``;
+    crossed → ``clash · short/gap … · bench/young …``. Missing lean
+    silent. Dual-clash + crossed warn; both-align speaks, no warn.
+    Side-by-side lean labels + Δ moods alone hid whether the lean
+    *verb* matches (wide Δ mood can still sit on short/gap clash vs
+    bench/young align — Window A close sleeve lean moods + FinRobot +
+    portfolio AI speak-both-sides). Prefixed ``short lean moods`` so
+    ``short Δ moods`` ownership-spread mood stays distinct. Not a gate.
+    """
+    pair_lean, _ = soft_allow_short_vs_gap_lean(events)
+    bench_lean, _ = soft_allow_short_history_bench_vs_young_lean(events)
+    pair_v = _short_lean_verb(pair_lean)
+    bench_v = _short_lean_verb(bench_lean)
+    if not pair_v or not bench_v:
+        return "", False
+    if pair_v == bench_v:
+        # Dual-clash agreement ≠ calm confirm (share/lean both-clash).
+        return f"align · both {pair_v}", pair_v == "clash"
+    return (
+        f"clash · short/gap {pair_v} · bench/young {bench_v}",
+        True,
+    )
+
+
 def soft_allow_short_history_last_vs_share(
     events: list[dict[str, Any]] | None,
     *,
@@ -1742,11 +1782,15 @@ def format_soft_allow_short_history_bit(
     mid Δ silent on the Δ bit; lean-spoke + mid → clash · lean · Δ mid);
     when lean vs Δ already spoke with a Δ and ±pp ≠ 0, ``short Δ lead ·
     short|gap`` follows so the signed spread alone cannot hide which
-    sleeve owns it (unique vs dup / Yahoo mix Δ lead parity); when both
+    sleeve owns it (unique vs dup / Yahoo mix Δ lead parity);     when both
     pair and bench lean/Δ already spoke with align severities,
     ``short Δ moods align|clash`` follows so side-by-side ownership
     spreads cannot hide whether pair mood matches bench/young mood
-    (Yahoo mix share vs gap + portfolio AI speak-both-sides).
+    (Yahoo mix share vs gap + portfolio AI speak-both-sides); when both
+    pair and bench lean already spoke, ``short lean moods align|clash``
+    follows so Δ mood match alone cannot hide lean *verb* mismatch
+    (Window A close sleeve lean moods + FinRobot + portfolio AI
+    speak-both-sides).
     When last freshness extremes + lean already spoke, ``short last/lean
     align|clash`` follows so age labels + lean labels alone cannot hide
     age≠lean (gap last/lean parity); when last/lead + last/lean already
@@ -2019,6 +2063,11 @@ def format_soft_allow_short_history_bit(
             delta_moods, _ = soft_allow_short_delta_moods(events)
             if delta_moods:
                 head = f"{head} · short Δ moods {delta_moods}"
+            # Δ mood match alone hid lean *verb* mismatch (Window A
+            # close sleeve lean moods + FinRobot + portfolio AI).
+            lean_moods, _ = soft_allow_short_lean_moods(events)
+            if lean_moods:
+                head = f"{head} · short lean moods {lean_moods}"
             last_vs_lean, _ = soft_allow_short_history_last_vs_lean(
                 events, now=now
             )
