@@ -2422,6 +2422,8 @@ def window_a_sample_readiness(
         "close_sleeve_crypto_vs_stock_lean_vs_delta": "",
         "close_sleeve_crypto_vs_stock_lean_vs_delta_warn": False,
         "close_sleeve_crypto_vs_stock_delta_lead": "",
+        "close_sleeve_delta_lead_vs_fills_bit": "",
+        "close_sleeve_delta_lead_vs_fills_warn": False,
         "close_sleeve_lean_bit": "",
         "close_sleeve_bit": "",
         "close_sleeve_warn": False,
@@ -2843,7 +2845,9 @@ def window_a_sample_readiness(
     )
     # Close sleeve (sells only) — fill legs include buys; edge needs closes.
     close_sleeve = window_a_close_sleeve_mix(
-        stats, fill_severity=sleeve_severity
+        stats,
+        fill_severity=sleeve_severity,
+        fill_delta_lead=sleeve_crypto_vs_stock_delta_lead,
     )
     crypto_closes = close_sleeve.get("crypto_closes")
     stock_closes = close_sleeve.get("stock_closes")
@@ -2880,6 +2884,12 @@ def window_a_sample_readiness(
     )
     close_sleeve_crypto_vs_stock_delta_lead = str(
         close_sleeve.get("crypto_vs_stock_delta_lead") or ""
+    )
+    close_sleeve_delta_lead_vs_fills_bit = str(
+        close_sleeve.get("delta_lead_vs_fills_bit") or ""
+    )
+    close_sleeve_delta_lead_vs_fills_warn = bool(
+        close_sleeve.get("delta_lead_vs_fills_warn")
     )
     close_sleeve_lean_bit = str(close_sleeve.get("lean_bit") or "")
     close_sleeve_bit = str(close_sleeve.get("bit") or "")
@@ -5305,6 +5315,12 @@ def window_a_sample_readiness(
         "close_sleeve_crypto_vs_stock_delta_lead": (
             close_sleeve_crypto_vs_stock_delta_lead
         ),
+        "close_sleeve_delta_lead_vs_fills_bit": (
+            close_sleeve_delta_lead_vs_fills_bit
+        ),
+        "close_sleeve_delta_lead_vs_fills_warn": (
+            close_sleeve_delta_lead_vs_fills_warn
+        ),
         "close_sleeve_lean_bit": close_sleeve_lean_bit,
         "close_sleeve_bit": close_sleeve_bit,
         "close_sleeve_warn": close_sleeve_warn,
@@ -6111,6 +6127,7 @@ def window_a_close_sleeve_mix(
     stats: dict[str, Any] | None,
     *,
     fill_severity: str = "",
+    fill_delta_lead: str = "",
 ) -> dict[str, Any]:
     """Crypto vs stock **close** mix for Window A (display / ops honesty).
 
@@ -6153,8 +6170,15 @@ def window_a_close_sleeve_mix(
     silent. Prefixed ``closes`` so fill ``Δ lead`` stays distinct. Δ lead
     size nest still deferred.
 
-    Warn on crypto-only|heavy closes, fill≠close clash, lean clash, or
-    lean/Δ mid|adverse. Not a gate.
+    When close Δ lead already spoke and fill Δ lead is known, also speak
+    ``closes Δ lead agree`` / ``closes Δ lead clash · fills crypto · closes
+    stock`` (severity vs-fills alone hid ownership-lead match vs mismatch —
+    ``crypto_heavy``≠``crypto_only`` can still share a crypto lead; portfolio
+    AI speak-both-sides + xang1234 fill≠close meters). Clash warns only.
+    Missing / mid-Δ fill lead stays silent.
+
+    Warn on crypto-only|heavy closes, fill≠close clash, lean clash,
+    lean/Δ mid|adverse, or Δ lead vs fills clash. Not a gate.
     """
     empty: dict[str, Any] = {
         "crypto_closes": None,
@@ -6176,6 +6200,8 @@ def window_a_close_sleeve_mix(
         "crypto_vs_stock_lean_vs_delta": "",
         "crypto_vs_stock_lean_vs_delta_warn": False,
         "crypto_vs_stock_delta_lead": "",
+        "delta_lead_vs_fills_bit": "",
+        "delta_lead_vs_fills_warn": False,
         "bit": "",
         "warn": False,
     }
@@ -6300,8 +6326,22 @@ def window_a_close_sleeve_mix(
         else:
             vs_fills = f"closes clash · fills {fill_label}"
             clash_warn = True
+    # Ownership lead vs fills (after close Δ lead) — severity label clash
+    # alone hid matching/mismatched Δ leads.
+    lead_vs_fills = ""
+    lead_vs_fills_warn = False
+    fill_lead = str(fill_delta_lead or "").strip()
+    if delta_lead and fill_lead in {"crypto", "stock"}:
+        if fill_lead == delta_lead:
+            lead_vs_fills = "closes Δ lead agree"
+        else:
+            lead_vs_fills = (
+                f"closes Δ lead clash · fills {fill_lead}"
+                f" · closes {delta_lead}"
+            )
+            lead_vs_fills_warn = True
     # Clash/agree before share·sides·lean·Δ·lead so the 96-char clip
-    # keeps fill≠close.
+    # keeps fill≠close. Δ lead vs fills sits after close Δ lead.
     lean_parts = [
         p
         for p in (
@@ -6312,6 +6352,7 @@ def window_a_close_sleeve_mix(
             delta_tail,
             lvd_tail,
             lead_tail,
+            lead_vs_fills,
         )
         if p
     ]
@@ -6339,12 +6380,15 @@ def window_a_close_sleeve_mix(
         "crypto_vs_stock_lean_vs_delta": lean_vs_delta,
         "crypto_vs_stock_lean_vs_delta_warn": lean_vs_delta_warn,
         "crypto_vs_stock_delta_lead": delta_lead,
+        "delta_lead_vs_fills_bit": lead_vs_fills,
+        "delta_lead_vs_fills_warn": lead_vs_fills_warn,
         "bit": " · ".join(bit_parts),
         "warn": (
             crypto_warn
             or clash_warn
             or crypto_vs_stock_warn
             or lean_vs_delta_warn
+            or lead_vs_fills_warn
         ),
     }
 
@@ -6360,6 +6404,9 @@ def format_window_a_close_sleeve_core_bit(sample: dict[str, Any] | None) -> str:
         window_a_close_sleeve_mix(
             sample,
             fill_severity=str(sample.get("sleeve_severity") or ""),
+            fill_delta_lead=str(
+                sample.get("sleeve_crypto_vs_stock_delta_lead") or ""
+            ),
         ).get("core_bit")
         or ""
     ).strip()
@@ -6378,6 +6425,9 @@ def format_window_a_close_sleeve_vs_fills_bit(
         window_a_close_sleeve_mix(
             sample,
             fill_severity=str(sample.get("sleeve_severity") or ""),
+            fill_delta_lead=str(
+                sample.get("sleeve_crypto_vs_stock_delta_lead") or ""
+            ),
         ).get("vs_fills_bit")
         or ""
     ).strip()
@@ -6423,6 +6473,14 @@ _SLEEVE_LEAN_STAGE_RES: tuple[tuple[re.Pattern[str], str], ...] = (
     (
         re.compile(r"closes Δ lead · (?:crypto|stock)"),
         "closes Δ lead",
+    ),
+    # Close Δ lead vs fill lead (after close Δ lead; severity vs-fills ≠ lead).
+    (
+        re.compile(
+            r"closes Δ lead (?:agree|clash · fills (?:crypto|stock)"
+            r"(?: · closes (?:crypto|stock))?)"
+        ),
+        "closes Δ lead vs",
     ),
     (re.compile(r"(?:hot|quiet) · \d+%"), "share"),
     (re.compile(r"\d+%"), "share"),
