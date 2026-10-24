@@ -57,7 +57,7 @@ _BACKEND_DIR = Path(__file__).parent
 _DESK_CSP = (
     "default-src 'none'; "
     "base-uri 'none'; "
-    "form-action 'none'; "
+    "form-action 'self'; "
     "frame-ancestors 'none'; "
     "img-src 'self'; "
     "font-src 'none'; "
@@ -469,6 +469,71 @@ def paper_desk_charts():
     return load_chart_payload(DATA_DIR)
 
 
+@app.get("/desk/api/portfolios")
+async def desk_portfolios(request: Request):
+    """List current user's portfolios."""
+    user = get_current_user(request)
+    data_dir = os.getenv("DATA_DIR", "data")
+    persistence = DataPersistence(data_dir=data_dir)
+
+    if user:
+        portfolios = persistence.list_portfolios(user["user_id"])
+    else:
+        # No auth — return all active portfolios
+        portfolios = persistence.list_active_portfolios()
+
+    return JSONResponse(portfolios)
+
+
+@app.post("/desk/api/portfolios")
+async def desk_create_portfolio(request: Request):
+    """Create a new portfolio for the current user."""
+    user = get_current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    body = await request.json()
+    name = str(body.get("name", "")).strip()
+    currency = str(body.get("currency", "EUR")).upper()
+    initial_cash = float(body.get("initial_cash", 100000.0))
+    fee_preset = str(body.get("fee_preset", "revolut_standard"))
+
+    if not name:
+        raise HTTPException(status_code=400, detail="Portfolio name required")
+    if currency not in ("EUR", "USD", "CAD"):
+        raise HTTPException(status_code=400, detail="Currency must be EUR, USD, or CAD")
+
+    data_dir = os.getenv("DATA_DIR", "data")
+    persistence = DataPersistence(data_dir=data_dir)
+    portfolio_id = persistence.create_portfolio(
+        user["user_id"], name, currency, initial_cash, fee_preset
+    )
+    return JSONResponse({"portfolio_id": portfolio_id, "name": name, "currency": currency})
+
+
+@app.delete("/desk/api/portfolios/{portfolio_id}")
+async def desk_delete_portfolio(portfolio_id: int, request: Request):
+    """Soft-delete a portfolio (set is_active=0)."""
+    user = get_current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    data_dir = os.getenv("DATA_DIR", "data")
+    persistence = DataPersistence(data_dir=data_dir)
+
+    # Verify ownership
+    meta = persistence.get_portfolio_meta(portfolio_id)
+    if not meta or meta.get("user_id") != user["user_id"]:
+        raise HTTPException(status_code=404, detail="Portfolio not found")
+
+    # Soft delete
+    persistence.conn.execute(
+        "UPDATE portfolios SET is_active = 0 WHERE id = ?", (portfolio_id,)
+    )
+    persistence.conn.commit()
+    return JSONResponse({"deleted": True})
+
+
 @app.get("/desk/api/logs")
 def desk_logs_list():
     """Allowlisted log files under DATA_DIR (shared volume with the trader)."""
@@ -666,6 +731,8 @@ def portfolio_markdown(
     x_api_key: Optional[str] = Header(default=None, alias="X-API-KEY"),
 ):
     """Markdown summary of paper portfolio health."""
+    from stock_checker.currency import currency_symbol
+
     _check_key(x_api_key)
     portfolio = _load_json(DATA_DIR / "portfolio.json", {})
     trades = _load_trades(5000)
@@ -682,15 +749,17 @@ def portfolio_markdown(
     approx_equity = cash + cost
     ret = ((approx_equity / initial) - 1) * 100 if initial else 0.0
 
+    sym = currency_symbol("EUR")  # TODO: use actual portfolio currency when multi-portfolio active
+
     md = f"""# Paper Portfolio
 
-- **Initial capital:** €{initial:,.2f}
-- **Cash:** €{cash:,.2f}
-- **Holdings (cost basis):** €{cost:,.2f}
-- **Approx equity:** €{approx_equity:,.2f} ({ret:+.2f}%)
+- **Initial capital:** {sym}{initial:,.2f}
+- **Cash:** {sym}{cash:,.2f}
+- **Holdings (cost basis):** {sym}{cost:,.2f}
+- **Approx equity:** {sym}{approx_equity:,.2f} ({ret:+.2f}%)
 - **Positions:** {len(holdings)}
-- **Fees paid:** €{fees:,.2f}
-- **Realized P&L (sells):** €{realized:,.2f}
+- **Fees paid:** {sym}{fees:,.2f}
+- **Realized P&L (sells):** {sym}{realized:,.2f}
 - **Trades logged:** {len(trades)}
 - **Updated:** {portfolio.get("last_updated", "n/a")}
 
