@@ -100,3 +100,38 @@ def test_ensure_curated_seed_adds_german(tmp_path: Path):
     assert "BMW.DE" in mgr.universe["stocks"]
     assert added >= 30
     assert all(s.endswith(".DE") for s in GERMAN_XETRA_SEED)
+
+
+def test_is_canadian_equity():
+    from stock_checker.market_hours import is_canadian_equity
+    assert is_canadian_equity("RY.TO") is True
+    assert is_canadian_equity("shop.to") is True
+    assert is_canadian_equity("AAPL") is False
+    assert is_canadian_equity("SAP.DE") is False
+
+
+def test_tsx_session_closed_weekend():
+    from stock_checker.market_hours import is_tsx_session_closed
+    from datetime import datetime
+    import pytz
+    # Saturday noon ET
+    sat = pytz.timezone("US/Eastern").localize(datetime(2026, 10, 24, 12, 0))
+    assert is_tsx_session_closed(now=sat) is True
+
+
+def test_tsx_session_open_weekday():
+    from stock_checker.market_hours import is_tsx_session_closed
+    from datetime import datetime
+    import pytz
+    # Monday 10:00 ET — inside session
+    mon = pytz.timezone("US/Eastern").localize(datetime(2026, 10, 26, 10, 0))
+    assert is_tsx_session_closed(now=mon) is False
+
+
+def test_equity_session_closed_routes_tsx():
+    from stock_checker.market_hours import is_equity_session_closed
+    from datetime import datetime
+    import pytz
+    # Monday 10:00 ET — TSX open
+    mon = pytz.timezone("US/Eastern").localize(datetime(2026, 10, 26, 10, 0))
+    assert is_equity_session_closed("RY.TO", now=mon) is False

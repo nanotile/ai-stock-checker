@@ -1,4 +1,4 @@
-"""Equity session helpers — US cash hours vs Xetra (German .DE).
+"""Equity session helpers — US cash hours, Xetra (German .DE), TSX (Canadian .TO).
 
 Crypto is 24/7 and is not gated here.
 """
@@ -19,6 +19,11 @@ US_OPEN = dt_time(9, 30)
 US_CLOSE = dt_time(16, 0)
 US_TZ = "US/Eastern"
 
+# TSX hours — same wall-clock as US but different exchange holidays.
+TSX_OPEN = dt_time(9, 30)
+TSX_CLOSE = dt_time(16, 0)
+TSX_TZ = "US/Eastern"  # Toronto is Eastern time
+
 
 def is_crypto_symbol(symbol: str) -> bool:
     s = str(symbol or "").upper().strip()
@@ -28,6 +33,11 @@ def is_crypto_symbol(symbol: str) -> bool:
 def is_german_equity(symbol: str) -> bool:
     """Yahoo Xetra / Frankfurt common stocks use the .DE suffix."""
     return str(symbol or "").upper().strip().endswith(".DE")
+
+
+def is_canadian_equity(symbol: str) -> bool:
+    """Yahoo TSX common stocks use the .TO suffix."""
+    return str(symbol or "").upper().strip().endswith(".TO")
 
 
 def _to_local(tz_name: str, now: Optional[datetime] = None) -> datetime:
@@ -97,16 +107,27 @@ def is_xetra_session_closed(*, now: Optional[datetime] = None) -> bool:
     )
 
 
+def is_tsx_session_closed(*, now: Optional[datetime] = None) -> bool:
+    return _session_closed(tz_name=TSX_TZ, open_t=TSX_OPEN, close_t=TSX_CLOSE, now=now)
+
+
+def last_tsx_session_close(*, now: Optional[datetime] = None) -> datetime:
+    return last_session_close_at(tz_name=TSX_TZ, close_t=TSX_CLOSE, now=now)
+
+
 def is_equity_session_closed(symbol: str, *, now: Optional[datetime] = None) -> bool:
     """
     True when this equity should not open a new paper buy/sell for hours.
 
     - Crypto → never closed here (caller skips)
+    - *.TO → TSX 09:30–16:00 America/New_York
     - *.DE → Xetra 09:00–17:30 Europe/Berlin
     - else → US 09:30–16:00 America/New_York
     """
     if is_crypto_symbol(symbol):
         return False
+    if is_canadian_equity(symbol):
+        return is_tsx_session_closed(now=now)
     if is_german_equity(symbol):
         return is_xetra_session_closed(now=now)
     return is_us_cash_session_closed(now=now)
