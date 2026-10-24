@@ -41,7 +41,6 @@ services:
     # Anti-churn defaults: scan 15m, trade 5m, max 5, hold 24h (match Ops trader_config.DEFAULTS)
     command: >
       python3 -u -m stock_checker.intelligent_trader
-      --capital 100000
       --scan-interval 900
       --trade-interval 300
       --max-positions 5
