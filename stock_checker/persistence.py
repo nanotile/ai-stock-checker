@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import json
+import os
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -9,7 +10,7 @@ from typing import Dict, List, Optional
 class DataPersistence:
     """Handle persistent storage of portfolio, trades, and findings."""
 
-    def __init__(self, data_dir: str = "/data"):
+    def __init__(self, data_dir: str = os.getenv("DATA_DIR", "/data")):
         """
         Initialize persistence layer.
 

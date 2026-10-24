@@ -4,12 +4,13 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from typing import Any, Optional, Tuple
 
 
 def fee_burn_facts(
-    data_dir: str = "/data",
+    data_dir: str = os.getenv("DATA_DIR", "/data"),
     *,
     fee_pct_of_capital: float = 0.02,
 ) -> Optional[dict[str, Any]]:
@@ -42,7 +43,7 @@ def fee_burn_facts(
 
 
 def fee_burn_warning(
-    data_dir: str = "/data",
+    data_dir: str = os.getenv("DATA_DIR", "/data"),
     *,
     fee_pct_of_capital: float = 0.02,
 ) -> Optional[str]:

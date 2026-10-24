@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from typing import Dict, List
+import os
 import time
 import json
 from datetime import datetime
@@ -47,11 +48,11 @@ class MarketScanner:
         ]
 
         # Initialize persistent stock universe manager
-        self.universe_manager = StockUniverseManager(data_dir="/data")
+        self.universe_manager = StockUniverseManager(data_dir=os.getenv("DATA_DIR", "/data"))
         
         # Initialize persistence for symbol tracking
         from .persistence import DataPersistence
-        self.persistence = DataPersistence(data_dir="/data")
+        self.persistence = DataPersistence()
         self._last_stock_scan_pulse: dict = {}
 
     def is_weekend(self) -> bool:
@@ -661,7 +662,7 @@ class MarketScanner:
         
         return "\n".join(lines)
 
-    def save_opportunities_to_archive(self, results: Dict, data_dir: str = "/data") -> tuple:
+    def save_opportunities_to_archive(self, results: Dict, data_dir: str = os.getenv("DATA_DIR", "/data")) -> tuple:
         """
         Save opportunity list to archive directory with timestamp.
         Creates both JSON and human-readable text files.

@@ -59,7 +59,7 @@ def is_transient_network_error(exception: Exception) -> bool:
 class ProviderSemaphore:
     """Manage provider selection semaphore to track which data provider to use first."""
 
-    def __init__(self, data_dir: str = "/data"):
+    def __init__(self, data_dir: str = os.getenv("DATA_DIR", "/data")):
         self.data_dir = Path(data_dir)
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self.semaphore_file = self.data_dir / "provider_semaphore.json"
@@ -95,7 +95,7 @@ class ProviderSemaphore:
 class StockFetcher:
     """Enhanced stock data fetcher with intelligent provider switching."""
 
-    def __init__(self, data_dir: str = "/data"):
+    def __init__(self, data_dir: str = os.getenv("DATA_DIR", "/data")):
         self.finnhub = None
         self.yfinance_fallback = YFINANCE_AVAILABLE
         self.semaphore = ProviderSemaphore(data_dir)

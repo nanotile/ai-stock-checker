@@ -5,6 +5,7 @@ Discovers, persists, and manages the full stock universe on disk.
 """
 
 import json
+import os
 from datetime import datetime, timedelta
 from typing import List, Dict
 from pathlib import Path
@@ -52,7 +53,7 @@ def listing_venue(symbol: str, exchange: str = "") -> str:
 class StockUniverseManager:
     """Manage dynamic stock universe with disk persistence."""
 
-    def __init__(self, data_dir: str = "/data"):
+    def __init__(self, data_dir: str = os.getenv("DATA_DIR", "/data")):
         self.data_dir = Path(data_dir)
         self.data_dir.mkdir(exist_ok=True)
 
