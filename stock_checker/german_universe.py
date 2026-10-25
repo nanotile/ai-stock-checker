@@ -17,7 +17,7 @@ GERMAN_XETRA_SEED: dict[str, dict[str, str]] = {
     "ADS.DE": {"sector": "apparel", "exchange": "XETRA"},
     "BAS.DE": {"sector": "chemicals", "exchange": "XETRA"},
     "BAYN.DE": {"sector": "pharma", "exchange": "XETRA"},
-    "DPW.DE": {"sector": "logistics", "exchange": "XETRA"},
+    "DHL.DE": {"sector": "logistics", "exchange": "XETRA"},
     "EOAN.DE": {"sector": "energy", "exchange": "XETRA"},
     "RWE.DE": {"sector": "energy", "exchange": "XETRA"},
     "IFX.DE": {"sector": "semiconductor", "exchange": "XETRA"},

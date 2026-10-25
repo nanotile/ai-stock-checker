@@ -226,7 +226,6 @@ class StockUniverseManager:
             "RIOT": {"sector": "crypto", "exchange": "NASDAQ"},
             "HUT": {"sector": "crypto", "exchange": "NASDAQ"},
             "CLSK": {"sector": "crypto", "exchange": "NASDAQ"},
-            "BITF": {"sector": "crypto", "exchange": "NASDAQ"},
             "CIFR": {"sector": "crypto", "exchange": "NASDAQ"},
 
             # German Xetra (.DE) + a few other EU / ADR names
