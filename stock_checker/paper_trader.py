@@ -69,7 +69,7 @@ class PaperTrader:
         signal.signal(signal.SIGHUP, self._handle_restart_signal)
 
         self.fetcher = StockFetcher()
-        self.binance = BinanceFetcher()
+        self.binance = BinanceFetcher(currency=getattr(self.portfolio, "currency", "USD"))
         self.market_analyzer = MarketAnalyzer()
         self.recommender = RecommendationEngine()
         self.ai_recommender = AIRecommender(ai_model) if ai_mode != "off" else None

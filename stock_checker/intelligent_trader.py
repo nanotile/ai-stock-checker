@@ -260,6 +260,11 @@ class IntelligentTrader:
         self.position_entry_times = slot.entry_times
         self.position_exit_times = slot.exit_times
 
+    def _crypto_fetcher(self):
+        """BinanceFetcher in the active portfolio's currency."""
+        from .binance_fetcher import BinanceFetcher
+        return BinanceFetcher(currency=getattr(self.portfolio, "currency", "USD"))
+
     def begin_trade_cycle(self) -> None:
         """Reset per-cycle flags (called from trader_cycle.run_one_cycle)."""
         self._cycle_had_stop_loss = False
@@ -459,9 +464,7 @@ class IntelligentTrader:
         need = max(self._rs_lookback, DEFAULT_RS_LOOKBACK) + 5
         try:
             if is_crypto:
-                from .binance_fetcher import BinanceFetcher
-
-                client = binance or BinanceFetcher()
+                client = binance or self._crypto_fetcher()
                 bsym = client.convert_symbol(symbol)
                 klines = client.get_klines(bsym, interval="1d", limit=need)
                 return closes_from_binance_klines(klines)
@@ -605,7 +608,6 @@ class IntelligentTrader:
         In 'full' mode: Get AI recommendations for all
         """
         from .fetcher import StockFetcher
-        from .binance_fetcher import BinanceFetcher
         from stock_checker.ai_validate_memory import record_ai_validate
         import sys
 
@@ -618,7 +620,7 @@ class IntelligentTrader:
             sys.stdout.flush()
 
         fetcher = StockFetcher()
-        binance = BinanceFetcher()
+        binance = self._crypto_fetcher()
         validated_opportunities = []
 
         # Limit validation to top N opportunities to save AI calls
@@ -872,10 +874,9 @@ class IntelligentTrader:
         Display detailed information about current positions.
         """
         from .fetcher import StockFetcher
-        from .binance_fetcher import BinanceFetcher
 
         fetcher = StockFetcher()
-        binance = BinanceFetcher()
+        binance = self._crypto_fetcher()
 
         print(f"\n{'='*90}")
         print(f"📊  CURRENT POSITIONS ANALYSIS")
@@ -950,10 +951,9 @@ class IntelligentTrader:
         Monitor existing positions for profit-taking, stop-loss, and overweight trim.
         """
         from .fetcher import StockFetcher
-        from .binance_fetcher import BinanceFetcher
 
         fetcher = StockFetcher()
-        binance = BinanceFetcher()
+        binance = self._crypto_fetcher()
 
         holdings = list(self.portfolio.holdings.keys())
         marks: List[Dict] = []
@@ -1100,10 +1100,9 @@ class IntelligentTrader:
         Weekends: crypto only (24/7). US stocks stay paused.
         """
         from .fetcher import StockFetcher
-        from .binance_fetcher import BinanceFetcher
 
         fetcher = StockFetcher()
-        binance = BinanceFetcher()
+        binance = self._crypto_fetcher()
 
         is_weekend = self.scanner.is_weekend()
         if is_weekend:
@@ -1293,7 +1292,6 @@ class IntelligentTrader:
         Returns True if rebalancing occurred.
         """
         from .fetcher import StockFetcher
-        from .binance_fetcher import BinanceFetcher
         from .recommender import RecommendationEngine
 
         if not self.current_opportunities:
@@ -1312,7 +1310,7 @@ class IntelligentTrader:
             print(f"   📅 Weekend: crypto-only rebalancing (stocks paused)")
 
         fetcher = StockFetcher()
-        binance = BinanceFetcher()
+        binance = self._crypto_fetcher()
         recommender = RecommendationEngine()
 
         # Get current holdings
